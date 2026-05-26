@@ -60,8 +60,7 @@ func Run(args []string) int {
 
 	// 7. 命令分派
 	if len(args) == 0 {
-		printHelp()
-		return 2
+		return runSelector(triesPath, shipPath, "", colorsEnabled, andExit, andType, andKeys, andConfirm)
 	}
 
 	command := args[0]

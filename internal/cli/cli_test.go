@@ -121,10 +121,10 @@ func TestRunVersion(t *testing.T) {
 }
 
 func TestRunNoArgs(t *testing.T) {
-	// 无参数应返回 2（显示帮助）
+	// 无参数应尝试启动选择器（在无 TTY 环境下会返回 1）
 	code := Run(nil)
-	if code != 2 {
-		t.Errorf("Run(nil) = %d, want 2", code)
+	if code != 1 {
+		t.Errorf("Run(nil) = %d, want 1 (no TTY)", code)
 	}
 }
 

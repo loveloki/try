@@ -96,9 +96,9 @@ func renderHeader(m *SelectorModel) string {
 	}
 	sep := m.styles.render(m.styles.muted, strings.Repeat("─", w))
 
-	b.WriteString(m.styles.render(m.styles.header, "🏠 Try Directory Selection") + "\n")
+	b.WriteString(m.styles.render(m.styles.header, m.messages.Title) + "\n")
 	b.WriteString(sep + "\n")
-	b.WriteString("Search: " + m.textInput.View() + "\n")
+	b.WriteString(m.messages.SearchPrefix + m.textInput.View() + "\n")
 	b.WriteString(sep + "\n")
 
 	return b.String()
@@ -111,7 +111,7 @@ func renderFooter(m *SelectorModel) string {
 	// "Create new" 行
 	if input := strings.TrimSpace(m.textInput.Value()); input != "" {
 		name := strings.ReplaceAll(input, " ", "-")
-		b.WriteString("\n📂 Create new: " + m.styles.render(m.styles.accent, name) + "\n")
+		b.WriteString("\n" + m.messages.CreateNew + m.styles.render(m.styles.accent, name) + "\n")
 	}
 
 	w := m.width
@@ -126,10 +126,9 @@ func renderFooter(m *SelectorModel) string {
 	} else if m.deleteMode {
 		count := len(m.markedForDeletion)
 		b.WriteString(m.styles.render(m.styles.dangerBg,
-			fmt.Sprintf(" DELETE MODE  %d marked  |  Ctrl-D: Toggle  Enter: Confirm  Esc: Cancel", count)))
+			fmt.Sprintf(m.messages.DeleteMode, count)))
 	} else {
-		hint := "Ctrl-T: New  Ctrl-D: Delete  Ctrl-R: Rename  Ctrl-G: Ship  Esc: Quit"
-		b.WriteString(m.styles.render(m.styles.muted, hint))
+		b.WriteString(m.styles.render(m.styles.muted, m.messages.HintBar))
 	}
 
 	return b.String()

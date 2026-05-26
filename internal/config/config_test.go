@@ -18,10 +18,13 @@ func checkParse(t *testing.T, content string, want Config) {
 	if got.Theme != want.Theme {
 		t.Errorf("Theme = %q, want %q", got.Theme, want.Theme)
 	}
+	if got.Locale != want.Locale {
+		t.Errorf("Locale = %q, want %q", got.Locale, want.Locale)
+	}
 }
 
 func TestParseConfigData(t *testing.T) {
-	d := Config{Path: "~/src/tries", Ship: "~/src/ship", Theme: "auto"}
+	d := Config{Path: "~/src/tries", Ship: "~/src/ship", Theme: "auto", Locale: "auto"}
 	tests := []struct {
 		name    string
 		content string
@@ -29,16 +32,18 @@ func TestParseConfigData(t *testing.T) {
 	}{
 		{"empty", "", d},
 		{"comment only", "# this is a comment\n# another", d},
-		{"normal kv", "path = ~/my/tries\nship = ~/my/ship", Config{Path: "~/my/tries", Ship: "~/my/ship", Theme: "auto"}},
-		{"extra spaces", "  path  =  /tmp/tries  \n  ship  =  /tmp/ship  ", Config{Path: "/tmp/tries", Ship: "/tmp/ship", Theme: "auto"}},
-		{"duplicate key last wins", "path = /a\npath = /b", Config{Path: "/b", Ship: "~/src/ship", Theme: "auto"}},
-		{"unknown key ignored", "path = /a\nfoo = bar\nship = /b", Config{Path: "/a", Ship: "/b", Theme: "auto"}},
+		{"normal kv", "path = ~/my/tries\nship = ~/my/ship", Config{Path: "~/my/tries", Ship: "~/my/ship", Theme: "auto", Locale: "auto"}},
+		{"extra spaces", "  path  =  /tmp/tries  \n  ship  =  /tmp/ship  ", Config{Path: "/tmp/tries", Ship: "/tmp/ship", Theme: "auto", Locale: "auto"}},
+		{"duplicate key last wins", "path = /a\npath = /b", Config{Path: "/b", Ship: "~/src/ship", Theme: "auto", Locale: "auto"}},
+		{"unknown key ignored", "path = /a\nfoo = bar\nship = /b", Config{Path: "/a", Ship: "/b", Theme: "auto", Locale: "auto"}},
 		{"no equals sign", "invalid line", d},
-		{"mixed comments and values", "# comment\npath = /x\n\n# another\nship = /y\n", Config{Path: "/x", Ship: "/y", Theme: "auto"}},
-		{"only path set", "path = /custom", Config{Path: "/custom", Ship: "~/src/ship", Theme: "auto"}},
-		{"only ship set", "ship = /custom", Config{Path: "~/src/tries", Ship: "/custom", Theme: "auto"}},
-		{"theme dark", "theme = dark", Config{Path: "~/src/tries", Ship: "~/src/ship", Theme: "dark"}},
-		{"theme light", "theme = light", Config{Path: "~/src/tries", Ship: "~/src/ship", Theme: "light"}},
+		{"mixed comments and values", "# comment\npath = /x\n\n# another\nship = /y\n", Config{Path: "/x", Ship: "/y", Theme: "auto", Locale: "auto"}},
+		{"only path set", "path = /custom", Config{Path: "/custom", Ship: "~/src/ship", Theme: "auto", Locale: "auto"}},
+		{"only ship set", "ship = /custom", Config{Path: "~/src/tries", Ship: "/custom", Theme: "auto", Locale: "auto"}},
+		{"theme dark", "theme = dark", Config{Path: "~/src/tries", Ship: "~/src/ship", Theme: "dark", Locale: "auto"}},
+		{"theme light", "theme = light", Config{Path: "~/src/tries", Ship: "~/src/ship", Theme: "light", Locale: "auto"}},
+		{"locale zh", "locale = zh", Config{Path: "~/src/tries", Ship: "~/src/ship", Theme: "auto", Locale: "zh"}},
+		{"locale en", "locale = en", Config{Path: "~/src/tries", Ship: "~/src/ship", Theme: "auto", Locale: "en"}},
 	}
 
 	for _, tt := range tests {
@@ -177,6 +182,82 @@ func TestResolveTheme(t *testing.T) {
 			got := ResolveTheme(tt.cliTheme, tt.cfg)
 			if got != tt.want {
 				t.Errorf("ResolveTheme(%q, %+v) = %q, want %q", tt.cliTheme, tt.cfg, got, tt.want)
+			}
+		})
+	}
+}
+
+func TestResolveLocale(t *testing.T) {
+	tests := []struct {
+		name      string
+		cliLocale string
+		cfg       Config
+		envs      map[string]string
+		want      string
+	}{
+		{
+			name: "default auto resolves to en",
+			cfg:  Config{Locale: "auto"},
+			want: "en",
+		},
+		{
+			name: "config zh",
+			cfg:  Config{Locale: "zh"},
+			want: "zh",
+		},
+		{
+			name: "env overrides config",
+			cfg:  Config{Locale: "en"},
+			envs: map[string]string{"TRY_LOCALE": "zh"},
+			want: "zh",
+		},
+		{
+			name:      "cli overrides env",
+			cliLocale: "en",
+			cfg:       Config{Locale: "zh"},
+			envs:      map[string]string{"TRY_LOCALE": "zh"},
+			want:      "en",
+		},
+		{
+			name: "LANG zh detected",
+			cfg:  Config{Locale: "auto"},
+			envs: map[string]string{"LANG": "zh_CN.UTF-8"},
+			want: "zh",
+		},
+		{
+			name: "LANG en detected",
+			cfg:  Config{Locale: "auto"},
+			envs: map[string]string{"LANG": "en_US.UTF-8"},
+			want: "en",
+		},
+		{
+			name: "LC_MESSAGES zh overrides LANG en",
+			cfg:  Config{Locale: "auto"},
+			envs: map[string]string{"LANG": "en_US.UTF-8", "LC_MESSAGES": "zh_CN.UTF-8"},
+			want: "zh",
+		},
+		{
+			name: "LC_ALL overrides LC_MESSAGES",
+			cfg:  Config{Locale: "auto"},
+			envs: map[string]string{"LC_MESSAGES": "zh_CN.UTF-8", "LC_ALL": "en_US.UTF-8"},
+			want: "en",
+		},
+	}
+
+	// detectLocale 依赖的环境变量列表，每个子测试开始前清空以隔离副作用
+	localeEnvKeys := []string{"TRY_LOCALE", "LC_ALL", "LC_MESSAGES", "LANG"}
+
+	for _, tt := range tests {
+		t.Run(tt.name, func(t *testing.T) {
+			for _, k := range localeEnvKeys {
+				t.Setenv(k, "")
+			}
+			for k, v := range tt.envs {
+				t.Setenv(k, v)
+			}
+			got := ResolveLocale(tt.cliLocale, tt.cfg)
+			if got != tt.want {
+				t.Errorf("ResolveLocale(%q, %+v) = %q, want %q", tt.cliLocale, tt.cfg, got, tt.want)
 			}
 		})
 	}

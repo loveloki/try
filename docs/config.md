@@ -32,6 +32,7 @@ theme = dark
 | `path` | tries 根目录（实验目录存放位置） | 任意路径 | `~/src/tries` |
 | `ship` | ship 目标目录（发布为正式项目的目标位置） | 任意路径 | `~/src/ship` |
 | `theme` | 配色主题 | `dark` / `light` / `auto` | `auto` |
+| `locale` | 界面语言 | `en` / `zh` / `auto` | `auto` |
 
 ## 优先级
 
@@ -59,6 +60,15 @@ ship 目标目录（`ship`）解析优先级：
 2. TRY_THEME 环境变量
 3. ~/.try 配置文件中的 theme
 4. auto（通过 COLORFGBG 推断终端亮暗，默认 dark）
+```
+
+语言（`locale`）解析优先级：
+
+```
+1. --locale 命令行参数（最高优先）
+2. TRY_LOCALE 环境变量
+3. ~/.try 配置文件中的 locale
+4. auto（通过 LC_ALL/LC_MESSAGES/LANG 推断，默认 en）
 ```
 
 所有路径最终展开为绝对路径（`~` → home 目录）。

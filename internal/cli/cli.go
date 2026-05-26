@@ -11,6 +11,7 @@ import (
 	"github.com/xleine/try/internal/config"
 	"github.com/xleine/try/internal/dialog"
 	"github.com/xleine/try/internal/git"
+	"github.com/xleine/try/internal/i18n"
 	"github.com/xleine/try/internal/script"
 	"github.com/xleine/try/internal/selector"
 	"github.com/xleine/try/internal/shell"
@@ -45,9 +46,10 @@ func Run(args []string) int {
 		return 0
 	}
 
-	// 4. 提取 --path 和 --theme
+	// 4. 提取 --path、--theme、--locale
 	cliPath, args := extractPath(args)
 	cliTheme, args := extractValueFlag(args, "--theme")
+	cliLocale, args := extractValueFlag(args, "--locale")
 
 	// 5. 提取测试参数
 	andExit, args := extractBoolFlag(args, "--and-exit")
@@ -55,14 +57,15 @@ func Run(args []string) int {
 	andKeys, args := extractValueFlag(args, "--and-keys")
 	andConfirm, args := extractValueFlag(args, "--and-confirm")
 
-	// 6. 解析路径和主题
+	// 6. 解析路径、主题和语言
 	cfg := config.LoadConfig()
 	triesPath, shipPath := config.ResolvePaths(cliPath, cfg)
 	theme := config.ResolveTheme(cliTheme, cfg)
+	locale := config.ResolveLocale(cliLocale, cfg)
 
 	// 7. 命令分派
 	if len(args) == 0 {
-		return runSelector(triesPath, shipPath, "", colorsEnabled, theme, andExit, andType, andKeys, andConfirm)
+		return runSelector(triesPath, shipPath, "", colorsEnabled, theme, locale, andExit, andType, andKeys, andConfirm)
 	}
 
 	command := args[0]
@@ -83,19 +86,19 @@ func Run(args []string) int {
 		return cmdWorktree(triesPath, remaining)
 
 	case "exec":
-		return cmdExec(triesPath, shipPath, remaining, colorsEnabled, theme, andExit, andType, andKeys, andConfirm)
+		return cmdExec(triesPath, shipPath, remaining, colorsEnabled, theme, locale, andExit, andType, andKeys, andConfirm)
 
 	default:
 		// 默认视为查询词
 		searchTerm := strings.Join(args, "-")
-		return runSelector(triesPath, shipPath, searchTerm, colorsEnabled, theme, andExit, andType, andKeys, andConfirm)
+		return runSelector(triesPath, shipPath, searchTerm, colorsEnabled, theme, locale, andExit, andType, andKeys, andConfirm)
 	}
 }
 
 // cmdExec 处理包装函数内部调用的二级分派
-func cmdExec(triesPath, shipPath string, args []string, colorsEnabled bool, theme string, andExit bool, andType, andKeys, andConfirm string) int {
+func cmdExec(triesPath, shipPath string, args []string, colorsEnabled bool, theme, locale string, andExit bool, andType, andKeys, andConfirm string) int {
 	if len(args) == 0 {
-		return runSelector(triesPath, shipPath, "", colorsEnabled, theme, andExit, andType, andKeys, andConfirm)
+		return runSelector(triesPath, shipPath, "", colorsEnabled, theme, locale, andExit, andType, andKeys, andConfirm)
 	}
 
 	switch args[0] {
@@ -105,7 +108,7 @@ func cmdExec(triesPath, shipPath string, args []string, colorsEnabled bool, them
 		return cmdWorktree(triesPath, args[1:])
 	case "cd":
 		searchTerm := strings.Join(args[1:], "-")
-		return runSelector(triesPath, shipPath, searchTerm, colorsEnabled, theme, andExit, andType, andKeys, andConfirm)
+		return runSelector(triesPath, shipPath, searchTerm, colorsEnabled, theme, locale, andExit, andType, andKeys, andConfirm)
 	default:
 		// 检查是否是 Git URL
 		arg := args[0]
@@ -124,7 +127,7 @@ func cmdExec(triesPath, shipPath string, args []string, colorsEnabled bool, them
 
 		// 默认：查询词
 		searchTerm := strings.Join(args, "-")
-		return runSelector(triesPath, shipPath, searchTerm, colorsEnabled, theme, andExit, andType, andKeys, andConfirm)
+		return runSelector(triesPath, shipPath, searchTerm, colorsEnabled, theme, locale, andExit, andType, andKeys, andConfirm)
 	}
 }
 
@@ -232,11 +235,13 @@ func worktreePath(triesPath, repoDir, customName string) string {
 }
 
 // runSelector 启动交互式选择器
-func runSelector(triesPath, shipPath, searchTerm string, colorsEnabled bool, theme string, andExit bool, andType, andKeys, andConfirm string) int {
+func runSelector(triesPath, shipPath, searchTerm string, colorsEnabled bool, theme, locale string, andExit bool, andType, andKeys, andConfirm string) int {
 	var testKeys []string
 	if andKeys != "" {
 		testKeys = selector.ParseTestKeys(andKeys)
 	}
+
+	msgs := i18n.ForLocale(locale)
 
 	cfg := selector.Config{
 		SearchTerm:     searchTerm,
@@ -248,6 +253,7 @@ func runSelector(triesPath, shipPath, searchTerm string, colorsEnabled bool, the
 		TestConfirm:    andConfirm,
 		ColorsEnabled:  colorsEnabled,
 		Theme:          theme,
+		Messages:       msgs,
 	}
 
 	model := selector.New(cfg)
@@ -281,16 +287,16 @@ func runSelector(triesPath, shipPath, searchTerm string, colorsEnabled bool, the
 
 type dialogFactoryImpl struct{}
 
-func (f *dialogFactoryImpl) NewDeleteDialog(items []selector.DeleteItem, basePath, testConfirm string, width int) selector.DialogInstance {
-	return dialog.NewDeleteDialog(items, basePath, testConfirm, width)
+func (f *dialogFactoryImpl) NewDeleteDialog(items []selector.DeleteItem, basePath, testConfirm string, width int, msgs *i18n.Messages) selector.DialogInstance {
+	return dialog.NewDeleteDialog(items, basePath, testConfirm, width, msgs)
 }
 
-func (f *dialogFactoryImpl) NewRenameDialog(entry *selector.MatchedEntry, basePath string, width int) selector.DialogInstance {
-	return dialog.NewRenameDialog(entry, basePath, width)
+func (f *dialogFactoryImpl) NewRenameDialog(entry *selector.MatchedEntry, basePath string, width int, msgs *i18n.Messages) selector.DialogInstance {
+	return dialog.NewRenameDialog(entry, basePath, width, msgs)
 }
 
-func (f *dialogFactoryImpl) NewShipDialog(entry *selector.MatchedEntry, basePath, shipPath string, width int) selector.DialogInstance {
-	return dialog.NewShipDialog(entry, basePath, shipPath, width)
+func (f *dialogFactoryImpl) NewShipDialog(entry *selector.MatchedEntry, basePath, shipPath string, width int, msgs *i18n.Messages) selector.DialogInstance {
+	return dialog.NewShipDialog(entry, basePath, shipPath, width, msgs)
 }
 
 // --- 帮助文本 ---
@@ -310,6 +316,7 @@ func printHelp() {
   --version, -v        显示版本
   --path PATH          指定 tries 根目录
   --theme dark|light   配色主题（默认 auto 自动检测）
+  --locale en|zh       界面语言（默认 auto 自动检测）
   --no-colors          禁用颜色
 
 快捷键:

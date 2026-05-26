@@ -8,15 +8,17 @@ import (
 
 // Config 配置结构体，字段对应配置文件中的 key
 type Config struct {
-	Path  string // tries 根目录
-	Ship  string // ship 目标目录
-	Theme string // 主题：dark / light / auto
+	Path   string // tries 根目录
+	Ship   string // ship 目标目录
+	Theme  string // 主题：dark / light / auto
+	Locale string // 语言：en / zh / auto
 }
 
 var defaultConfig = Config{
-	Path:  "~/src/tries",
-	Ship:  "~/src/ship",
-	Theme: "auto",
+	Path:   "~/src/tries",
+	Ship:   "~/src/ship",
+	Theme:  "auto",
+	Locale: "auto",
 }
 
 // LoadConfig 从 ~/.try 读取配置，合并默认值。
@@ -54,6 +56,8 @@ func parseConfigData(data []byte) Config {
 			cfg.Ship = value
 		case "theme":
 			cfg.Theme = value
+		case "locale":
+			cfg.Locale = value
 		}
 	}
 	return cfg
@@ -111,6 +115,36 @@ func detectTheme() string {
 		}
 	}
 	return "dark"
+}
+
+// ResolveLocale 按优先级解析语言：--locale > TRY_LOCALE > config > auto
+func ResolveLocale(cliLocale string, cfg Config) string {
+	locale := cfg.Locale
+	if env := os.Getenv("TRY_LOCALE"); env != "" {
+		locale = env
+	}
+	if cliLocale != "" {
+		locale = cliLocale
+	}
+	switch locale {
+	case "en", "zh":
+		return locale
+	default:
+		return detectLocale()
+	}
+}
+
+// detectLocale 通过 LC_ALL > LC_MESSAGES > LANG 推断语言
+func detectLocale() string {
+	for _, key := range []string{"LC_ALL", "LC_MESSAGES", "LANG"} {
+		if val := os.Getenv(key); val != "" {
+			if strings.HasPrefix(val, "zh") {
+				return "zh"
+			}
+			return "en"
+		}
+	}
+	return "en"
 }
 
 // ExpandPath 展开 ~ 为用户 home 目录

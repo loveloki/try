@@ -8,6 +8,7 @@ import (
 
 	tea "charm.land/bubbletea/v2"
 	"charm.land/bubbles/v2/textinput"
+	"github.com/xleine/try/internal/i18n"
 	"github.com/xleine/try/internal/selector"
 )
 
@@ -26,10 +27,11 @@ type RenameDialog struct {
 	result   *selector.SelectionResult
 	errMsg   string
 	width    int
+	msgs     *i18n.Messages
 }
 
 // NewRenameDialog 创建重命名对话框，输入框初始值为当前目录名
-func NewRenameDialog(entry *selector.MatchedEntry, basePath string, width int) *RenameDialog {
+func NewRenameDialog(entry *selector.MatchedEntry, basePath string, width int, msgs *i18n.Messages) *RenameDialog {
 	ti := textinput.New()
 	ti.SetValue(entry.Entry.Basename)
 	ti.CharLimit = 256
@@ -49,6 +51,7 @@ func NewRenameDialog(entry *selector.MatchedEntry, basePath string, width int) *
 		entry:    entry,
 		basePath: basePath,
 		width:    width,
+		msgs:     msgs,
 	}
 }
 
@@ -89,15 +92,15 @@ func (d *RenameDialog) ViewContent() string {
 	var b strings.Builder
 	sep := strings.Repeat("─", d.width)
 
-	b.WriteString("          ✏️  Rename directory\n")
+	b.WriteString("          " + d.msgs.RenameTitle + "\n")
 	b.WriteString(sep + "\n")
 	b.WriteString("📁 " + d.entry.Entry.Basename + "\n\n\n")
-	b.WriteString("        New name: " + d.input.View() + "\n")
+	b.WriteString("        " + d.msgs.RenamePrompt + d.input.View() + "\n")
 	if d.errMsg != "" {
 		b.WriteString("        " + d.errMsg + "\n")
 	}
 	b.WriteString("\n" + sep + "\n")
-	b.WriteString("        Enter: Confirm  Esc: Cancel")
+	b.WriteString("        " + d.msgs.RenameFooter)
 	return b.String()
 }
 
@@ -110,16 +113,16 @@ func (d *RenameDialog) confirmRename() (*selector.SelectionResult, string) {
 	oldName := d.entry.Entry.Basename
 
 	if newName == "" {
-		return nil, "Name cannot be empty"
+		return nil, d.msgs.RenameEmpty
 	}
 	if strings.Contains(newName, "/") {
-		return nil, "Name cannot contain /"
+		return nil, d.msgs.RenameSlash
 	}
 	if newName == oldName {
 		return nil, ""
 	}
 	if selector.DirExists(filepath.Join(d.basePath, newName)) {
-		return nil, "Directory exists: " + newName
+		return nil, d.msgs.RenameExists + newName
 	}
 
 	return &selector.SelectionResult{

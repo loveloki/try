@@ -9,6 +9,7 @@ import (
 	tea "charm.land/bubbletea/v2"
 	"charm.land/bubbles/v2/textinput"
 	"github.com/xleine/try/internal/config"
+	"github.com/xleine/try/internal/i18n"
 	"github.com/xleine/try/internal/selector"
 )
 
@@ -27,10 +28,11 @@ type ShipDialog struct {
 	result   *selector.SelectionResult
 	errMsg   string
 	width    int
+	msgs     *i18n.Messages
 }
 
 // NewShipDialog 创建 ship 对话框，输入框初始值为推导的目标路径
-func NewShipDialog(entry *selector.MatchedEntry, basePath, shipPath string, width int) *ShipDialog {
+func NewShipDialog(entry *selector.MatchedEntry, basePath, shipPath string, width int, msgs *i18n.Messages) *ShipDialog {
 	projectName := selector.DateSuffixRe.ReplaceAllString(entry.Entry.Basename, "")
 	defaultDest := filepath.Join(shipPath, projectName)
 
@@ -54,6 +56,7 @@ func NewShipDialog(entry *selector.MatchedEntry, basePath, shipPath string, widt
 		basePath: basePath,
 		shipPath: shipPath,
 		width:    width,
+		msgs:     msgs,
 	}
 }
 
@@ -94,17 +97,17 @@ func (d *ShipDialog) ViewContent() string {
 	var b strings.Builder
 	sep := strings.Repeat("─", d.width)
 
-	b.WriteString("         🚀  Ship try to project\n")
+	b.WriteString("         " + d.msgs.ShipTitle + "\n")
 	b.WriteString(sep + "\n")
 	b.WriteString("📁 " + d.entry.Entry.Basename + "\n\n")
-	b.WriteString("   Destination: " + d.shipPath + "\n")
-	b.WriteString("   Move to: " + d.input.View() + "\n")
+	b.WriteString("   " + d.msgs.ShipDestLabel + d.shipPath + "\n")
+	b.WriteString("   " + d.msgs.ShipMoveLabel + d.input.View() + "\n")
 	if d.errMsg != "" {
 		b.WriteString("   " + d.errMsg + "\n")
 	}
-	b.WriteString("\n   The directory will be moved to the destination\n\n")
+	b.WriteString("\n   " + d.msgs.ShipHint + "\n\n")
 	b.WriteString(sep + "\n")
-	b.WriteString("        Enter: Confirm  Esc: Cancel")
+	b.WriteString("        " + d.msgs.ShipFooter)
 	return b.String()
 }
 
@@ -115,14 +118,14 @@ func (d *ShipDialog) confirmShip() (*selector.SelectionResult, string) {
 	dest := config.ExpandPath(strings.TrimSpace(d.input.Value()))
 
 	if dest == "" {
-		return nil, "Destination cannot be empty"
+		return nil, d.msgs.ShipEmptyErr
 	}
 	if selector.FileExists(dest) {
-		return nil, "Destination already exists: " + dest
+		return nil, d.msgs.ShipExistsErr + dest
 	}
 	parent := filepath.Dir(dest)
 	if !selector.DirExists(parent) {
-		return nil, "Parent directory does not exist: " + parent
+		return nil, d.msgs.ShipNoParentErr + parent
 	}
 
 	return &selector.SelectionResult{

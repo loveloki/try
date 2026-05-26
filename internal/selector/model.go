@@ -13,6 +13,7 @@ import (
 	"charm.land/bubbles/v2/textinput"
 	"github.com/xleine/try/internal/fuzzy"
 	"github.com/xleine/try/internal/git"
+	"github.com/xleine/try/internal/i18n"
 )
 
 const (
@@ -31,6 +32,7 @@ type Config struct {
 	TestConfirm    string
 	ColorsEnabled  bool
 	Theme          string // "dark" 或 "light"
+	Messages       *i18n.Messages
 }
 
 // SelectorModel 交互式选择器的核心状态
@@ -55,6 +57,7 @@ type SelectorModel struct {
 	activeDialog      dialog
 	dialogFactory     DialogFactory
 	styles            *styles
+	messages          *i18n.Messages
 }
 
 // DialogInstance 对话框实例接口（导出供 CLI 层的工厂实现使用）
@@ -89,6 +92,11 @@ func New(cfg Config) SelectorModel {
 
 	st := newStyles(cfg.ColorsEnabled, cfg.Theme)
 
+	msgs := cfg.Messages
+	if msgs == nil {
+		msgs = &i18n.EN
+	}
+
 	delegate := &EntryDelegate{
 		markedForDeletion: map[string]bool{},
 		styles:            st,
@@ -114,6 +122,7 @@ func New(cfg Config) SelectorModel {
 		testKeys:          cfg.TestKeys,
 		testConfirm:       cfg.TestConfirm,
 		styles:            st,
+		messages:          msgs,
 	}
 }
 
@@ -268,7 +277,7 @@ func (m SelectorModel) handleEnter() (tea.Model, tea.Cmd) {
 func (m SelectorModel) handleCreateNew() (tea.Model, tea.Cmd) {
 	input := strings.TrimSpace(m.textInput.Value())
 	if input == "" {
-		m.deleteStatus = "请先输入目录名称"
+		m.deleteStatus = m.messages.EmptyInputHint
 		return m, nil
 	}
 
@@ -288,7 +297,7 @@ func (m SelectorModel) handleQuit() (tea.Model, tea.Cmd) {
 	if m.deleteMode {
 		m.deleteMode = false
 		m.markedForDeletion = map[string]bool{}
-		m.deleteStatus = "Delete cancelled"
+		m.deleteStatus = m.messages.DeleteCancelled
 		return m, nil
 	}
 	return m, tea.Quit
@@ -348,7 +357,7 @@ func (m SelectorModel) openDeleteDialog() (tea.Model, tea.Cmd) {
 	// 延迟导入 dialog 包会导致循环依赖，这里直接构建
 	// dialog 包通过 SetDialog 方法注入（见下方 SetDialogFactory）
 	if m.dialogFactory != nil {
-		dlg := m.dialogFactory.NewDeleteDialog(items, m.basePath, m.testConfirm, m.width)
+		dlg := m.dialogFactory.NewDeleteDialog(items, m.basePath, m.testConfirm, m.width, m.messages)
 		m.activeDialog = dlg
 		return m, dlg.Init()
 	}
@@ -363,7 +372,7 @@ func (m SelectorModel) enterRenameDialog() (tea.Model, tea.Cmd) {
 	m.deleteMode = false
 	m.markedForDeletion = map[string]bool{}
 	if m.dialogFactory != nil {
-		dlg := m.dialogFactory.NewRenameDialog(entry, m.basePath, m.width)
+		dlg := m.dialogFactory.NewRenameDialog(entry, m.basePath, m.width, m.messages)
 		m.activeDialog = dlg
 		return m, dlg.Init()
 	}
@@ -378,7 +387,7 @@ func (m SelectorModel) enterShipDialog() (tea.Model, tea.Cmd) {
 	m.deleteMode = false
 	m.markedForDeletion = map[string]bool{}
 	if m.dialogFactory != nil {
-		dlg := m.dialogFactory.NewShipDialog(entry, m.basePath, m.shipPath, m.width)
+		dlg := m.dialogFactory.NewShipDialog(entry, m.basePath, m.shipPath, m.width, m.messages)
 		m.activeDialog = dlg
 		return m, dlg.Init()
 	}
@@ -477,9 +486,9 @@ func (m *SelectorModel) refreshList() tea.Cmd {
 
 // DialogFactory 对话框创建接口，由外部（CLI 层）注入，避免循环依赖
 type DialogFactory interface {
-	NewDeleteDialog(items []DeleteItem, basePath, testConfirm string, width int) DialogInstance
-	NewRenameDialog(entry *MatchedEntry, basePath string, width int) DialogInstance
-	NewShipDialog(entry *MatchedEntry, basePath, shipPath string, width int) DialogInstance
+	NewDeleteDialog(items []DeleteItem, basePath, testConfirm string, width int, msgs *i18n.Messages) DialogInstance
+	NewRenameDialog(entry *MatchedEntry, basePath string, width int, msgs *i18n.Messages) DialogInstance
+	NewShipDialog(entry *MatchedEntry, basePath, shipPath string, width int, msgs *i18n.Messages) DialogInstance
 }
 
 // SetDialogFactory 注入对话框工厂（避免 selector → dialog 循环依赖）

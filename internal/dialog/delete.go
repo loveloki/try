@@ -7,6 +7,7 @@ import (
 
 	tea "charm.land/bubbletea/v2"
 	"charm.land/bubbles/v2/textinput"
+	"github.com/xleine/try/internal/i18n"
 	"github.com/xleine/try/internal/selector"
 )
 
@@ -19,12 +20,13 @@ type DeleteDialog struct {
 	done         bool
 	result       *selector.SelectionResult
 	width        int
+	msgs         *i18n.Messages
 }
 
 // NewDeleteDialog 创建删除确认对话框
-func NewDeleteDialog(items []selector.DeleteItem, basePath, testConfirm string, width int) *DeleteDialog {
+func NewDeleteDialog(items []selector.DeleteItem, basePath, testConfirm string, width int, msgs *i18n.Messages) *DeleteDialog {
 	ti := textinput.New()
-	ti.Placeholder = "Type YES to confirm"
+	ti.Placeholder = msgs.DeletePlaceholder
 	ti.CharLimit = 10
 
 	return &DeleteDialog{
@@ -33,6 +35,7 @@ func NewDeleteDialog(items []selector.DeleteItem, basePath, testConfirm string, 
 		basePath:     basePath,
 		testConfirm:  testConfirm,
 		width:        width,
+		msgs:         msgs,
 	}
 }
 
@@ -75,15 +78,15 @@ func (d *DeleteDialog) ViewContent() string {
 	var b strings.Builder
 	sep := strings.Repeat("─", d.width)
 
-	b.WriteString(fmt.Sprintf("         🗑️  Delete %d directories?\n", len(d.markedItems)))
+	b.WriteString(fmt.Sprintf("         "+d.msgs.DeleteTitle+"\n", len(d.markedItems)))
 	b.WriteString(sep + "\n")
 	for _, item := range d.markedItems {
 		b.WriteString("🗑️ " + item.Basename + "\n")
 	}
 	b.WriteString("\n\n")
-	b.WriteString("        Type YES to confirm: " + d.confirmInput.View() + "\n\n")
+	b.WriteString("        " + d.msgs.DeletePrompt + d.confirmInput.View() + "\n\n")
 	b.WriteString(sep + "\n")
-	b.WriteString("        Enter: Confirm  Esc: Cancel")
+	b.WriteString("        " + d.msgs.DeleteFooter)
 	return b.String()
 }
 

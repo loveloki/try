@@ -5,6 +5,7 @@ import (
 	"path/filepath"
 	"testing"
 
+	"github.com/xleine/try/internal/i18n"
 	"github.com/xleine/try/internal/selector"
 )
 
@@ -12,7 +13,7 @@ import (
 
 func checkDeleteConfirm(t *testing.T, input string, items []selector.DeleteItem, basePath string, wantHasResult bool) {
 	t.Helper()
-	d := NewDeleteDialog(items, basePath, "", 80)
+	d := NewDeleteDialog(items, basePath, "", 80, &i18n.EN)
 	d.confirmInput.SetValue(input)
 	result := d.confirm()
 	if wantHasResult && result == nil {
@@ -63,7 +64,7 @@ func TestDeleteConfirmPathSafety(t *testing.T) {
 func checkRenameConfirm(t *testing.T, input, oldName, basePath string, wantHasResult bool, wantErrMsg string) {
 	t.Helper()
 	entry := &selector.MatchedEntry{Entry: selector.Entry{Basename: oldName}}
-	d := NewRenameDialog(entry, basePath, 80)
+	d := NewRenameDialog(entry, basePath, 80, &i18n.EN)
 	d.input.SetValue(input)
 	result, errMsg := d.confirmRename()
 
@@ -128,7 +129,7 @@ func checkShipConfirm(t *testing.T, input, sourcePath, basePath string, wantHasR
 	entry := &selector.MatchedEntry{
 		Entry: selector.Entry{Basename: "test-2025-08-14", Path: sourcePath},
 	}
-	d := NewShipDialog(entry, basePath, "/tmp/ship", 80)
+	d := NewShipDialog(entry, basePath, "/tmp/ship", 80, &i18n.EN)
 	d.input.SetValue(input)
 	result, errMsg := d.confirmShip()
 

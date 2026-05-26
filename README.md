@@ -128,11 +128,13 @@ staticcheck ./...   # 第三方静态检查（需安装：go install honnef.co/g
 
 ## 发布
 
-打 tag 触发 GitHub Actions 自动构建发布：
+一键发布新版本（自动推断版本号、运行测试、创建 tag、推送触发 CI）：
 
 ```bash
-git tag v0.1.0
-git push origin v0.1.0
+./scripts/release.sh         # 自动推断版本（根据 commit 历史）
+./scripts/release.sh patch   # 补丁版本 (x.y.Z)
+./scripts/release.sh minor   # 次版本 (x.Y.0)
+./scripts/release.sh major   # 主版本 (X.0.0)
 ```
 
-GoReleaser 会构建全平台二进制并创建 GitHub Release。
+依赖 [svu](https://github.com/caarlos0/svu)（`go install github.com/caarlos0/svu@latest`）。GoReleaser 会构建全平台二进制并创建 GitHub Release。

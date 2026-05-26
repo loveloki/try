@@ -52,7 +52,7 @@
 
 | command | 处理方式 | 说明 |
 |---------|---------|------|
-| `nil` | `printGlobalHelp` | 无命令时显示帮助（exit 2） |
+| `nil` | `runSelector` | 无命令时直接进入交互式选择器 |
 | `clone` | `cmdClone` | Git 仓库克隆 |
 | `install` | `cmdInstall` | 写入 Shell 配置文件 |
 | `exec` | 二级分派 | 包装函数内部调用入口 |

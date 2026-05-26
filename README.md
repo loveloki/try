@@ -11,6 +11,8 @@
 - **重命名** — 就地重命名目录
 - **Ship** — 将成熟的实验项目移动到正式项目目录
 - **Shell 集成** — 通过 `eval` 机制实现跨 Shell 的 cd 操作
+- **主题支持** — dark / light 配色主题，支持自动检测终端亮暗
+- **中英文界面** — 自动检测系统语言，可通过配置切换
 
 ## 安装
 
@@ -52,6 +54,7 @@ try redis              # 模糊搜索 "redis"
 try clone <url>        # 克隆 Git 仓库到 tries 目录
 try clone <url> name   # 克隆并指定目录名
 try worktree . name    # 从当前仓库创建 worktree
+try . name             # 创建 worktree 或目录（简写）
 try install            # 安装 Shell 集成
 try --help             # 查看完整帮助
 ```
@@ -96,10 +99,11 @@ try --help             # 查看完整帮助
 cmd/try/main.go          # 入口
 internal/
   cli/                   # CLI 参数解析与命令分派
-  config/                # 配置文件解析
+  config/                # 配置文件解析（JSON）
   selector/              # 交互式选择器（Bubbletea TUI）
   dialog/                # 对话框（删除/重命名/Ship）
   fuzzy/                 # 模糊匹配引擎
+  i18n/                  # 国际化（中英文界面文本）
   script/                # 脚本生成与文件操作
   shell/                 # Shell 检测与集成安装
   git/                   # Git URI 解析与目录命名
@@ -116,8 +120,10 @@ internal/
 ## 开发
 
 ```bash
-go test ./...       # 运行所有测试
 go build ./cmd/try  # 构建二进制
+go test ./...       # 运行所有测试
+go vet ./...        # 官方静态检查
+staticcheck ./...   # 第三方静态检查（需安装：go install honnef.co/go/tools/cmd/staticcheck@latest）
 ```
 
 ## 发布

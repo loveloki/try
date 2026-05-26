@@ -11,8 +11,8 @@ import (
 	"charm.land/bubbles/v2/key"
 	"charm.land/bubbles/v2/list"
 	"charm.land/bubbles/v2/textinput"
-	"github.com/user/try/internal/fuzzy"
-	"github.com/user/try/internal/git"
+	"github.com/xleine/try/internal/fuzzy"
+	"github.com/xleine/try/internal/git"
 )
 
 const (

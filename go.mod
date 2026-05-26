@@ -1,4 +1,4 @@
-module github.com/user/try
+module github.com/xleine/try
 
 go 1.26.3
 

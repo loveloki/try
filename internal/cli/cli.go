@@ -8,12 +8,12 @@ import (
 	"time"
 
 	tea "charm.land/bubbletea/v2"
-	"github.com/user/try/internal/config"
-	"github.com/user/try/internal/dialog"
-	"github.com/user/try/internal/git"
-	"github.com/user/try/internal/script"
-	"github.com/user/try/internal/selector"
-	"github.com/user/try/internal/shell"
+	"github.com/xleine/try/internal/config"
+	"github.com/xleine/try/internal/dialog"
+	"github.com/xleine/try/internal/git"
+	"github.com/xleine/try/internal/script"
+	"github.com/xleine/try/internal/selector"
+	"github.com/xleine/try/internal/shell"
 )
 
 var version = "dev"

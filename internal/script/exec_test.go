@@ -7,7 +7,7 @@ import (
 	"strings"
 	"testing"
 
-	"github.com/user/try/internal/selector"
+	"github.com/xleine/try/internal/selector"
 )
 
 // checkExecute 封装完整的 Execute 测试逻辑

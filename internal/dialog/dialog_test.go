@@ -5,7 +5,7 @@ import (
 	"path/filepath"
 	"testing"
 
-	"github.com/user/try/internal/selector"
+	"github.com/xleine/try/internal/selector"
 )
 
 // --- Delete 对话框测试 ---

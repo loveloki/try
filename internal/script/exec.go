@@ -9,7 +9,7 @@ import (
 	"strings"
 	"time"
 
-	"github.com/user/try/internal/selector"
+	"github.com/xleine/try/internal/selector"
 )
 
 // Execute 根据选择结果类型分派到对应的执行函数

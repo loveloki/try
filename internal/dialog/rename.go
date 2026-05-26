@@ -8,7 +8,7 @@ import (
 
 	tea "charm.land/bubbletea/v2"
 	"charm.land/bubbles/v2/textinput"
-	"github.com/user/try/internal/selector"
+	"github.com/xleine/try/internal/selector"
 )
 
 var (

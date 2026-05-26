@@ -121,7 +121,11 @@ func TestRunVersion(t *testing.T) {
 }
 
 func TestRunNoArgs(t *testing.T) {
-	// 无参数应尝试启动选择器（在无 TTY 环境下会返回 1）
+	// 使用临时空目录隔离，避免依赖用户实际的 tries 目录
+	t.Setenv("TRY_PATH", t.TempDir())
+	t.Setenv("TRY_PROJECTS", t.TempDir())
+
+	// 无参数应尝试启动选择器（在无 TTY + 空目录环境下会返回 1）
 	code := Run(nil)
 	if code != 1 {
 		t.Errorf("Run(nil) = %d, want 1 (no TTY)", code)

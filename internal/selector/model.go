@@ -56,13 +56,16 @@ type SelectorModel struct {
 	styles            *styles
 }
 
-// dialog 接口（避免循环引用，在 model 内部定义最小接口）
-type dialog interface {
+// DialogInstance 对话框实例接口（导出供 CLI 层的工厂实现使用）
+type DialogInstance interface {
 	tea.Model
 	Result() *SelectionResult
 	Done() bool
 	ViewContent() string
 }
+
+// dialog 是内部别名
+type dialog = DialogInstance
 
 type renderOnceMsg struct{}
 type testKeyMsg struct{}
@@ -471,9 +474,9 @@ func (m *SelectorModel) refreshList() tea.Cmd {
 
 // DialogFactory 对话框创建接口，由外部（CLI 层）注入，避免循环依赖
 type DialogFactory interface {
-	NewDeleteDialog(items []DeleteItem, basePath, testConfirm string, width int) dialog
-	NewRenameDialog(entry *MatchedEntry, basePath string, width int) dialog
-	NewShipDialog(entry *MatchedEntry, basePath, shipPath string, width int) dialog
+	NewDeleteDialog(items []DeleteItem, basePath, testConfirm string, width int) DialogInstance
+	NewRenameDialog(entry *MatchedEntry, basePath string, width int) DialogInstance
+	NewShipDialog(entry *MatchedEntry, basePath, shipPath string, width int) DialogInstance
 }
 
 // SetDialogFactory 注入对话框工厂（避免 selector → dialog 循环依赖）

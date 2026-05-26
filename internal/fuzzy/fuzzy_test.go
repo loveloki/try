@@ -37,29 +37,6 @@ func checkMatchCount(t *testing.T, entries []Entry, query string, limit int, wan
 	}
 }
 
-// checkPositions 验证高亮位置
-func checkPositions(t *testing.T, entries []Entry, query string, wantPositions [][]int) {
-	t.Helper()
-	results := Match(entries, query, 0)
-	if len(results) != len(wantPositions) {
-		t.Fatalf("Match(%q) returned %d results, want %d", query, len(results), len(wantPositions))
-	}
-	for i, wp := range wantPositions {
-		rp := results[i].Positions
-		if len(rp) != len(wp) {
-			t.Errorf("Match(%q)[%d].Positions len = %d %v, want %d %v",
-				query, i, len(rp), rp, len(wp), wp)
-			continue
-		}
-		for j := range wp {
-			if rp[j] != wp[j] {
-				t.Errorf("Match(%q)[%d].Positions = %v, want %v", query, i, rp, wp)
-				break
-			}
-		}
-	}
-}
-
 // 测试用条目集
 func testEntries() []Entry {
 	return []Entry{

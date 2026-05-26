@@ -77,6 +77,7 @@ func New(cfg Config) SelectorModel {
 
 	ti := textinput.New()
 	ti.CharLimit = 256
+	ti.Focus()
 
 	// InitialInput 优先于 SearchTerm
 	if cfg.InitialInput != "" {

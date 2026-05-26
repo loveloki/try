@@ -222,6 +222,29 @@ func TestSelectorCreateInEmptyDir(t *testing.T) {
 	}
 }
 
+// TestSelectorTypeAndCreate 测试真实打字流程：
+// 不用 InitialInput，而是通过 TestKeys 模拟逐字输入，验证 textInput 正确接收焦点和按键。
+func TestSelectorTypeAndCreate(t *testing.T) {
+	tmpDir := t.TempDir()
+
+	sm := driveModel(t, Config{
+		BasePath:      tmpDir,
+		TestKeys:      []string{"h", "i", "CTRL-T"},
+		ColorsEnabled: false,
+	})
+
+	result := sm.Selected()
+	if result == nil {
+		t.Fatal("expected a selection result: textInput may not be focused")
+	}
+	if result.Type != SelectMkdir {
+		t.Errorf("Type = %v, want SelectMkdir", result.Type)
+	}
+	if !strings.Contains(result.Path, "hi") {
+		t.Errorf("path should contain typed text 'hi', got %q", result.Path)
+	}
+}
+
 func TestParseTestKeys(t *testing.T) {
 	tests := []struct {
 		name string

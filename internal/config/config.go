@@ -1,17 +1,18 @@
 package config
 
 import (
+	"encoding/json"
 	"os"
 	"path/filepath"
 	"strings"
 )
 
-// Config 配置结构体，字段对应配置文件中的 key
+// Config 配置结构体，JSON 字段名为小写
 type Config struct {
-	Path   string // tries 根目录
-	Ship   string // ship 目标目录
-	Theme  string // 主题：dark / light / auto
-	Locale string // 语言：en / zh / auto
+	Path   string `json:"path"`   // tries 根目录
+	Ship   string `json:"ship"`   // ship 目标目录
+	Theme  string `json:"theme"`  // 主题：dark / light / auto
+	Locale string `json:"locale"` // 语言：en / zh / auto
 }
 
 var defaultConfig = Config{
@@ -21,45 +22,24 @@ var defaultConfig = Config{
 	Locale: "auto",
 }
 
-// LoadConfig 从 ~/.try 读取配置，合并默认值。
+// LoadConfig 从 ~/.config/try/config.json 读取配置，合并默认值。
 // 配置文件不存在不报错，静默使用默认值。
 func LoadConfig() Config {
 	home, err := os.UserHomeDir()
 	if err != nil {
 		return defaultConfig
 	}
-	data, err := os.ReadFile(filepath.Join(home, ".try"))
+	data, err := os.ReadFile(filepath.Join(home, ".config", "try", "config.json"))
 	if err != nil {
 		return defaultConfig
 	}
 	return parseConfigData(data)
 }
 
-// parseConfigData 解析 key=value 格式的配置内容，合并默认值
+// parseConfigData 解析 JSON 格式的配置内容，未设置的字段保留默认值
 func parseConfigData(data []byte) Config {
 	cfg := defaultConfig
-	for _, line := range strings.Split(string(data), "\n") {
-		line = strings.TrimSpace(line)
-		if line == "" || strings.HasPrefix(line, "#") {
-			continue
-		}
-		k, v, ok := strings.Cut(line, "=")
-		if !ok {
-			continue
-		}
-		key := strings.TrimSpace(k)
-		value := strings.TrimSpace(v)
-		switch key {
-		case "path":
-			cfg.Path = value
-		case "ship":
-			cfg.Ship = value
-		case "theme":
-			cfg.Theme = value
-		case "locale":
-			cfg.Locale = value
-		}
-	}
+	json.Unmarshal(data, &cfg)
 	return cfg
 }
 

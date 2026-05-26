@@ -80,7 +80,7 @@ type themePalette struct {
 ```
 1. --theme 命令行参数（最高优先）
 2. TRY_THEME 环境变量
-3. ~/.try 配置文件中的 theme
+3. ~/.config/try/config.json 中的 theme
 4. auto（通过 COLORFGBG 环境变量推断，无法推断时默认 dark）
 ```
 

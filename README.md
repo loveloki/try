@@ -70,19 +70,25 @@ try --help             # 查看完整帮助
 
 ## 配置
 
-配置文件位于 `~/.try`，格式为 `key=value`：
+配置文件位于 `~/.config/try/config.json`，JSON 格式：
 
+```json
+{
+  "path": "~/src/tries",
+  "ship": "~/src/ship",
+  "theme": "auto",
+  "locale": "auto"
+}
 ```
-path = ~/src/tries
-ship = ~/src/ship
-```
 
-路径优先级：`--path` 参数 > 环境变量 > 配置文件 > 默认值。
+所有字段均可省略，未设置时使用默认值。各配置项的优先级均为：命令行参数 > 环境变量 > 配置文件 > 默认值。
 
-| 配置项 | 环境变量 | 默认值 | 说明 |
-|--------|----------|--------|------|
-| `path` | `TRY_PATH` | `~/src/tries` | tries 根目录 |
-| `ship` | `TRY_PROJECTS` | `~/src/ship` | ship 目标目录 |
+| 配置项 | 环境变量 | 命令行参数 | 默认值 | 说明 |
+|--------|----------|-----------|--------|------|
+| `path` | `TRY_PATH` | `--path` | `~/src/tries` | tries 根目录 |
+| `ship` | `TRY_PROJECTS` | — | `~/src/ship` | ship 目标目录 |
+| `theme` | `TRY_THEME` | `--theme` | `auto` | 配色主题（`dark` / `light` / `auto`） |
+| `locale` | `TRY_LOCALE` | `--locale` | `auto` | 界面语言（`en` / `zh` / `auto`） |
 
 ## 项目结构
 

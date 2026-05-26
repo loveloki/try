@@ -2,28 +2,30 @@
 
 ## 概述
 
-try 支持通过配置文件持久化目录设置，避免每次都通过环境变量或命令行参数指定路径。配置文件为简单的 key=value 格式，无需第三方解析库。
+try 支持通过配置文件持久化目录设置，避免每次都通过环境变量或命令行参数指定路径。配置文件为 JSON 格式，使用 Go 标准库 `encoding/json` 解析。
 
 ## 配置文件路径
 
-`~/.try`（用户 home 目录下的 `.try` 文件）。
+`~/.config/try/config.json`（XDG 配置目录下的配置文件）。
 
 ## 文件格式
 
-每行一个配置项，`key = value` 格式。`#` 开头为注释行，空行忽略。
+标准 JSON 格式：
 
-```
-# try 配置文件
-path = ~/src/tries
-ship = ~/src/ship
-theme = dark
+```json
+{
+  "path": "~/src/tries",
+  "ship": "~/src/ship",
+  "theme": "dark",
+  "locale": "zh"
+}
 ```
 
 解析规则：
-- key 和 value 两侧的空白自动去除
-- value 支持 `~` 前缀（解析为用户 home 目录）
-- 重复 key 以最后一个为准
+- 路径值支持 `~` 前缀（解析为用户 home 目录）
 - 未识别的 key 静默忽略（向前兼容）
+- 未设置的字段保留默认值
+- 文件不存在或 JSON 格式错误时静默使用默认值
 
 ## 配置项
 
@@ -41,7 +43,7 @@ tries 路径（`path`）解析优先级：
 ```
 1. --path 命令行参数（显式指定，最高优先）
 2. TRY_PATH 环境变量
-3. ~/.try 配置文件中的 path
+3. ~/.config/try/config.json 中的 path
 4. 默认值 ~/src/tries
 ```
 
@@ -49,7 +51,7 @@ ship 目标目录（`ship`）解析优先级：
 
 ```
 1. TRY_PROJECTS 环境变量
-2. ~/.try 配置文件中的 ship
+2. ~/.config/try/config.json 中的 ship
 3. 默认值 ~/src/ship
 ```
 
@@ -58,7 +60,7 @@ ship 目标目录（`ship`）解析优先级：
 ```
 1. --theme 命令行参数（最高优先）
 2. TRY_THEME 环境变量
-3. ~/.try 配置文件中的 theme
+3. ~/.config/try/config.json 中的 theme
 4. auto（通过 COLORFGBG 推断终端亮暗，默认 dark）
 ```
 
@@ -67,7 +69,7 @@ ship 目标目录（`ship`）解析优先级：
 ```
 1. --locale 命令行参数（最高优先）
 2. TRY_LOCALE 环境变量
-3. ~/.try 配置文件中的 locale
+3. ~/.config/try/config.json 中的 locale
 4. auto（通过 LC_ALL/LC_MESSAGES/LANG 推断，默认 en）
 ```
 
@@ -76,55 +78,38 @@ ship 目标目录（`ship`）解析优先级：
 ## 解析实现
 
 ```go
-// 配置结构体，字段对应配置文件中的 key
+// Config 配置结构体，JSON 字段名为小写
 type Config struct {
-    Path  string // tries 根目录
-    Ship  string // ship 目标目录
-    Theme string // 主题：dark / light / auto
+    Path   string `json:"path"`   // tries 根目录
+    Ship   string `json:"ship"`   // ship 目标目录
+    Theme  string `json:"theme"`  // 主题：dark / light / auto
+    Locale string `json:"locale"` // 语言：en / zh / auto
 }
 
-// 默认值
 var defaultConfig = Config{
-    Path:  "~/src/tries",
-    Ship:  "~/src/ship",
-    Theme: "auto",
+    Path:   "~/src/tries",
+    Ship:   "~/src/ship",
+    Theme:  "auto",
+    Locale: "auto",
 }
 
-// LoadConfig 从 ~/.try 读取配置，合并默认值
+// LoadConfig 从 ~/.config/try/config.json 读取配置，合并默认值
 func LoadConfig() Config {
-    cfg := defaultConfig
-
     home, err := os.UserHomeDir()
     if err != nil {
-        return cfg
+        return defaultConfig
     }
-
-    data, err := os.ReadFile(filepath.Join(home, ".try"))
+    data, err := os.ReadFile(filepath.Join(home, ".config", "try", "config.json"))
     if err != nil {
-        return cfg
+        return defaultConfig
     }
+    return parseConfigData(data)
+}
 
-    for _, line := range strings.Split(string(data), "\n") {
-        line = strings.TrimSpace(line)
-        if line == "" || strings.HasPrefix(line, "#") {
-            continue
-        }
-        k, v, ok := strings.Cut(line, "=")
-        if !ok {
-            continue
-        }
-        key := strings.TrimSpace(k)
-        value := strings.TrimSpace(v)
-        switch key {
-        case "path":
-            cfg.Path = value
-        case "ship":
-            cfg.Ship = value
-        case "theme":
-            cfg.Theme = value
-        }
-    }
-
+// parseConfigData 解析 JSON，未设置的字段保留默认值
+func parseConfigData(data []byte) Config {
+    cfg := defaultConfig
+    json.Unmarshal(data, &cfg)
     return cfg
 }
 ```

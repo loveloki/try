@@ -31,19 +31,20 @@ func TestParseConfigData(t *testing.T) {
 		want    Config
 	}{
 		{"empty", "", d},
-		{"comment only", "# this is a comment\n# another", d},
-		{"normal kv", "path = ~/my/tries\nship = ~/my/ship", Config{Path: "~/my/tries", Ship: "~/my/ship", Theme: "auto", Locale: "auto"}},
-		{"extra spaces", "  path  =  /tmp/tries  \n  ship  =  /tmp/ship  ", Config{Path: "/tmp/tries", Ship: "/tmp/ship", Theme: "auto", Locale: "auto"}},
-		{"duplicate key last wins", "path = /a\npath = /b", Config{Path: "/b", Ship: "~/src/ship", Theme: "auto", Locale: "auto"}},
-		{"unknown key ignored", "path = /a\nfoo = bar\nship = /b", Config{Path: "/a", Ship: "/b", Theme: "auto", Locale: "auto"}},
-		{"no equals sign", "invalid line", d},
-		{"mixed comments and values", "# comment\npath = /x\n\n# another\nship = /y\n", Config{Path: "/x", Ship: "/y", Theme: "auto", Locale: "auto"}},
-		{"only path set", "path = /custom", Config{Path: "/custom", Ship: "~/src/ship", Theme: "auto", Locale: "auto"}},
-		{"only ship set", "ship = /custom", Config{Path: "~/src/tries", Ship: "/custom", Theme: "auto", Locale: "auto"}},
-		{"theme dark", "theme = dark", Config{Path: "~/src/tries", Ship: "~/src/ship", Theme: "dark", Locale: "auto"}},
-		{"theme light", "theme = light", Config{Path: "~/src/tries", Ship: "~/src/ship", Theme: "light", Locale: "auto"}},
-		{"locale zh", "locale = zh", Config{Path: "~/src/tries", Ship: "~/src/ship", Theme: "auto", Locale: "zh"}},
-		{"locale en", "locale = en", Config{Path: "~/src/tries", Ship: "~/src/ship", Theme: "auto", Locale: "en"}},
+		{"invalid json", "not json", d},
+		{"empty object", "{}", d},
+		{"full config", `{"path":"~/my/tries","ship":"~/my/ship","theme":"dark","locale":"zh"}`,
+			Config{Path: "~/my/tries", Ship: "~/my/ship", Theme: "dark", Locale: "zh"}},
+		{"only path", `{"path":"/custom"}`,
+			Config{Path: "/custom", Ship: "~/src/ship", Theme: "auto", Locale: "auto"}},
+		{"only ship", `{"ship":"/custom"}`,
+			Config{Path: "~/src/tries", Ship: "/custom", Theme: "auto", Locale: "auto"}},
+		{"only theme", `{"theme":"light"}`,
+			Config{Path: "~/src/tries", Ship: "~/src/ship", Theme: "light", Locale: "auto"}},
+		{"only locale", `{"locale":"en"}`,
+			Config{Path: "~/src/tries", Ship: "~/src/ship", Theme: "auto", Locale: "en"}},
+		{"unknown key ignored", `{"path":"/a","foo":"bar","ship":"/b"}`,
+			Config{Path: "/a", Ship: "/b", Theme: "auto", Locale: "auto"}},
 	}
 
 	for _, tt := range tests {

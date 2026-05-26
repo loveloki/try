@@ -24,7 +24,7 @@ cmd/try/main.go        # 入口：调用 cli.Run(os.Args[1:])
 internal/
   cli/                 # CLI 解析与命令分派（所有解析逻辑在此）
     cli.go
-  config/              # 配置文件加载（~/.try）
+  config/              # 配置文件加载（~/.config/try/config.json）
     config.go
   selector/            # 交互式选择器（Bubbletea Model + Bubbles list）
     model.go           # SelectorModel：主界面状态与逻辑
@@ -157,7 +157,7 @@ SelectorModel 维护以下状态：
 
 ## 配置文件
 
-`~/.try`，简单 key=value 格式。详见 `config.md`。
+`~/.config/try/config.json`，JSON 格式。详见 `config.md`。
 
 | key | 说明 | 默认值 |
 |-----|------|--------|

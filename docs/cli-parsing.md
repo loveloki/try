@@ -46,7 +46,7 @@
 ```
 1. --path 参数（显式指定）
 2. TRY_PATH 环境变量
-3. ~/.try 配置文件中的 path
+3. ~/.config/try/config.json 中的 path
 4. 默认值 ~/src/tries
 ```
 

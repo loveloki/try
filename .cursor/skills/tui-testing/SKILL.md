@@ -17,7 +17,44 @@ description: >-
 
 ## 常见陷阱检查清单
 
-### 1. 值接收器 vs 指针接收器
+### 1. 测试环境隔离（Go test cache 陷阱）
+
+Go 测试缓存**只追踪源代码和编译参数的变化**，不追踪外部文件系统状态。
+如果测试读取了用户真实目录（如 `~/src/tries`），首次通过后结果被缓存，
+即使目录内容变化（新增/删除文件）缓存也不会失效。当其他因素（如添加 `-timeout`
+参数）导致缓存失效并重新执行时，测试会因外部状态变化而意外失败。
+
+**规则**：所有读取文件系统或启动 TUI 的测试必须完全隔离：
+
+```go
+func TestRunNoArgs(t *testing.T) {
+    // 1. 用临时目录覆盖真实路径，避免依赖用户环境
+    t.Setenv("TRY_PATH", t.TempDir())
+    t.Setenv("TRY_PROJECTS", t.TempDir())
+
+    // 2. 将 stdin 替换为关闭的 pipe（非 TTY），防止 bubbletea 进入交互模式卡住
+    r, w, _ := os.Pipe()
+    w.Close()
+    oldStdin := os.Stdin
+    os.Stdin = r
+    t.Cleanup(func() { os.Stdin = oldStdin; r.Close() })
+
+    code := Run(nil)
+    if code != 1 {
+        t.Errorf("Run(nil) = %d, want 1", code)
+    }
+}
+```
+
+**审查规则**：
+- 凡是调用 `Run()`、`runSelector()` 或任何最终读取 `triesPath`/`shipPath` 的函数，
+  测试中必须通过 `t.Setenv` 或参数注入指向 `t.TempDir()`
+- 凡是会启动 bubbletea `tea.NewProgram` 的测试，必须将 `os.Stdin` 替换为
+  关闭的 pipe，否则在 TTY 终端中运行 `go test` 会因进入交互模式而卡住
+- 禁止假设"测试环境下某个目录一定为空" — 只有 `t.TempDir()` 能保证干净
+- 用 `go clean -testcache && go test ./... -timeout 60s` 验证测试在无缓存下仍能通过
+
+### 2. 值接收器 vs 指针接收器
 
 Bubbletea v2 的 `Init()` / `Update()` / `View()` 使用值接收器。调用子组件的指针方法时，
 修改的是副本而非原始 model。
@@ -39,7 +76,7 @@ func New() Model {
 **审查规则**：在 `Init()` 和 `Update()` 中搜索所有对子组件指针方法的调用，
 确认状态修改会被返回值携带回去。
 
-### 2. 测试绕过了真实路径
+### 3. 测试绕过了真实路径
 
 测试基础设施（如 `driveModel`）可能绕过 `Init()`，导致初始化相关的 bug 不被发现。
 
@@ -53,7 +90,7 @@ sm := driveModel(t, Config{TestKeys: []string{"h", "i", "CTRL-T"}})
 
 **审查规则**：对每个测试问"这个测试走的是用户真实操作的代码路径吗？"
 
-### 3. 预填值 vs 真实输入
+### 4. 预填值 vs 真实输入
 
 `SetValue()` 不需要焦点，`Update(KeyPressMsg)` 需要焦点。
 如果所有测试都用 `SetValue()` 预填，则焦点相关的 bug 永远不会被发现。

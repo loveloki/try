@@ -1,6 +1,7 @@
 package cli
 
 import (
+	"os"
 	"strings"
 	"testing"
 )
@@ -121,11 +122,20 @@ func TestRunVersion(t *testing.T) {
 }
 
 func TestRunNoArgs(t *testing.T) {
-	// 使用临时空目录隔离，避免依赖用户实际的 tries 目录
+	// 用临时空目录隔离，避免依赖用户实际的 tries 目录
 	t.Setenv("TRY_PATH", t.TempDir())
 	t.Setenv("TRY_PROJECTS", t.TempDir())
 
-	// 无参数应尝试启动选择器（在无 TTY + 空目录环境下会返回 1）
+	// 将 stdin 替换为关闭的 pipe（非 TTY），防止 bubbletea 进入交互模式卡住
+	r, w, err := os.Pipe()
+	if err != nil {
+		t.Fatal(err)
+	}
+	w.Close()
+	oldStdin := os.Stdin
+	os.Stdin = r
+	t.Cleanup(func() { os.Stdin = oldStdin; r.Close() })
+
 	code := Run(nil)
 	if code != 1 {
 		t.Errorf("Run(nil) = %d, want 1 (no TTY)", code)

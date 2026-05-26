@@ -245,6 +245,98 @@ func TestSelectorTypeAndCreate(t *testing.T) {
 	}
 }
 
+// TestSelectorTypeAndSearch 测试打字后列表过滤：
+// 通过 TestKeys 输入搜索词，验证列表被过滤后选择正确的条目。
+func TestSelectorTypeAndSearch(t *testing.T) {
+	tmpDir := setupTestDirs(t)
+
+	sm := driveModel(t, Config{
+		BasePath:      tmpDir,
+		TestKeys:      []string{"a", "l", "p", "ENTER"},
+		ColorsEnabled: false,
+	})
+
+	result := sm.Selected()
+	if result == nil {
+		t.Fatal("expected a selection result after typing search query")
+	}
+	if !strings.Contains(result.Path, "alpha") {
+		t.Errorf("typing 'alp' + ENTER should select alpha dir, got %q", result.Path)
+	}
+}
+
+// TestSelectorCtrlPCtrlN 测试 Ctrl-P/N 导航（而非 UP/DOWN）。
+func TestSelectorCtrlPCtrlN(t *testing.T) {
+	tmpDir := setupTestDirs(t)
+
+	// 先按 CTRL-N（下移），再 ENTER，应选择第二项
+	sm := driveModel(t, Config{
+		BasePath:      tmpDir,
+		TestKeys:      []string{"CTRL-N", "ENTER"},
+		ColorsEnabled: false,
+	})
+
+	result := sm.Selected()
+	if result == nil {
+		t.Fatal("expected a selection result")
+	}
+	// 不应该选中第一项（gamma）
+	if strings.Contains(result.Path, "gamma") {
+		t.Error("CTRL-N+ENTER should not select the first item (gamma)")
+	}
+}
+
+// TestSelectorCtrlTEmptyInput 验证输入框为空时按 Ctrl-T 不创建目录。
+func TestSelectorCtrlTEmptyInput(t *testing.T) {
+	tmpDir := setupTestDirs(t)
+
+	// Ctrl-T 在输入为空时不应产生 selection
+	m := New(Config{
+		BasePath:      tmpDir,
+		ColorsEnabled: false,
+	})
+
+	t.Setenv("TRY_WIDTH", "80")
+	t.Setenv("TRY_HEIGHT", "24")
+
+	var model tea.Model = m
+	model, _ = model.Update(tea.WindowSizeMsg{Width: 80, Height: 24})
+	sm := model.(SelectorModel)
+	sm.loadAllTries()
+	sm.refreshList()
+
+	// 不输入任何文字，直接按 Ctrl-T
+	model, _ = sm.Update(KeyToMsg("CTRL-T"))
+	sm = model.(SelectorModel)
+
+	if sm.Selected() != nil {
+		t.Error("Ctrl-T with empty input should not produce a selection")
+	}
+	if sm.deleteStatus == "" {
+		t.Error("Ctrl-T with empty input should show a hint message")
+	}
+}
+
+// TestSelectorBackspace 测试退格键清除输入。
+func TestSelectorBackspace(t *testing.T) {
+	tmpDir := setupTestDirs(t)
+
+	sm := driveModel(t, Config{
+		BasePath:      tmpDir,
+		TestKeys:      []string{"x", "y", "z", "BACKSPACE", "BACKSPACE", "BACKSPACE", "ENTER"},
+		ColorsEnabled: false,
+	})
+
+	result := sm.Selected()
+	if result == nil {
+		t.Fatal("expected a selection result after backspace clears input")
+	}
+	// 退格全部清除后相当于无搜索词，应选中评分最高的 gamma
+	if !strings.Contains(result.Path, "gamma") {
+		t.Errorf("after clearing input, should select gamma (highest score), got %q", result.Path)
+	}
+}
+
 func TestParseTestKeys(t *testing.T) {
 	tests := []struct {
 		name string

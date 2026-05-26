@@ -266,6 +266,7 @@ func (m SelectorModel) handleEnter() (tea.Model, tea.Cmd) {
 func (m SelectorModel) handleCreateNew() (tea.Model, tea.Cmd) {
 	input := strings.TrimSpace(m.textInput.Value())
 	if input == "" {
+		m.deleteStatus = "请先输入目录名称"
 		return m, nil
 	}
 

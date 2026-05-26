@@ -1,12 +1,9 @@
 package selector
 
 import (
-	"bytes"
 	"fmt"
-	"os"
 	"strings"
 
-	"github.com/charmbracelet/colorprofile"
 	lipgloss "charm.land/lipgloss/v2"
 )
 
@@ -19,7 +16,6 @@ type styles struct {
 	selectedBg lipgloss.Style
 	dangerBg   lipgloss.Style
 	accent     lipgloss.Style
-	profile    colorprofile.Profile
 }
 
 // themePalette 定义一组主题色值（256-color ANSI codes）
@@ -55,15 +51,19 @@ var lightPalette = themePalette{
 	accent:     "28",  // 深绿 (#008700)
 }
 
+// newStyles 创建样式集。颜色降采样交由 bubbletea v2 内置渲染器处理，
+// 此处不做额外 colorprofile 降采样以避免双重转换导致背景色丢失。
 func newStyles(colorsEnabled bool, theme string) *styles {
-	var profile colorprofile.Profile
 	if !colorsEnabled {
-		profile = colorprofile.Ascii
-	} else if os.Getenv("COLORTERM") == "truecolor" || os.Getenv("COLORTERM") == "24bit" {
-		profile = colorprofile.TrueColor
-	} else {
-		w := colorprofile.NewWriter(os.Stderr, os.Environ())
-		profile = w.Profile
+		return &styles{
+			header:     lipgloss.NewStyle(),
+			highlight:  lipgloss.NewStyle(),
+			muted:      lipgloss.NewStyle(),
+			match:      lipgloss.NewStyle(),
+			selectedBg: lipgloss.NewStyle(),
+			dangerBg:   lipgloss.NewStyle(),
+			accent:     lipgloss.NewStyle(),
+		}
 	}
 
 	p := darkPalette
@@ -79,24 +79,12 @@ func newStyles(colorsEnabled bool, theme string) *styles {
 		selectedBg: lipgloss.NewStyle().Background(lipgloss.Color(p.selectedBg)),
 		dangerBg:   lipgloss.NewStyle().Background(lipgloss.Color(p.dangerBg)),
 		accent:     lipgloss.NewStyle().Bold(true).Foreground(lipgloss.Color(p.accent)),
-		profile:    profile,
 	}
 }
 
-// render 使用 colorprofile 降采样后渲染样式
+// render 渲染带样式的文本，颜色降采样由 bubbletea 渲染器统一处理
 func (s *styles) render(style lipgloss.Style, text string) string {
-	rendered := style.Render(text)
-	if s.profile >= colorprofile.TrueColor {
-		return rendered
-	}
-	// 通过 colorprofile.Writer 降采样颜色
-	var buf bytes.Buffer
-	w := &colorprofile.Writer{
-		Forward: &buf,
-		Profile: s.profile,
-	}
-	fmt.Fprint(w, rendered)
-	return buf.String()
+	return style.Render(text)
 }
 
 // renderHeader 渲染标题 + 分隔线 + 搜索栏 + 分隔线

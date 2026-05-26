@@ -30,6 +30,7 @@ type Config struct {
 	TestKeys       []string
 	TestConfirm    string
 	ColorsEnabled  bool
+	Theme          string // "dark" 或 "light"
 }
 
 // SelectorModel 交互式选择器的核心状态
@@ -86,7 +87,7 @@ func New(cfg Config) SelectorModel {
 		ti.SetValue(cfg.SearchTerm)
 	}
 
-	st := newStyles(cfg.ColorsEnabled)
+	st := newStyles(cfg.ColorsEnabled, cfg.Theme)
 
 	delegate := &EntryDelegate{
 		markedForDeletion: map[string]bool{},

@@ -29,27 +29,50 @@ func (d *EntryDelegate) Render(w io.Writer, m list.Model, index int, item list.I
 	}
 
 	isSelected := index == m.Index()
+	isMarked := d.markedForDeletion[entry.Entry.Path]
 	maxContent := d.width - 1
+
+	// 确定行背景样式（选中或标记删除时整行需要背景）
+	hasRowBg := isMarked || isSelected
+	bgOnly := lipgloss.NewStyle()
+	if isMarked {
+		bgOnly = bgOnly.Background(d.styles.dangerBg.GetBackground())
+	} else if isSelected {
+		bgOnly = bgOnly.Background(d.styles.selectedBg.GetBackground())
+	}
+
+	// 辅助：为样式附加行背景色
+	withBg := func(s lipgloss.Style) lipgloss.Style {
+		if !hasRowBg {
+			return s
+		}
+		return s.Background(bgOnly.GetBackground())
+	}
 
 	// 选中箭头（2 字符）
 	arrow := "  "
 	if isSelected {
-		arrow = d.styles.render(d.styles.highlight, "→ ")
+		arrow = d.styles.render(withBg(d.styles.highlight), "→ ")
+	} else if hasRowBg {
+		arrow = d.styles.render(bgOnly, "  ")
 	}
 
 	// 图标（含尾部空格，约 3 字符显示宽度）
 	icon := "📁 "
-	if d.markedForDeletion[entry.Entry.Path] {
+	if isMarked {
 		icon = "🗑️ "
 	}
+	if hasRowBg {
+		icon = d.styles.render(bgOnly, icon)
+	}
 
-	// 名称（含模糊高亮）
-	name := d.renderName(entry)
+	// 名称（含模糊高亮，传入背景样式）
+	name := d.renderNameWithBg(entry, bgOnly, hasRowBg)
 
 	// 右侧元数据
 	timeStr := FormatTimeAgo(time.Since(entry.Entry.Mtime))
 	scoreStr := fmt.Sprintf("%.1f", entry.Score)
-	meta := d.styles.render(d.styles.muted, timeStr+", "+scoreStr)
+	meta := d.styles.render(withBg(d.styles.muted), timeStr+", "+scoreStr)
 
 	// 组装行
 	left := arrow + icon + name
@@ -59,25 +82,32 @@ func (d *EntryDelegate) Render(w io.Writer, m list.Model, index int, item list.I
 	line := left
 	if leftWidth+metaWidth+2 <= maxContent {
 		padding := maxContent - leftWidth - metaWidth
-		line = left + strings.Repeat(" ", padding) + meta
-	} else if leftWidth < maxContent {
-		line = left
-	}
-
-	// 选中行或删除标记行的背景色
-	if d.markedForDeletion[entry.Entry.Path] {
-		line = d.styles.render(d.styles.dangerBg, line)
-	} else if isSelected {
-		line = d.styles.render(d.styles.selectedBg, line)
+		if hasRowBg {
+			line = left + d.styles.render(bgOnly, strings.Repeat(" ", padding)) + meta
+		} else {
+			line = left + strings.Repeat(" ", padding) + meta
+		}
+	} else if leftWidth < maxContent && hasRowBg {
+		remaining := maxContent - leftWidth
+		if remaining > 0 {
+			line = left + d.styles.render(bgOnly, strings.Repeat(" ", remaining))
+		}
 	}
 
 	fmt.Fprint(w, line)
 }
 
-// renderName 渲染条目名称，含日期拆分和模糊高亮
-func (d *EntryDelegate) renderName(entry MatchedEntry) string {
+// renderNameWithBg 渲染条目名称，含日期拆分、模糊高亮和可选的行背景色
+func (d *EntryDelegate) renderNameWithBg(entry MatchedEntry, bgOnly lipgloss.Style, hasRowBg bool) string {
 	name := entry.Entry.Basename
 	positions := entry.HighlightPositions
+
+	withBg := func(s lipgloss.Style) lipgloss.Style {
+		if !hasRowBg {
+			return s
+		}
+		return s.Background(bgOnly.GetBackground())
+	}
 
 	// 拆分日期后缀
 	datePart := ""
@@ -97,20 +127,28 @@ func (d *EntryDelegate) renderName(entry MatchedEntry) string {
 	i := 0
 	for i < len(namePart) {
 		if posSet[i] {
-			// 找出连续高亮区间
 			j := i
 			for j < len(namePart) && posSet[j] {
 				j++
 			}
-			result.WriteString(d.styles.render(d.styles.match, namePart[i:j]))
+			result.WriteString(d.styles.render(withBg(d.styles.match), namePart[i:j]))
 			i = j
 		} else {
-			result.WriteByte(namePart[i])
-			i++
+			// 连续非高亮字符合并渲染
+			j := i
+			for j < len(namePart) && !posSet[j] {
+				j++
+			}
+			if hasRowBg {
+				result.WriteString(d.styles.render(bgOnly, namePart[i:j]))
+			} else {
+				result.WriteString(namePart[i:j])
+			}
+			i = j
 		}
 	}
 
-	// 日期部分：高亮位置超过 namePart 长度的字符也高亮
+	// 日期部分
 	if datePart != "" {
 		offset := len(namePart)
 		var dateResult strings.Builder
@@ -120,13 +158,13 @@ func (d *EntryDelegate) renderName(entry MatchedEntry) string {
 				for k < len(datePart) && posSet[offset+k] {
 					k++
 				}
-				dateResult.WriteString(d.styles.render(d.styles.match, datePart[j:k]))
+				dateResult.WriteString(d.styles.render(withBg(d.styles.match), datePart[j:k]))
 				j = k - 1
 			} else {
 				dateResult.WriteByte(datePart[j])
 			}
 		}
-		result.WriteString(d.styles.render(d.styles.muted, dateResult.String()))
+		result.WriteString(d.styles.render(withBg(d.styles.muted), dateResult.String()))
 	}
 
 	return result.String()

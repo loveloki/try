@@ -22,23 +22,63 @@ type styles struct {
 	profile    colorprofile.Profile
 }
 
-func newStyles(colorsEnabled bool) *styles {
+// themePalette 定义一组主题色值（256-color ANSI codes）
+type themePalette struct {
+	header     string
+	highlight  string
+	muted      string
+	match      string
+	selectedBg string
+	dangerBg   string
+	accent     string
+}
+
+// GitHub Dark 风格配色
+var darkPalette = themePalette{
+	header:     "75",  // 浅蓝 (#5fafff)
+	highlight:  "75",  // 浅蓝
+	muted:      "245", // 灰色
+	match:      "215", // 浅橙 (#ffaf5f)
+	selectedBg: "237", // 深灰背景
+	dangerBg:   "52",  // 暗红背景
+	accent:     "114", // 浅绿 (#87d787)
+}
+
+// GitHub Light 风格配色
+var lightPalette = themePalette{
+	header:     "26",  // 深蓝 (#005fd7)
+	highlight:  "26",  // 深蓝
+	muted:      "242", // 中灰
+	match:      "130", // 棕橙 (#af5f00)
+	selectedBg: "254", // 浅灰背景
+	dangerBg:   "217", // 浅红背景 (#ffafaf)
+	accent:     "28",  // 深绿 (#008700)
+}
+
+func newStyles(colorsEnabled bool, theme string) *styles {
 	var profile colorprofile.Profile
-	if colorsEnabled {
+	if !colorsEnabled {
+		profile = colorprofile.Ascii
+	} else if os.Getenv("COLORTERM") == "truecolor" || os.Getenv("COLORTERM") == "24bit" {
+		profile = colorprofile.TrueColor
+	} else {
 		w := colorprofile.NewWriter(os.Stderr, os.Environ())
 		profile = w.Profile
-	} else {
-		profile = colorprofile.Ascii
+	}
+
+	p := darkPalette
+	if theme == "light" {
+		p = lightPalette
 	}
 
 	return &styles{
-		header:     lipgloss.NewStyle().Bold(true).Foreground(lipgloss.Color("114")),
-		highlight:  lipgloss.NewStyle().Bold(true).Foreground(lipgloss.Color("33")),
-		muted:      lipgloss.NewStyle().Foreground(lipgloss.Color("245")),
-		match:      lipgloss.NewStyle().Bold(true).Foreground(lipgloss.Color("226")),
-		selectedBg: lipgloss.NewStyle().Background(lipgloss.Color("238")),
-		dangerBg:   lipgloss.NewStyle().Background(lipgloss.Color("52")),
-		accent:     lipgloss.NewStyle().Bold(true).Foreground(lipgloss.Color("214")),
+		header:     lipgloss.NewStyle().Bold(true).Foreground(lipgloss.Color(p.header)),
+		highlight:  lipgloss.NewStyle().Bold(true).Foreground(lipgloss.Color(p.highlight)),
+		muted:      lipgloss.NewStyle().Foreground(lipgloss.Color(p.muted)),
+		match:      lipgloss.NewStyle().Bold(true).Foreground(lipgloss.Color(p.match)),
+		selectedBg: lipgloss.NewStyle().Background(lipgloss.Color(p.selectedBg)),
+		dangerBg:   lipgloss.NewStyle().Background(lipgloss.Color(p.dangerBg)),
+		accent:     lipgloss.NewStyle().Bold(true).Foreground(lipgloss.Color(p.accent)),
 		profile:    profile,
 	}
 }

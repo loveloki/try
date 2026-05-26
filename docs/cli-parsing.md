@@ -11,10 +11,11 @@
 2. 检查 NO_COLOR 环境变量
 3. 检查 --help / -h
 4. 检查 --version / -v
-5. 提取 --path VALUE（可出现在任何位置）
+5. 提取 --path VALUE 和 --theme VALUE（可出现在任何位置）
 6. 提取测试参数：--and-type、--and-exit、--and-keys、--and-confirm
-7. shift 出第一个非选项参数作为 command
-8. 根据 command 分派到对应处理函数
+7. 解析配置（LoadConfig）并合并路径和主题
+8. shift 出第一个非选项参数作为 command
+9. 根据 command 分派到对应处理函数
 ```
 
 ## 全局选项
@@ -26,8 +27,11 @@
 | `--no-colors` | 禁用 ANSI 颜色（Lipgloss 不渲染样式） |
 | `--no-expand-tokens` | 与 `--no-colors` 等效（别名，保持向后兼容） |
 | `--path PATH` | 覆盖 tries 根目录（支持 `--path=VALUE` 和 `--path VALUE` 两种形式） |
+| `--theme dark\|light` | 配色主题（覆盖配置文件和环境变量） |
 
-环境变量 `NO_COLOR`（非空时）等效于 `--no-colors`，遵循 [no-color.org](https://no-color.org/) 标准。
+环境变量：
+- `NO_COLOR`（非空时）等效于 `--no-colors`，遵循 [no-color.org](https://no-color.org/) 标准
+- `TRY_THEME`：设置配色主题（`dark` / `light`），优先级低于 `--theme`
 
 ## --path 提取逻辑
 
@@ -199,6 +203,7 @@ model := selector.New(selector.Config{
     TestKeys:      andKeys,       // 注入的按键序列
     TestConfirm:   andConfirm,    // --and-confirm 值
     ColorsEnabled: colorsEnabled, // 是否启用颜色
+    Theme:         theme,         // "dark" 或 "light"
 })
 
 p := tea.NewProgram(model, tea.WithOutput(os.Stderr))

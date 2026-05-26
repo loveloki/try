@@ -19,47 +19,109 @@ charm.land/lipgloss/v2     # 样式
 `--no-colors` / `NO_COLOR` 环境变量禁用所有样式。实现方式：
 
 ```go
-// 通过 Writer 的 ColorProfile 控制颜色输出
-// Lipgloss 样式渲染需要一个 Writer（携带终端能力信息）
-// 禁用颜色时将 Writer 的 profile 设为 lipgloss.NoColor
+// 通过 colorprofile.Writer 控制颜色输出
+// 禁用颜色时将 profile 设为 colorprofile.Ascii
 
-var writer *lipgloss.Writer
-
-func initStyles(colorsEnabled bool) {
+func newStyles(colorsEnabled bool, theme string) *styles {
+    var profile colorprofile.Profile
     if colorsEnabled {
-        writer = lipgloss.DefaultWriter()  // 自动检测终端能力
+        w := colorprofile.NewWriter(os.Stderr, os.Environ())
+        profile = w.Profile
     } else {
-        writer = lipgloss.NewWriter(os.Stderr, lipgloss.WithColorProfile(lipgloss.NoColor))
+        profile = colorprofile.Ascii
     }
-}
-
-// 所有样式通过 writer 渲染，禁用颜色时自动剥离 ANSI 转义码
-func render(style lipgloss.Style, text string) string {
-    return writer.Render(style, text)
+    // 根据 theme 选择色板，构建样式...
 }
 ```
 
-### 色彩主题
+### 主题系统
 
-使用 Lipgloss 定义样式常量：
-
-| 名称 | 用途 | 样式 |
-|------|------|------|
-| `headerStyle` | 标题文字 | Bold + 前景色 114（绿色） |
-| `accentStyle` | 强调文字 | Bold + 前景色 214（橙色） |
-| `highlightStyle` | 匹配高亮/选中箭头 | Bold + 黄色 |
-| `mutedStyle` | 暗淡文字 | 前景色 245（灰色） |
-| `matchStyle` | 匹配字符 | Bold + 前景色 226 |
-| `selectedBgStyle` | 选中行背景 | 背景色 238（深灰） |
-| `dangerBgStyle` | 危险操作背景 | 背景色 52（深红） |
+支持 `dark` 和 `light` 两套配色，使用 GitHub 风格 256-color ANSI 码。通过 `themePalette` 结构定义色值，`newStyles` 根据 theme 参数选择色板。
 
 ```go
-var (
-    highlightStyle = lipgloss.NewStyle().Bold(true).Foreground(lipgloss.Color("33"))
-    mutedStyle     = lipgloss.NewStyle().Foreground(lipgloss.Color("245"))
-    selectedBg     = lipgloss.NewStyle().Background(lipgloss.Color("238"))
-    dangerBg       = lipgloss.NewStyle().Background(lipgloss.Color("52"))
-)
+// 色板定义
+type themePalette struct {
+    header     string // 标题/品牌色
+    highlight  string // 选中箭头/强调前景色
+    muted      string // 次要文本
+    match      string // 模糊搜索命中高亮
+    selectedBg string // 选中行背景
+    dangerBg   string // 删除标记背景
+    accent     string // 创建新目录等操作提示
+}
+```
+
+#### Dark 色板（GitHub Dark 风格）
+
+| 名称 | ANSI 256 码 | 近似色 | 用途 |
+|------|-------------|--------|------|
+| header | 75 | #5fafff 浅蓝 | 标题文字 |
+| highlight | 75 | #5fafff 浅蓝 | 选中箭头 |
+| muted | 245 | #8a8a8a 灰 | 次要文本 |
+| match | 215 | #ffaf5f 浅橙 | 搜索匹配高亮 |
+| selectedBg | 237 | #3a3a3a 深灰 | 选中行背景 |
+| dangerBg | 52 | #5f0000 暗红 | 删除标记背景 |
+| accent | 114 | #87d787 浅绿 | 操作提示 |
+
+#### Light 色板（GitHub Light 风格）
+
+| 名称 | ANSI 256 码 | 近似色 | 用途 |
+|------|-------------|--------|------|
+| header | 26 | #005fd7 深蓝 | 标题文字 |
+| highlight | 26 | #005fd7 深蓝 | 选中箭头 |
+| muted | 242 | #6c6c6c 中灰 | 次要文本 |
+| match | 130 | #af5f00 棕橙 | 搜索匹配高亮 |
+| selectedBg | 254 | #e4e4e4 浅灰 | 选中行背景 |
+| dangerBg | 217 | #ffafaf 浅红 | 删除标记背景 |
+| accent | 28 | #008700 深绿 | 操作提示 |
+
+### 主题解析优先级
+
+```
+1. --theme 命令行参数（最高优先）
+2. TRY_THEME 环境变量
+3. ~/.try 配置文件中的 theme
+4. auto（通过 COLORFGBG 环境变量推断，无法推断时默认 dark）
+```
+
+auto 检测逻辑：解析 `COLORFGBG` 环境变量（格式 `fg;bg`），背景色值 0-6 判定为浅色终端返回 "light"，其他返回 "dark"。
+
+### 选中行背景色渲染
+
+选中行或删除标记行的背景色通过将背景色融入每个组件的样式中实现（而非事后包裹整行）。原因：lipgloss 渲染产生的 ANSI 重置序列会清除外层背景色。
+
+```go
+// 为样式附加行背景色
+withBg := func(s lipgloss.Style) lipgloss.Style {
+    if !hasRowBg { return s }
+    return s.Background(bgOnly.GetBackground())
+}
+
+// 每个组件分别应用：
+arrow = styles.render(withBg(styles.highlight), "→ ")
+icon  = styles.render(bgOnly, "📁 ")
+name  = renderNameWithBg(entry, bgOnly, hasRowBg)
+meta  = styles.render(withBg(styles.muted), timeStr)
+```
+
+非高亮的普通文本和 padding 空格也需要用 `bgOnly` 样式渲染，确保整行背景连续。
+
+### styles 结构
+
+```go
+type styles struct {
+    header     lipgloss.Style
+    highlight  lipgloss.Style
+    muted      lipgloss.Style
+    match      lipgloss.Style
+    selectedBg lipgloss.Style // 仅存储背景色，供 delegate 提取
+    dangerBg   lipgloss.Style // 同上
+    accent     lipgloss.Style
+    profile    colorprofile.Profile
+}
+
+// 通过 colorprofile 降采样后渲染
+func (s *styles) render(style lipgloss.Style, text string) string
 ```
 
 ## 布局结构

@@ -45,8 +45,9 @@ func Run(args []string) int {
 		return 0
 	}
 
-	// 4. 提取 --path
+	// 4. 提取 --path 和 --theme
 	cliPath, args := extractPath(args)
+	cliTheme, args := extractValueFlag(args, "--theme")
 
 	// 5. 提取测试参数
 	andExit, args := extractBoolFlag(args, "--and-exit")
@@ -54,13 +55,14 @@ func Run(args []string) int {
 	andKeys, args := extractValueFlag(args, "--and-keys")
 	andConfirm, args := extractValueFlag(args, "--and-confirm")
 
-	// 6. 解析路径
+	// 6. 解析路径和主题
 	cfg := config.LoadConfig()
 	triesPath, shipPath := config.ResolvePaths(cliPath, cfg)
+	theme := config.ResolveTheme(cliTheme, cfg)
 
 	// 7. 命令分派
 	if len(args) == 0 {
-		return runSelector(triesPath, shipPath, "", colorsEnabled, andExit, andType, andKeys, andConfirm)
+		return runSelector(triesPath, shipPath, "", colorsEnabled, theme, andExit, andType, andKeys, andConfirm)
 	}
 
 	command := args[0]
@@ -81,19 +83,19 @@ func Run(args []string) int {
 		return cmdWorktree(triesPath, remaining)
 
 	case "exec":
-		return cmdExec(triesPath, shipPath, remaining, colorsEnabled, andExit, andType, andKeys, andConfirm)
+		return cmdExec(triesPath, shipPath, remaining, colorsEnabled, theme, andExit, andType, andKeys, andConfirm)
 
 	default:
 		// 默认视为查询词
 		searchTerm := strings.Join(args, "-")
-		return runSelector(triesPath, shipPath, searchTerm, colorsEnabled, andExit, andType, andKeys, andConfirm)
+		return runSelector(triesPath, shipPath, searchTerm, colorsEnabled, theme, andExit, andType, andKeys, andConfirm)
 	}
 }
 
 // cmdExec 处理包装函数内部调用的二级分派
-func cmdExec(triesPath, shipPath string, args []string, colorsEnabled, andExit bool, andType, andKeys, andConfirm string) int {
+func cmdExec(triesPath, shipPath string, args []string, colorsEnabled bool, theme string, andExit bool, andType, andKeys, andConfirm string) int {
 	if len(args) == 0 {
-		return runSelector(triesPath, shipPath, "", colorsEnabled, andExit, andType, andKeys, andConfirm)
+		return runSelector(triesPath, shipPath, "", colorsEnabled, theme, andExit, andType, andKeys, andConfirm)
 	}
 
 	switch args[0] {
@@ -103,7 +105,7 @@ func cmdExec(triesPath, shipPath string, args []string, colorsEnabled, andExit b
 		return cmdWorktree(triesPath, args[1:])
 	case "cd":
 		searchTerm := strings.Join(args[1:], "-")
-		return runSelector(triesPath, shipPath, searchTerm, colorsEnabled, andExit, andType, andKeys, andConfirm)
+		return runSelector(triesPath, shipPath, searchTerm, colorsEnabled, theme, andExit, andType, andKeys, andConfirm)
 	default:
 		// 检查是否是 Git URL
 		arg := args[0]
@@ -122,7 +124,7 @@ func cmdExec(triesPath, shipPath string, args []string, colorsEnabled, andExit b
 
 		// 默认：查询词
 		searchTerm := strings.Join(args, "-")
-		return runSelector(triesPath, shipPath, searchTerm, colorsEnabled, andExit, andType, andKeys, andConfirm)
+		return runSelector(triesPath, shipPath, searchTerm, colorsEnabled, theme, andExit, andType, andKeys, andConfirm)
 	}
 }
 
@@ -230,7 +232,7 @@ func worktreePath(triesPath, repoDir, customName string) string {
 }
 
 // runSelector 启动交互式选择器
-func runSelector(triesPath, shipPath, searchTerm string, colorsEnabled, andExit bool, andType, andKeys, andConfirm string) int {
+func runSelector(triesPath, shipPath, searchTerm string, colorsEnabled bool, theme string, andExit bool, andType, andKeys, andConfirm string) int {
 	var testKeys []string
 	if andKeys != "" {
 		testKeys = selector.ParseTestKeys(andKeys)
@@ -245,6 +247,7 @@ func runSelector(triesPath, shipPath, searchTerm string, colorsEnabled, andExit 
 		TestKeys:       testKeys,
 		TestConfirm:    andConfirm,
 		ColorsEnabled:  colorsEnabled,
+		Theme:          theme,
 	}
 
 	model := selector.New(cfg)
@@ -306,6 +309,7 @@ func printHelp() {
   --help, -h           显示帮助
   --version, -v        显示版本
   --path PATH          指定 tries 根目录
+  --theme dark|light   配色主题（默认 auto 自动检测）
   --no-colors          禁用颜色
 
 快捷键:

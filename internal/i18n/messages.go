@@ -60,6 +60,13 @@ type Messages struct {
 	ErrMove          string
 	ErrUnknownOp     string // 含 %d
 
+	// === 时间格式化 ===
+	TimeJustNow string // "just now" / "刚刚"
+	TimeMinAgo  string // 含 %d："%dm ago" / "%d分钟前"
+	TimeHourAgo string // 含 %d："%dh ago" / "%d小时前"
+	TimeDayAgo  string // 含 %d："%dd ago" / "%d天前"
+	TimeWeekAgo string // 含 %d："%dw ago" / "%d周前"
+
 	// === Shell 安装消息 ===
 	ErrDetectShell    string
 	ErrUnsupportShell string // 含 %s
@@ -131,6 +138,12 @@ Shortcuts:
 	UsageClone:    "Usage: try clone <url> [name]",
 	UsageWorktree: "Usage: try worktree <dir> [name]",
 	UsageDot:      "Usage: try . <name>",
+
+	TimeJustNow: "just now",
+	TimeMinAgo:  "%dm ago",
+	TimeHourAgo: "%dh ago",
+	TimeDayAgo:  "%dd ago",
+	TimeWeekAgo: "%dw ago",
 
 	ErrNotTerminal: "stdin is not a terminal",
 	ErrParseGitURI: "Cannot parse Git URI: ",
@@ -219,6 +232,12 @@ var ZH = Messages{
 	UsageClone:    "用法: try clone <url> [名称]",
 	UsageWorktree: "用法: try worktree <目录> [名称]",
 	UsageDot:      "用法: try . <名称>",
+
+	TimeJustNow: "刚刚",
+	TimeMinAgo:  "%d分钟前",
+	TimeHourAgo: "%d小时前",
+	TimeDayAgo:  "%d天前",
+	TimeWeekAgo: "%d周前",
 
 	ErrNotTerminal: "标准输入不是终端",
 	ErrParseGitURI: "无法解析 Git URI: ",

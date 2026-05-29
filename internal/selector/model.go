@@ -1,6 +1,7 @@
 package selector
 
 import (
+	"fmt"
 	"os"
 	"path/filepath"
 	"strings"
@@ -64,7 +65,9 @@ type testKeyMsg struct{}
 
 // New 创建选择器实例
 func New(cfg Config) SelectorModel {
-	os.MkdirAll(cfg.BasePath, 0o755)
+	if err := os.MkdirAll(cfg.BasePath, 0o755); err != nil {
+		fmt.Fprintf(os.Stderr, "%s: %v\n", msgs().ErrMkdir, err)
+	}
 
 	ti := textinput.New()
 	ti.CharLimit = 256

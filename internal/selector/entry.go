@@ -85,24 +85,25 @@ func EnvInt(key string) int {
 	return v
 }
 
-// FormatTimeAgo 将时间差格式化为人类可读的"X ago"格式
+// FormatTimeAgo 将时间差格式化为本地化的人类可读格式
 func FormatTimeAgo(d time.Duration) string {
+	m := msgs()
 	seconds := int(d.Seconds())
 	if seconds < 60 {
-		return "just now"
+		return m.TimeJustNow
 	}
 	minutes := seconds / 60
 	if minutes < 60 {
-		return fmt.Sprintf("%dm ago", minutes)
+		return fmt.Sprintf(m.TimeMinAgo, minutes)
 	}
 	hours := minutes / 60
 	if hours < 24 {
-		return fmt.Sprintf("%dh ago", hours)
+		return fmt.Sprintf(m.TimeHourAgo, hours)
 	}
 	days := hours / 24
 	if days < 7 {
-		return fmt.Sprintf("%dd ago", days)
+		return fmt.Sprintf(m.TimeDayAgo, days)
 	}
 	weeks := days / 7
-	return fmt.Sprintf("%dw ago", weeks)
+	return fmt.Sprintf(m.TimeWeekAgo, weeks)
 }

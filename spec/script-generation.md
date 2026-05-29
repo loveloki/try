@@ -50,7 +50,7 @@ func execCd(stdout, stderr io.Writer, path string) error
 ### execMkdir（创建新目录）
 
 ```go
-func execMkdir(stdout, stderr io.Writer, path string) error
+func execMkdir(stdout, stderr io.Writer, path string, msgs *i18n.Messages) error
 ```
 
 `os.MkdirAll(path, 0o755)` 创建目录，然后调用 `execCd`。
@@ -58,7 +58,7 @@ func execMkdir(stdout, stderr io.Writer, path string) error
 ### execClone（克隆仓库）
 
 ```go
-func execClone(stdout, stderr io.Writer, path, uri string) error
+func execClone(stdout, stderr io.Writer, path, uri string, msgs *i18n.Messages) error
 ```
 
 1. 创建父目录（`os.MkdirAll`）
@@ -70,7 +70,7 @@ func execClone(stdout, stderr io.Writer, path, uri string) error
 ### execWorktree（创建 worktree）
 
 ```go
-func execWorktree(stdout, stderr io.Writer, targetPath, repoDir string) error
+func execWorktree(stdout, stderr io.Writer, targetPath, repoDir string, msgs *i18n.Messages) error
 ```
 
 1. 创建目标目录
@@ -83,7 +83,7 @@ func execWorktree(stdout, stderr io.Writer, targetPath, repoDir string) error
 ### execDelete（删除目录）
 
 ```go
-func execDelete(stdout io.Writer, items []selector.DeleteItem, basePath string) error
+func execDelete(stdout io.Writer, items []selector.DeleteItem, basePath string, msgs *i18n.Messages) error
 ```
 
 逐个删除 items 中的目录（`os.RemoveAll`），收集失败项。全部完成后：
@@ -95,7 +95,7 @@ func execDelete(stdout io.Writer, items []selector.DeleteItem, basePath string) 
 ### execRename（重命名目录）
 
 ```go
-func execRename(stdout, stderr io.Writer, basePath, oldName, newName string) error
+func execRename(stdout, stderr io.Writer, basePath, oldName, newName string, msgs *i18n.Messages) error
 ```
 
 `os.Rename` 重命名后调用 `execCd` 进入新目录。
@@ -103,7 +103,7 @@ func execRename(stdout, stderr io.Writer, basePath, oldName, newName string) err
 ### execShip（发布为正式项目）
 
 ```go
-func execShip(stdout, stderr io.Writer, source, dest, basename string) error
+func execShip(stdout, stderr io.Writer, source, dest, basename string, msgs *i18n.Messages) error
 ```
 
 根据 `.git` 类型选择操作方式：
@@ -115,8 +115,8 @@ func execShip(stdout, stderr io.Writer, source, dest, basename string) error
 ## 选择结果到执行函数的映射
 
 ```go
-func Execute(result *selector.SelectionResult) error
-func ExecuteTo(stdout, stderr io.Writer, result *selector.SelectionResult) error
+func Execute(result *selector.SelectionResult, msgs *i18n.Messages) error
+func ExecuteTo(stdout, stderr io.Writer, result *selector.SelectionResult, msgs *i18n.Messages) error
 ```
 
 `Execute` 是便捷入口（默认 `os.Stdout`/`os.Stderr`），委托给 `ExecuteTo`。
@@ -136,6 +136,6 @@ func ExecuteTo(stdout, stderr io.Writer, result *selector.SelectionResult) error
 另有导出入口供 CLI 直接调用（不经过 SelectionResult）：
 
 ```go
-func ExecClone(stdout, stderr io.Writer, path, uri string) error
-func ExecWorktree(stdout, stderr io.Writer, targetPath, repoDir string) error
+func ExecClone(stdout, stderr io.Writer, path, uri string, msgs *i18n.Messages) error
+func ExecWorktree(stdout, stderr io.Writer, targetPath, repoDir string, msgs *i18n.Messages) error
 ```

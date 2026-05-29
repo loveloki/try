@@ -8,7 +8,43 @@ import (
 	"time"
 
 	tea "charm.land/bubbletea/v2"
+	"github.com/xleine/try/internal/i18n"
 )
+
+// mockDialog 用于测试对话框集成路径的最小对话框实现
+type mockDialog struct {
+	done   bool
+	result *SelectionResult
+}
+
+func (d *mockDialog) Init() tea.Cmd                           { return nil }
+func (d *mockDialog) Update(msg tea.Msg) (tea.Model, tea.Cmd) { return d, nil }
+func (d *mockDialog) View() tea.View                          { return tea.NewView("mock") }
+func (d *mockDialog) ViewContent() string                     { return "mock dialog" }
+func (d *mockDialog) Result() *SelectionResult                { return d.result }
+func (d *mockDialog) Done() bool                              { return d.done }
+
+// mockDialogFactory 记录对话框创建调用
+type mockDialogFactory struct {
+	deleteCalled bool
+	renameCalled bool
+	shipCalled   bool
+}
+
+func (f *mockDialogFactory) NewDeleteDialog(items []DeleteItem, basePath, testConfirm string, width int, msgs *i18n.Messages) DialogInstance {
+	f.deleteCalled = true
+	return &mockDialog{}
+}
+
+func (f *mockDialogFactory) NewRenameDialog(entry *MatchedEntry, basePath string, width int, msgs *i18n.Messages) DialogInstance {
+	f.renameCalled = true
+	return &mockDialog{}
+}
+
+func (f *mockDialogFactory) NewShipDialog(entry *MatchedEntry, basePath, shipPath string, width int, msgs *i18n.Messages) DialogInstance {
+	f.shipCalled = true
+	return &mockDialog{}
+}
 
 // setupTestDirs 创建测试目录并设置不同 mtime
 func setupTestDirs(t *testing.T) string {
@@ -449,5 +485,157 @@ func TestParseTestKeys(t *testing.T) {
 				}
 			}
 		})
+	}
+}
+
+// driveModelWithFactory 与 driveModel 类似，但注入 DialogFactory 以测试对话框路径
+func driveModelWithFactory(t *testing.T, cfg Config, factory DialogFactory) SelectorModel {
+	t.Helper()
+
+	t.Setenv("TRY_WIDTH", "80")
+	t.Setenv("TRY_HEIGHT", "24")
+
+	m := New(cfg)
+	m.SetDialogFactory(factory)
+
+	var model tea.Model = m
+	model, _ = model.Update(tea.WindowSizeMsg{Width: 80, Height: 24})
+
+	sm := model.(SelectorModel)
+	sm.loadAllTries()
+	sm.refreshList()
+	sm.dialogFactory = factory
+
+	for _, k := range cfg.TestKeys {
+		model, _ = sm.Update(KeyToMsg(k))
+		sm = model.(SelectorModel)
+		if sm.selected != nil {
+			break
+		}
+	}
+
+	return sm
+}
+
+func TestSelectorCtrlROpensRenameDialog(t *testing.T) {
+	tmpDir := setupTestDirs(t)
+	factory := &mockDialogFactory{}
+
+	sm := driveModelWithFactory(t, Config{
+		BasePath:      tmpDir,
+		TestKeys:      []string{"CTRL-R"},
+		ColorsEnabled: false,
+	}, factory)
+
+	if !factory.renameCalled {
+		t.Error("Ctrl-R should open rename dialog")
+	}
+	if sm.activeDialog == nil {
+		t.Error("activeDialog should be set after Ctrl-R")
+	}
+}
+
+func TestSelectorCtrlGOpensShipDialog(t *testing.T) {
+	tmpDir := setupTestDirs(t)
+	factory := &mockDialogFactory{}
+
+	sm := driveModelWithFactory(t, Config{
+		BasePath:      tmpDir,
+		ShipPath:      t.TempDir(),
+		TestKeys:      []string{"CTRL-G"},
+		ColorsEnabled: false,
+	}, factory)
+
+	if !factory.shipCalled {
+		t.Error("Ctrl-G should open ship dialog")
+	}
+	if sm.activeDialog == nil {
+		t.Error("activeDialog should be set after Ctrl-G")
+	}
+}
+
+func TestSelectorCtrlROnEmptyListDoesNothing(t *testing.T) {
+	tmpDir := t.TempDir()
+	factory := &mockDialogFactory{}
+
+	driveModelWithFactory(t, Config{
+		BasePath:      tmpDir,
+		TestKeys:      []string{"CTRL-R"},
+		ColorsEnabled: false,
+	}, factory)
+
+	if factory.renameCalled {
+		t.Error("Ctrl-R on empty list should not open rename dialog")
+	}
+}
+
+func TestSelectorCtrlGOnEmptyListDoesNothing(t *testing.T) {
+	tmpDir := t.TempDir()
+	factory := &mockDialogFactory{}
+
+	driveModelWithFactory(t, Config{
+		BasePath:      tmpDir,
+		ShipPath:      t.TempDir(),
+		TestKeys:      []string{"CTRL-G"},
+		ColorsEnabled: false,
+	}, factory)
+
+	if factory.shipCalled {
+		t.Error("Ctrl-G on empty list should not open ship dialog")
+	}
+}
+
+func TestSelectorDeleteConfirmOpensDialog(t *testing.T) {
+	tmpDir := setupTestDirs(t)
+	factory := &mockDialogFactory{}
+
+	sm := driveModelWithFactory(t, Config{
+		BasePath:      tmpDir,
+		TestKeys:      []string{"CTRL-D", "ENTER"},
+		ColorsEnabled: false,
+	}, factory)
+
+	if !factory.deleteCalled {
+		t.Error("Ctrl-D + Enter should open delete dialog")
+	}
+	if sm.activeDialog == nil {
+		t.Error("activeDialog should be set after delete confirm")
+	}
+}
+
+func TestSelectorViewWithDialog(t *testing.T) {
+	tmpDir := setupTestDirs(t)
+	factory := &mockDialogFactory{}
+
+	t.Setenv("TRY_WIDTH", "80")
+	t.Setenv("TRY_HEIGHT", "24")
+
+	m := New(Config{
+		BasePath:      tmpDir,
+		ColorsEnabled: false,
+	})
+	m.SetDialogFactory(factory)
+
+	var model tea.Model = m
+	model, _ = model.Update(tea.WindowSizeMsg{Width: 80, Height: 24})
+	sm := model.(SelectorModel)
+	sm.loadAllTries()
+	sm.refreshList()
+	sm.dialogFactory = factory
+
+	// 正常 View
+	normalView := sm.View()
+	if !strings.Contains(normalView.Content, "Try") {
+		t.Error("normal view should contain title")
+	}
+
+	// 打开对话框后，View 应渲染对话框内容
+	model, _ = sm.Update(KeyToMsg("CTRL-R"))
+	sm = model.(SelectorModel)
+	if sm.activeDialog != nil {
+		dialogView := sm.View()
+		if !strings.Contains(dialogView.Content, "mock dialog") {
+			t.Errorf("dialog view should show mock dialog content, got %q", dialogView.Content)
+		}
 	}
 }

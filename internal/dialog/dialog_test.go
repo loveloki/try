@@ -6,6 +6,7 @@ import (
 	"strings"
 	"testing"
 
+	tea "charm.land/bubbletea/v2"
 	"github.com/xleine/try/internal/i18n"
 	"github.com/xleine/try/internal/selector"
 )
@@ -181,4 +182,239 @@ func TestShipDestExists(t *testing.T) {
 	os.MkdirAll(destDir, 0o755)
 
 	checkShipConfirm(t, destDir, sourceDir, tmpDir, false, "Destination already exists")
+}
+
+// --- 按键路由测试 ---
+
+// driveDialog 驱动对话框处理按键序列，返回最终状态
+func driveDialog(t *testing.T, d Dialog, keys []tea.KeyPressMsg) Dialog {
+	t.Helper()
+	var model tea.Model = d
+	for _, k := range keys {
+		model, _ = model.Update(k)
+		d = model.(Dialog)
+		if d.Done() {
+			break
+		}
+	}
+	return d
+}
+
+func TestDeleteDialogEscape(t *testing.T) {
+	tmpDir := t.TempDir()
+	dir1 := filepath.Join(tmpDir, "dir1")
+	os.MkdirAll(dir1, 0o755)
+	items := []selector.DeleteItem{{Path: dir1, Basename: "dir1"}}
+
+	d := NewDeleteDialog(items, tmpDir, "", 80, &i18n.EN)
+	d = driveDialog(t, d, []tea.KeyPressMsg{
+		{Code: tea.KeyEscape},
+	}).(*DeleteDialog)
+
+	if !d.Done() {
+		t.Error("ESC should close dialog")
+	}
+	if d.Result() != nil {
+		t.Error("ESC should produce nil result")
+	}
+}
+
+func TestDeleteDialogCtrlC(t *testing.T) {
+	tmpDir := t.TempDir()
+	dir1 := filepath.Join(tmpDir, "dir1")
+	os.MkdirAll(dir1, 0o755)
+	items := []selector.DeleteItem{{Path: dir1, Basename: "dir1"}}
+
+	d := NewDeleteDialog(items, tmpDir, "", 80, &i18n.EN)
+	d = driveDialog(t, d, []tea.KeyPressMsg{
+		{Code: 'c', Mod: tea.ModCtrl},
+	}).(*DeleteDialog)
+
+	if !d.Done() {
+		t.Error("Ctrl-C should close dialog")
+	}
+	if d.Result() != nil {
+		t.Error("Ctrl-C should produce nil result")
+	}
+}
+
+func TestDeleteDialogEnterWithYES(t *testing.T) {
+	tmpDir := t.TempDir()
+	dir1 := filepath.Join(tmpDir, "dir1")
+	os.MkdirAll(dir1, 0o755)
+	items := []selector.DeleteItem{{Path: dir1, Basename: "dir1"}}
+
+	d := NewDeleteDialog(items, tmpDir, "", 80, &i18n.EN)
+	d.confirmInput.SetValue("YES")
+	d = driveDialog(t, d, []tea.KeyPressMsg{
+		{Code: tea.KeyEnter},
+	}).(*DeleteDialog)
+
+	if !d.Done() {
+		t.Error("Enter should close dialog")
+	}
+	if d.Result() == nil {
+		t.Error("Enter with YES should produce non-nil result")
+	}
+}
+
+func TestDeleteDialogEnterWithoutYES(t *testing.T) {
+	tmpDir := t.TempDir()
+	dir1 := filepath.Join(tmpDir, "dir1")
+	os.MkdirAll(dir1, 0o755)
+	items := []selector.DeleteItem{{Path: dir1, Basename: "dir1"}}
+
+	d := NewDeleteDialog(items, tmpDir, "", 80, &i18n.EN)
+	d.confirmInput.SetValue("no")
+	d = driveDialog(t, d, []tea.KeyPressMsg{
+		{Code: tea.KeyEnter},
+	}).(*DeleteDialog)
+
+	if !d.Done() {
+		t.Error("Enter should close dialog")
+	}
+	if d.Result() != nil {
+		t.Error("Enter without YES should produce nil result")
+	}
+}
+
+func TestRenameDialogEscape(t *testing.T) {
+	entry := &selector.MatchedEntry{Entry: selector.Entry{Basename: "old-name"}}
+	d := NewRenameDialog(entry, t.TempDir(), 80, &i18n.EN)
+	d = driveDialog(t, d, []tea.KeyPressMsg{
+		{Code: tea.KeyEscape},
+	}).(*RenameDialog)
+
+	if !d.Done() {
+		t.Error("ESC should close dialog")
+	}
+	if d.Result() != nil {
+		t.Error("ESC should produce nil result")
+	}
+}
+
+func TestRenameDialogEnter(t *testing.T) {
+	entry := &selector.MatchedEntry{Entry: selector.Entry{Basename: "old-name"}}
+	d := NewRenameDialog(entry, t.TempDir(), 80, &i18n.EN)
+	d.input.SetValue("new-name")
+	d = driveDialog(t, d, []tea.KeyPressMsg{
+		{Code: tea.KeyEnter},
+	}).(*RenameDialog)
+
+	if !d.Done() {
+		t.Error("Enter should close dialog")
+	}
+	result := d.Result()
+	if result == nil {
+		t.Fatal("Enter with valid name should produce non-nil result")
+	}
+	if result.Type != selector.SelectRename {
+		t.Errorf("Type = %v, want SelectRename", result.Type)
+	}
+	if result.New != "new-name" {
+		t.Errorf("New = %q, want %q", result.New, "new-name")
+	}
+}
+
+func TestShipDialogEscape(t *testing.T) {
+	tmpDir := t.TempDir()
+	entry := &selector.MatchedEntry{
+		Entry: selector.Entry{Basename: "test-2025-08-14", Path: filepath.Join(tmpDir, "test")},
+	}
+	d := NewShipDialog(entry, tmpDir, "/tmp/ship", 80, &i18n.EN)
+	d = driveDialog(t, d, []tea.KeyPressMsg{
+		{Code: tea.KeyEscape},
+	}).(*ShipDialog)
+
+	if !d.Done() {
+		t.Error("ESC should close dialog")
+	}
+	if d.Result() != nil {
+		t.Error("ESC should produce nil result")
+	}
+}
+
+func TestShipDialogEnter(t *testing.T) {
+	tmpDir := t.TempDir()
+	entry := &selector.MatchedEntry{
+		Entry: selector.Entry{Basename: "test-2025-08-14", Path: filepath.Join(tmpDir, "test")},
+	}
+	d := NewShipDialog(entry, tmpDir, "/tmp/ship", 80, &i18n.EN)
+	dest := filepath.Join(tmpDir, "dest")
+	d.input.SetValue(dest)
+	d = driveDialog(t, d, []tea.KeyPressMsg{
+		{Code: tea.KeyEnter},
+	}).(*ShipDialog)
+
+	if !d.Done() {
+		t.Error("Enter should close dialog")
+	}
+	result := d.Result()
+	if result == nil {
+		t.Fatal("Enter with valid dest should produce non-nil result")
+	}
+	if result.Type != selector.SelectShip {
+		t.Errorf("Type = %v, want SelectShip", result.Type)
+	}
+}
+
+// --- ViewContent 渲染测试 ---
+
+func TestDeleteDialogViewContent(t *testing.T) {
+	items := []selector.DeleteItem{
+		{Path: "/tmp/dir1", Basename: "dir1"},
+		{Path: "/tmp/dir2", Basename: "dir2"},
+	}
+	d := NewDeleteDialog(items, "/tmp", "", 60, &i18n.EN)
+	content := d.ViewContent()
+
+	for _, want := range []string{"dir1", "dir2", "Delete", "YES", "🗑️"} {
+		if !strings.Contains(content, want) {
+			t.Errorf("ViewContent() missing %q\ngot:\n%s", want, content)
+		}
+	}
+}
+
+func TestRenameDialogViewContent(t *testing.T) {
+	entry := &selector.MatchedEntry{Entry: selector.Entry{Basename: "old-dir"}}
+	d := NewRenameDialog(entry, t.TempDir(), 60, &i18n.EN)
+	content := d.ViewContent()
+
+	for _, want := range []string{"old-dir", "Rename", "📁"} {
+		if !strings.Contains(content, want) {
+			t.Errorf("ViewContent() missing %q\ngot:\n%s", want, content)
+		}
+	}
+}
+
+func TestShipDialogViewContent(t *testing.T) {
+	entry := &selector.MatchedEntry{
+		Entry: selector.Entry{Basename: "test-2025-08-14", Path: "/tmp/test"},
+	}
+	d := NewShipDialog(entry, "/tmp", "/tmp/ship", 60, &i18n.EN)
+	content := d.ViewContent()
+
+	for _, want := range []string{"test-2025-08-14", "Ship", "🚀", "/tmp/ship"} {
+		if !strings.Contains(content, want) {
+			t.Errorf("ViewContent() missing %q\ngot:\n%s", want, content)
+		}
+	}
+}
+
+func TestDeleteDialogTestConfirmAutoSubmit(t *testing.T) {
+	tmpDir := t.TempDir()
+	dir1 := filepath.Join(tmpDir, "dir1")
+	os.MkdirAll(dir1, 0o755)
+	items := []selector.DeleteItem{{Path: dir1, Basename: "dir1"}}
+
+	d := NewDeleteDialog(items, tmpDir, "YES", 80, &i18n.EN)
+	cmd := d.Init()
+
+	// Init 应该设置 testConfirm 值并产生 Enter 按键
+	if d.confirmInput.Value() != "YES" {
+		t.Errorf("testConfirm should set value to YES, got %q", d.confirmInput.Value())
+	}
+	if cmd == nil {
+		t.Error("Init with testConfirm should return non-nil cmd")
+	}
 }

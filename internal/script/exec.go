@@ -79,7 +79,9 @@ func execWorktree(stdout, stderr io.Writer, targetPath, repoDir string) error {
 		cmd := exec.Command("git", "-C", root, "worktree", "add", "--detach", targetPath)
 		cmd.Stdout = stderr
 		cmd.Stderr = stderr
-		cmd.Run() // worktree 失败不阻塞
+		if err := cmd.Run(); err != nil {
+			fmt.Fprintf(stderr, "git worktree add 失败（已创建普通目录）: %v\n", err)
+		}
 	}
 
 	return execCd(stdout, stderr, targetPath)

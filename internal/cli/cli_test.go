@@ -150,10 +150,127 @@ func TestRunCloneNoURL(t *testing.T) {
 }
 
 func TestQueryJoin(t *testing.T) {
-	// 验证多个 args 合并为连字符分隔的搜索词
 	args := []string{"foo", "bar", "baz"}
 	joined := strings.Join(args, "-")
 	if joined != "foo-bar-baz" {
 		t.Errorf("join = %q, want %q", joined, "foo-bar-baz")
+	}
+}
+
+// --- exec 分派测试 ---
+
+func TestCmdExecCloneNoURL(t *testing.T) {
+	opts := runOptions{triesPath: t.TempDir()}
+	code := cmdExec(opts, []string{"clone"})
+	if code != 1 {
+		t.Errorf("cmdExec clone (no url) = %d, want 1", code)
+	}
+}
+
+func TestCmdExecWorktreeNoDir(t *testing.T) {
+	opts := runOptions{triesPath: t.TempDir()}
+	code := cmdExec(opts, []string{"worktree"})
+	if code != 1 {
+		t.Errorf("cmdExec worktree (no dir) = %d, want 1", code)
+	}
+}
+
+func TestCmdWorktreeNoArgs(t *testing.T) {
+	code := cmdWorktree(t.TempDir(), nil)
+	if code != 1 {
+		t.Errorf("cmdWorktree(nil) = %d, want 1", code)
+	}
+}
+
+// --- dot 处理测试 ---
+
+func TestHandleDotNoName(t *testing.T) {
+	code := handleDot(t.TempDir(), []string{"."})
+	if code != 1 {
+		t.Errorf("handleDot(\".\") = %d, want 1 (missing name)", code)
+	}
+}
+
+func TestHandleDotMkdir(t *testing.T) {
+	tmpDir := t.TempDir()
+	// 没有 .git 文件，应走 mkdir 分支
+	code := handleDot(tmpDir, []string{".", "my-test"})
+	if code != 0 {
+		t.Errorf("handleDot mkdir = %d, want 0", code)
+	}
+}
+
+// --- worktreePath 测试 ---
+
+func TestWorktreePath(t *testing.T) {
+	tmpDir := t.TempDir()
+	tests := []struct {
+		name       string
+		repoDir    string
+		customName string
+		wantBase   string // 结果应包含的基础名
+	}{
+		{"auto name from dir", "/some/repo", "", "repo"},
+		{"custom name", "/some/repo", "my-branch", "my-branch"},
+		{"custom name with spaces", "/some/repo", "my branch", "my-branch"},
+	}
+
+	for _, tt := range tests {
+		t.Run(tt.name, func(t *testing.T) {
+			got := worktreePath(tmpDir, tt.repoDir, tt.customName)
+			if !strings.Contains(got, tt.wantBase) {
+				t.Errorf("worktreePath() = %q, want containing %q", got, tt.wantBase)
+			}
+			if !strings.HasPrefix(got, tmpDir) {
+				t.Errorf("worktreePath() = %q, should be under %q", got, tmpDir)
+			}
+		})
+	}
+}
+
+// --- parseGlobalFlags 测试 ---
+
+func TestParseGlobalFlagsNoColor(t *testing.T) {
+	opts, remaining := parseGlobalFlags([]string{"--no-colors", "exec", "query"})
+	if opts.colorsEnabled {
+		t.Error("--no-colors should disable colors")
+	}
+	if len(remaining) != 2 || remaining[0] != "exec" {
+		t.Errorf("remaining = %v, want [exec query]", remaining)
+	}
+}
+
+func TestParseGlobalFlagsNO_COLOR(t *testing.T) {
+	t.Setenv("NO_COLOR", "1")
+	opts, _ := parseGlobalFlags([]string{"exec"})
+	if opts.colorsEnabled {
+		t.Error("NO_COLOR env should disable colors")
+	}
+}
+
+func TestParseGlobalFlagsThemeLocale(t *testing.T) {
+	opts, remaining := parseGlobalFlags([]string{"--theme", "light", "--locale", "zh", "exec"})
+	if opts.theme != "light" {
+		t.Errorf("theme = %q, want %q", opts.theme, "light")
+	}
+	if opts.locale != "zh" {
+		t.Errorf("locale = %q, want %q", opts.locale, "zh")
+	}
+	if len(remaining) != 1 || remaining[0] != "exec" {
+		t.Errorf("remaining = %v, want [exec]", remaining)
+	}
+}
+
+func TestParseGlobalFlagsAndExit(t *testing.T) {
+	opts, _ := parseGlobalFlags([]string{"--and-exit", "exec"})
+	if !opts.andExit {
+		t.Error("--and-exit should be true")
+	}
+}
+
+func TestParseGlobalFlagsAndType(t *testing.T) {
+	opts, _ := parseGlobalFlags([]string{"--and-type", "hello", "exec"})
+	if opts.andType != "hello" {
+		t.Errorf("andType = %q, want %q", opts.andType, "hello")
 	}
 }

@@ -24,7 +24,7 @@ var Shells = map[string]ShellConfig{
 }
 
 func bashRCFile() string {
-	home, _ := os.UserHomeDir()
+	home := mustHomeDir()
 	rc := filepath.Join(home, ".bashrc")
 	if _, err := os.Stat(rc); err == nil {
 		return rc
@@ -33,13 +33,21 @@ func bashRCFile() string {
 }
 
 func zshRCFile() string {
-	home, _ := os.UserHomeDir()
-	return filepath.Join(home, ".zshrc")
+	return filepath.Join(mustHomeDir(), ".zshrc")
 }
 
 func fishRCFile() string {
-	home, _ := os.UserHomeDir()
-	return filepath.Join(home, ".config", "fish", "config.fish")
+	return filepath.Join(mustHomeDir(), ".config", "fish", "config.fish")
+}
+
+// mustHomeDir 获取用户 home 目录，失败时返回空字符串（后续写入操作会报更明确的错误）
+func mustHomeDir() string {
+	home, err := os.UserHomeDir()
+	if err != nil {
+		fmt.Fprintf(os.Stderr, "try: 无法获取 home 目录: %v\n", err)
+		return ""
+	}
+	return home
 }
 
 func posixInit(binaryPath string) string {

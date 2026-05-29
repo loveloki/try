@@ -29,7 +29,8 @@ internal/
   config/              # 配置文件加载（~/.config/try/config.json）
     config.go          # Config 结构、LoadConfig、ResolvePaths、ResolveTheme、ResolveLocale
   selector/            # 交互式选择器（Bubbletea Model + Bubbles list）
-    model.go           # SelectorModel：主界面状态与逻辑
+    model.go           # SelectorModel：结构体定义、New、Init、Update、View
+    keyhandler.go      # 按键处理函数（handleKey、handleEnter、toggleDelete 等）
     delegate.go        # 自定义 list.ItemDelegate 渲染
     view.go            # View 渲染（Header + list.View() + Footer）+ styles 定义
     keys.go            # 按键绑定

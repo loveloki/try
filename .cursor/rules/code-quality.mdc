@@ -7,8 +7,10 @@ alwaysApply: true
 
 ## 质量检查（每次实现后执行）
 
+按顺序执行，`go build` 必须先于 `go test`（确保所有包编译通过，且二进制产物为最新）：
+
 ```
-go build ./...          # 编译通过
+go build ./...          # 编译通过（含无测试文件的包）
 go vet ./...            # 静态检查
 staticcheck ./...       # 扩展检查
 go test ./... -count=1  # 全量测试

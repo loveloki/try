@@ -63,8 +63,12 @@ if [[ ! "$confirm" =~ ^[yY]$ ]]; then
     exit 0
 fi
 
-# 运行测试
+# 构建并测试
 echo ""
+echo "构建..."
+go build ./...
+echo "构建通过 ✓"
+
 echo "运行测试..."
 go test ./... -timeout 60s
 echo "测试通过 ✓"

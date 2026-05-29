@@ -126,7 +126,7 @@ func TestRunNoArgs(t *testing.T) {
 	t.Setenv("TRY_PATH", t.TempDir())
 	t.Setenv("TRY_PROJECTS", t.TempDir())
 
-	// 将 stdin 替换为关闭的 pipe（非 TTY），防止 bubbletea 进入交互模式卡住
+	// 将 stdin 替换为 pipe（非 TTY），触发 runSelector 的 TTY 检测提前退出
 	r, w, err := os.Pipe()
 	if err != nil {
 		t.Fatal(err)
@@ -138,7 +138,115 @@ func TestRunNoArgs(t *testing.T) {
 
 	code := Run(nil)
 	if code != 1 {
-		t.Errorf("Run(nil) = %d, want 1 (no TTY)", code)
+		t.Errorf("Run(nil) = %d, want 1 (non-TTY stdin should be rejected)", code)
+	}
+}
+
+// TestRunAndExit 通过 --and-exit 执行完整的 bubbletea 路径（渲染一帧后退出）
+func TestRunAndExit(t *testing.T) {
+	t.Setenv("TRY_PATH", t.TempDir())
+	t.Setenv("TRY_PROJECTS", t.TempDir())
+
+	code := Run([]string{"--and-exit"})
+	if code != 1 {
+		t.Errorf("Run(--and-exit) = %d, want 1 (empty dir, no selection)", code)
+	}
+}
+
+// TestRunAndKeysEsc 通过 --and-keys 模拟按 ESC 退出，验证 bubbletea 完整路径
+func TestRunAndKeysEsc(t *testing.T) {
+	t.Setenv("TRY_PATH", t.TempDir())
+	t.Setenv("TRY_PROJECTS", t.TempDir())
+
+	code := Run([]string{"--and-keys", "ESC"})
+	if code != 1 {
+		t.Errorf("Run(--and-keys ESC) = %d, want 1 (ESC = no selection)", code)
+	}
+}
+
+// TestRunAndKeysCreate 完整 bubbletea 路径：输入名称 → Ctrl-T 创建目录
+func TestRunAndKeysCreate(t *testing.T) {
+	tmpDir := t.TempDir()
+	t.Setenv("TRY_PATH", tmpDir)
+	t.Setenv("TRY_PROJECTS", t.TempDir())
+
+	code := Run([]string{"--and-keys", "TYPE=hello,CTRL-T"})
+	if code != 0 {
+		t.Errorf("Run(--and-keys TYPE=hello,CTRL-T) = %d, want 0", code)
+	}
+
+	entries, _ := os.ReadDir(tmpDir)
+	if len(entries) == 0 {
+		t.Error("expected a directory to be created in TRY_PATH")
+	}
+}
+
+// TestRunAndKeysSelectCD 完整 bubbletea 路径：已有目录 → ENTER 选择
+func TestRunAndKeysSelectCD(t *testing.T) {
+	tmpDir := t.TempDir()
+	t.Setenv("TRY_PATH", tmpDir)
+	t.Setenv("TRY_PROJECTS", t.TempDir())
+
+	// 预创建一个目录
+	os.MkdirAll(tmpDir+"/my-project", 0o755)
+
+	code := Run([]string{"--and-keys", "ENTER"})
+	if code != 0 {
+		t.Errorf("Run(--and-keys ENTER) = %d, want 0 (select existing dir)", code)
+	}
+}
+
+// TestRunSearchTermAndSelect 带搜索词启动 → default 路由 → bubbletea
+func TestRunSearchTermAndSelect(t *testing.T) {
+	tmpDir := t.TempDir()
+	t.Setenv("TRY_PATH", tmpDir)
+	t.Setenv("TRY_PROJECTS", t.TempDir())
+
+	os.MkdirAll(tmpDir+"/alpha-project", 0o755)
+	os.MkdirAll(tmpDir+"/beta-project", 0o755)
+
+	// "alpha" 作为搜索词，应过滤出 alpha-project 并选中
+	code := Run([]string{"--and-keys", "ENTER", "alpha"})
+	if code != 0 {
+		t.Errorf("Run(alpha --and-keys ENTER) = %d, want 0", code)
+	}
+}
+
+// TestRunFullWorkflow 模拟完整用户流程：创建 → 选择 → 删除
+// 每个操作都经过完整 bubbletea 路径
+func TestRunFullWorkflow(t *testing.T) {
+	tmpDir := t.TempDir()
+	t.Setenv("TRY_PATH", tmpDir)
+	t.Setenv("TRY_PROJECTS", t.TempDir())
+
+	// 1. 创建目录
+	code := Run([]string{"--and-keys", "TYPE=workflow,CTRL-T"})
+	if code != 0 {
+		t.Fatalf("create: exit %d, want 0", code)
+	}
+	entries, _ := os.ReadDir(tmpDir)
+	if len(entries) != 1 {
+		t.Fatalf("create: expected 1 dir, got %d", len(entries))
+	}
+	createdDir := entries[0].Name()
+	if !strings.Contains(createdDir, "workflow") {
+		t.Fatalf("create: dir name %q should contain 'workflow'", createdDir)
+	}
+
+	// 2. 选择该目录
+	code = Run([]string{"--and-keys", "ENTER"})
+	if code != 0 {
+		t.Errorf("select: exit %d, want 0", code)
+	}
+
+	// 3. 删除该目录（Ctrl-D 标记 → Enter 确认 → --and-confirm 自动输入 YES）
+	code = Run([]string{"--and-keys", "CTRL-D,ENTER", "--and-confirm", "YES"})
+	if code != 0 {
+		t.Errorf("delete: exit %d, want 0", code)
+	}
+	entries, _ = os.ReadDir(tmpDir)
+	if len(entries) != 0 {
+		t.Errorf("delete: expected 0 dirs after delete, got %d", len(entries))
 	}
 }
 

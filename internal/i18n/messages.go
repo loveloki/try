@@ -42,6 +42,7 @@ type Messages struct {
 	UsageDot      string
 
 	// === CLI 错误消息 ===
+	ErrNotTerminal string // stdin 非终端时的提示
 	ErrParseGitURI string // 前缀
 	ErrParsePath   string // 前缀
 	ErrReadDir     string // 前缀
@@ -131,6 +132,7 @@ Shortcuts:
 	UsageWorktree: "Usage: try worktree <dir> [name]",
 	UsageDot:      "Usage: try . <name>",
 
+	ErrNotTerminal: "stdin is not a terminal",
 	ErrParseGitURI: "Cannot parse Git URI: ",
 	ErrParsePath:   "Cannot resolve path: ",
 	ErrReadDir:     "Cannot read directory: ",
@@ -218,6 +220,7 @@ var ZH = Messages{
 	UsageWorktree: "用法: try worktree <目录> [名称]",
 	UsageDot:      "用法: try . <名称>",
 
+	ErrNotTerminal: "标准输入不是终端",
 	ErrParseGitURI: "无法解析 Git URI: ",
 	ErrParsePath:   "无法解析路径: ",
 	ErrReadDir:     "无法读取目录: ",

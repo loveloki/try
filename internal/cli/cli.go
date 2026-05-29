@@ -14,6 +14,10 @@ import (
 	"github.com/xleine/try/internal/shell"
 )
 
+func isTestMode(opts runOptions) bool {
+	return opts.andExit || opts.andKeys != ""
+}
+
 var version = "dev"
 
 // runOptions 聚合运行所需的全部参数，避免跨函数传递过多散参
@@ -108,6 +112,14 @@ func parseGlobalFlags(args []string) (runOptions, []string) {
 
 // runSelector 启动交互式选择器
 func runSelector(opts runOptions, searchTerm string) int {
+	// 非测试模式下，非终端 stdin 会导致 bubbletea cancelreader 卡在 epoll
+	if !isTestMode(opts) {
+		if fi, err := os.Stdin.Stat(); err != nil || fi.Mode()&os.ModeCharDevice == 0 {
+			fmt.Fprintln(os.Stderr, i18n.Get().ErrNotTerminal)
+			return 1
+		}
+	}
+
 	var testKeys []string
 	if opts.andKeys != "" {
 		testKeys = selector.ParseTestKeys(opts.andKeys)
@@ -128,7 +140,13 @@ func runSelector(opts runOptions, searchTerm string) int {
 	model := selector.New(cfg)
 	model.SetDialogFactory(&dialogFactoryImpl{})
 
-	p := tea.NewProgram(model, tea.WithOutput(os.Stderr))
+	progOpts := []tea.ProgramOption{tea.WithOutput(os.Stderr)}
+	// 测试模式下用空 reader 替代 stdin，避免 cancelreader 阻塞在 epoll
+	if isTestMode(opts) {
+		progOpts = append(progOpts, tea.WithInput(strings.NewReader("")))
+	}
+
+	p := tea.NewProgram(model, progOpts...)
 	result, err := p.Run()
 	if err != nil {
 		fmt.Fprintln(os.Stderr, err)

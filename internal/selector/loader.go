@@ -9,7 +9,7 @@ import (
 
 	"charm.land/bubbles/v2/list"
 	tea "charm.land/bubbletea/v2"
-	"github.com/xleine/try/internal/fuzzy"
+	"github.com/loveloki/try/internal/fuzzy"
 )
 
 // loadAllTries 从 basePath 读取所有子目录，计算时间权重基础分

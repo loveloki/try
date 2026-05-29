@@ -8,7 +8,7 @@ import (
 	tea "charm.land/bubbletea/v2"
 	"charm.land/bubbles/v2/list"
 	"charm.land/bubbles/v2/textinput"
-	"github.com/xleine/try/internal/i18n"
+	"github.com/loveloki/try/internal/i18n"
 )
 
 // msgs 返回全局语言包的快捷方式

@@ -6,12 +6,12 @@ import (
 	"strings"
 
 	tea "charm.land/bubbletea/v2"
-	"github.com/xleine/try/internal/config"
-	"github.com/xleine/try/internal/dialog"
-	"github.com/xleine/try/internal/i18n"
-	"github.com/xleine/try/internal/script"
-	"github.com/xleine/try/internal/selector"
-	"github.com/xleine/try/internal/shell"
+	"github.com/loveloki/try/internal/config"
+	"github.com/loveloki/try/internal/dialog"
+	"github.com/loveloki/try/internal/i18n"
+	"github.com/loveloki/try/internal/script"
+	"github.com/loveloki/try/internal/selector"
+	"github.com/loveloki/try/internal/shell"
 )
 
 func isTestMode(opts runOptions) bool {

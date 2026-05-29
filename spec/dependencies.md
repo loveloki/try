@@ -58,7 +58,7 @@
 ## go.mod 示例
 
 ```go
-module github.com/xleine/try
+module github.com/loveloki/try
 
 go 1.26.3
 

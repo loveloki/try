@@ -1,9 +1,9 @@
 #!/bin/sh
 # try 安装脚本
-# 用法: curl -fsSL https://raw.githubusercontent.com/xleine/try/main/install.sh | sh
+# 用法: curl -fsSL https://raw.githubusercontent.com/loveloki/try/main/install.sh | sh
 set -e
 
-REPO="xleine/try"
+REPO="loveloki/try"
 INSTALL_DIR="${TRY_INSTALL_DIR:-$HOME/.local/bin}"
 
 detect_platform() {

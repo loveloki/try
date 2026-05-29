@@ -6,7 +6,7 @@ import (
 	"path/filepath"
 	"strings"
 
-	"github.com/xleine/try/internal/i18n"
+	"github.com/loveloki/try/internal/i18n"
 )
 
 func msgs() *i18n.Messages { return i18n.Get() }

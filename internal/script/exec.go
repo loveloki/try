@@ -9,8 +9,8 @@ import (
 	"strings"
 	"time"
 
-	"github.com/xleine/try/internal/i18n"
-	"github.com/xleine/try/internal/selector"
+	"github.com/loveloki/try/internal/i18n"
+	"github.com/loveloki/try/internal/selector"
 )
 
 func msgs() *i18n.Messages { return i18n.Get() }

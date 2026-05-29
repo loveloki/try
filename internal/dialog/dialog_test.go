@@ -7,7 +7,7 @@ import (
 	"testing"
 
 	tea "charm.land/bubbletea/v2"
-	"github.com/xleine/try/internal/selector"
+	"github.com/loveloki/try/internal/selector"
 )
 
 // --- Delete 对话框测试 ---

@@ -7,10 +7,10 @@ import (
 	"strings"
 	"time"
 
-	"github.com/xleine/try/internal/git"
-	"github.com/xleine/try/internal/i18n"
-	"github.com/xleine/try/internal/script"
-	"github.com/xleine/try/internal/selector"
+	"github.com/loveloki/try/internal/git"
+	"github.com/loveloki/try/internal/i18n"
+	"github.com/loveloki/try/internal/script"
+	"github.com/loveloki/try/internal/selector"
 )
 
 // cmdExec 处理包装函数内部调用的二级分派

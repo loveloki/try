@@ -9,7 +9,7 @@ builds:
     flags:
       - -trimpath
     ldflags:
-      - -s -w -X github.com/xleine/try/internal/cli.version={{.Version}}
+      - -s -w -X github.com/loveloki/try/internal/cli.version={{.Version}}
     goos:
       - linux
       - darwin

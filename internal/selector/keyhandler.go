@@ -7,7 +7,7 @@ import (
 
 	tea "charm.land/bubbletea/v2"
 	"charm.land/bubbles/v2/key"
-	"github.com/xleine/try/internal/git"
+	"github.com/loveloki/try/internal/git"
 )
 
 // handleKey 根据按键消息分派到具体处理函数

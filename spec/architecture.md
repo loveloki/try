@@ -215,7 +215,7 @@ func dirExists(path string) bool  // git 包内部使用
 
 ## 版本号
 
-两处同步：`cli.version` 变量（通过 `go build -ldflags "-X github.com/xleine/try/internal/cli.version=..."` 注入，未注入时回退到硬编码的 `"dev"`）、Git tag。
+两处同步：`cli.version` 变量（通过 `go build -ldflags "-X github.com/loveloki/try/internal/cli.version=..."` 注入，未注入时回退到硬编码的 `"dev"`）、Git tag。
 
 ## 分发渠道
 
@@ -224,4 +224,4 @@ func dirExists(path string) bool  // git 包内部使用
 | GitHub Releases | 预编译二进制（linux/darwin/windows × amd64/arm64） |
 | Nix | `flake.nix`（packages.default + Home Manager module） |
 | Homebrew | `Formula/try.rb` |
-| `go install` | `go install github.com/xleine/try/cmd/try@latest` |
+| `go install` | `go install github.com/loveloki/try/cmd/try@latest` |

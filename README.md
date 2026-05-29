@@ -19,19 +19,19 @@
 ### 一键安装（推荐）
 
 ```bash
-curl -fsSL https://raw.githubusercontent.com/xleine/try/main/install.sh | sh
+curl -fsSL https://raw.githubusercontent.com/loveloki/try/main/install.sh | sh
 ```
 
 自动检测 OS 和架构，下载对应预编译二进制。自定义安装路径：
 
 ```bash
-TRY_INSTALL_DIR=~/.local/bin curl -fsSL https://raw.githubusercontent.com/xleine/try/main/install.sh | sh
+TRY_INSTALL_DIR=~/.local/bin curl -fsSL https://raw.githubusercontent.com/loveloki/try/main/install.sh | sh
 ```
 
 ### 从源码安装
 
 ```bash
-go install github.com/xleine/try/cmd/try@latest
+go install github.com/loveloki/try/cmd/try@latest
 ```
 
 ### Shell 集成

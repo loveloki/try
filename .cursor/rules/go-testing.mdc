@@ -1,0 +1,42 @@
+---
+description: Go 测试规范——表驱动测试、竞态检测、覆盖率
+alwaysApply: true
+---
+
+# Go 测试规范
+
+## 运行命令
+
+```bash
+go test -race ./...          # 带竞态检测
+go test -cover ./...         # 带覆盖率
+go test -race -cover ./...   # 完整检查
+```
+
+## 表驱动测试
+
+```go
+tests := []struct {
+    name  string
+    input InputType
+    want  OutputType
+}{
+    {"用例1", input1, want1},
+    {"边界", input2, want2},
+}
+for _, tt := range tests {
+    t.Run(tt.name, func(t *testing.T) {
+        got := Function(tt.input)
+        // 断言...
+    })
+}
+```
+
+## 最佳实践
+
+- 使用 `t.Helper()` 标记辅助函数
+- 使用 `t.Cleanup()` 清理资源
+- 使用 `t.TempDir()` 创建临时目录（自动清理）
+- 使用 `t.Setenv()` 设置环境变量（自动恢复）
+- 使用 `t.Parallel()` 加速独立测试
+- 测试行为而非实现，不直接测试私有函数

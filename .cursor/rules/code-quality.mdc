@@ -42,12 +42,12 @@ go test ./... -count=1  # 全量测试
 
 | 变更类型 | 需检查的文档 |
 |----------|-------------|
-| 函数签名/结构体变更 | 对应模块的 `docs/*.md` |
-| 新增/删除配置项 | `docs/config.md`、`README.md` |
-| 快捷键/交互变更 | `docs/selector.md`、`README.md` |
-| 依赖版本变更 | `docs/dependencies.md` |
-| 新增/删除文件 | `docs/architecture.md` |
-| 错误处理/行为变更 | 对应模块的 `docs/*.md` |
+| 函数签名/结构体变更 | 对应模块的 `spec/*.md` |
+| 新增/删除配置项 | `spec/config.md`、`README.md` |
+| 快捷键/交互变更 | `spec/selector.md`、`README.md` |
+| 依赖版本变更 | `spec/dependencies.md` |
+| 新增/删除文件 | `spec/architecture.md` |
+| 错误处理/行为变更 | 对应模块的 `spec/*.md` |
 
 如果变更影响了文档中描述的行为，文档更新应与代码变更在**同一个 commit** 中提交。
 

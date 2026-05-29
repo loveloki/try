@@ -8,36 +8,67 @@
 
 ### 对话框接口
 
+对话框接口在两个包中分别定义，通过工厂模式避免循环依赖。
+
+`selector/dialogs.go` 中定义消费方接口：
+
 ```go
-type Dialog interface {
+// DialogInstance 对话框实例接口（导出供 CLI 层的工厂实现使用）
+type DialogInstance interface {
     tea.Model
-    // Result 返回对话框结果（nil 表示取消/尚未完成）
     Result() *SelectionResult
-    // Done 返回是否已完成（确认或取消）
     Done() bool
-    // ViewContent 返回对话框的渲染内容字符串（不含 AltScreen 等终端设置）
-    // SelectorModel.View() 将此内容嵌入 tea.View 中
     ViewContent() string
 }
 ```
 
+`dialog/dialog.go` 中定义生产方接口（语义相同，引用 selector 的类型）：
+
+```go
+type Dialog interface {
+    tea.Model
+    Result() *selector.SelectionResult
+    Done() bool
+    ViewContent() string
+}
+```
+
+### DialogFactory（避免循环依赖）
+
+selector 包不直接 import dialog 包，而是通过 `DialogFactory` 接口由 CLI 层注入：
+
+```go
+// selector/dialogs.go
+type DialogFactory interface {
+    NewDeleteDialog(items []DeleteItem, basePath, testConfirm string, width int, msgs *i18n.Messages) DialogInstance
+    NewRenameDialog(entry *MatchedEntry, basePath string, width int, msgs *i18n.Messages) DialogInstance
+    NewShipDialog(entry *MatchedEntry, basePath, shipPath string, width int, msgs *i18n.Messages) DialogInstance
+}
+```
+
+CLI 层在 `cli.go` 中实现工厂并注入：
+
+```go
+model := selector.New(cfg)
+model.SetDialogFactory(&dialogFactoryImpl{})
+```
+
+### 对话框路由
+
 SelectorModel 在 `activeDialog != nil` 时，将所有 `tea.KeyPressMsg` 转发给对话框子模型：
 
 ```go
-func (m SelectorModel) Update(msg tea.Msg) (tea.Model, tea.Cmd) {
-    if m.activeDialog != nil {
-        dialog, cmd := m.activeDialog.Update(msg)
-        m.activeDialog = dialog.(Dialog)
-        if m.activeDialog.Done() {
-            if result := m.activeDialog.Result(); result != nil {
-                m.selected = result
-                return m, tea.Quit
-            }
-            m.activeDialog = nil // 取消，回到主界面
+func (m SelectorModel) updateDialog(msg tea.KeyPressMsg) (tea.Model, tea.Cmd) {
+    dlg, cmd := m.activeDialog.Update(msg)
+    m.activeDialog = dlg.(dialog)
+    if m.activeDialog.Done() {
+        if result := m.activeDialog.Result(); result != nil {
+            m.selected = result
+            return m, tea.Quit
         }
-        return m, cmd
+        m.activeDialog = nil
     }
-    // ...正常按键处理
+    return m, cmd
 }
 ```
 
@@ -163,7 +194,7 @@ func (d *DeleteDialog) confirm() *SelectionResult {
 `testConfirm` 由 `SelectorModel` 持有，在打开删除对话框时传入。对话框 `Init()` 检测到非空值后，直接将确认文本设置到 textinput 并立即提交：
 
 ```go
-// SelectorModel 打开删除对话框时，收集标记条目列表
+// SelectorModel 通过工厂创建删除对话框，收集标记条目列表
 func (m SelectorModel) openDeleteDialog() (tea.Model, tea.Cmd) {
     var items []DeleteItem
     for _, entry := range m.cachedResults {
@@ -171,17 +202,19 @@ func (m SelectorModel) openDeleteDialog() (tea.Model, tea.Cmd) {
             items = append(items, DeleteItem{Path: entry.Entry.Path, Basename: entry.Entry.Basename})
         }
     }
-    dlg := NewDeleteDialog(items, m.basePath, m.testConfirm)
-    m.activeDialog = dlg
-    return m, dlg.Init()
+    if m.dialogFactory != nil {
+        dlg := m.dialogFactory.NewDeleteDialog(items, m.basePath, m.testConfirm, m.width, m.messages)
+        m.activeDialog = dlg
+        return m, dlg.Init()
+    }
+    return m, nil
 }
 
 // DeleteDialog 初始化：testConfirm 非空时跳过手动输入
 func (d *DeleteDialog) Init() tea.Cmd {
-    cmds := []tea.Cmd{d.textInput.Focus()}
+    cmds := []tea.Cmd{d.confirmInput.Focus()}
     if d.testConfirm != "" {
-        // 预填充确认文本并自动提交
-        d.textInput.SetValue(d.testConfirm)
+        d.confirmInput.SetValue(d.testConfirm)
         cmds = append(cmds, func() tea.Msg {
             return tea.KeyPressMsg{Code: tea.KeyEnter}
         })
@@ -227,20 +260,20 @@ Ctrl-R，对当前选中条目生效。
 ### 确认逻辑
 
 ```go
-func (d *RenameDialog) confirm() (*SelectionResult, string) {
+func (d *RenameDialog) confirmRename() (*selector.SelectionResult, string) {
     newName := strings.TrimSpace(d.input.Value())
-    newName = regexp.MustCompile(`\s+`).ReplaceAllString(newName, "-")
-    oldName := d.entry.Basename
+    newName = whitespaceRe.ReplaceAllString(newName, "-")
+    oldName := d.entry.Entry.Basename
 
-    if newName == "" { return nil, "Name cannot be empty" }
-    if strings.Contains(newName, "/") { return nil, "Name cannot contain /" }
-    if newName == oldName { return nil, "" } // 无变化，静默退出
-    if dirExists(filepath.Join(d.basePath, newName)) {
-        return nil, "Directory exists: " + newName
+    if newName == "" { return nil, d.msgs.RenameEmpty }
+    if strings.Contains(newName, "/") { return nil, d.msgs.RenameSlash }
+    if newName == oldName { return nil, "" }
+    if selector.DirExists(filepath.Join(d.basePath, newName)) {
+        return nil, d.msgs.RenameExists + newName
     }
 
-    return &SelectionResult{
-        Type:     SelectRename,
+    return &selector.SelectionResult{
+        Type:     selector.SelectRename,
         Old:      oldName,
         New:      newName,
         BasePath: d.basePath,
@@ -296,19 +329,19 @@ shipBuffer := filepath.Join(shipPath, projectName)            // 默认目标路
 ### 确认逻辑
 
 ```go
-func (d *ShipDialog) confirm() (*SelectionResult, string) {
-    dest := expandPath(strings.TrimSpace(d.input.Value()))
+func (d *ShipDialog) confirmShip() (*selector.SelectionResult, string) {
+    dest := config.ExpandPath(strings.TrimSpace(d.input.Value()))
 
-    if dest == "" { return nil, "Destination cannot be empty" }
-    if fileExists(dest) { return nil, "Destination already exists: " + dest }
+    if dest == "" { return nil, d.msgs.ShipEmptyErr }
+    if selector.FileExists(dest) { return nil, d.msgs.ShipExistsErr + dest }
     parent := filepath.Dir(dest)
-    if !dirExists(parent) { return nil, "Parent directory does not exist: " + parent }
+    if !selector.DirExists(parent) { return nil, d.msgs.ShipNoParentErr + parent }
 
-    return &SelectionResult{
-        Type:     SelectShip,
-        Source:   d.entry.Path,
+    return &selector.SelectionResult{
+        Type:     selector.SelectShip,
+        Source:   d.entry.Entry.Path,
         Dest:     dest,
-        Basename: d.entry.Basename,
+        Basename: d.entry.Entry.Basename,
         BasePath: d.basePath,
     }, ""
 }

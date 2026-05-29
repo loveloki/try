@@ -22,17 +22,23 @@ go get charm.land/lipgloss/v2
 ```
 cmd/try/main.go        # 入口：调用 cli.Run(os.Args[1:])
 internal/
-  cli/                 # CLI 解析与命令分派（所有解析逻辑在此）
-    cli.go
+  cli/                 # CLI 解析与命令分派
+    cli.go             # Run 主入口、parseGlobalFlags、runSelector、帮助文本
+    commands.go        # cmdExec、cmdClone、cmdWorktree、handleDot、worktreePath
+    flags.go           # 参数提取工具函数（hasFlag、extractPath、extractValueFlag 等）
   config/              # 配置文件加载（~/.config/try/config.json）
-    config.go
+    config.go          # Config 结构、LoadConfig、ResolvePaths、ResolveTheme、ResolveLocale
   selector/            # 交互式选择器（Bubbletea Model + Bubbles list）
     model.go           # SelectorModel：主界面状态与逻辑
     delegate.go        # 自定义 list.ItemDelegate 渲染
-    view.go            # View 渲染（Header + list.View() + Footer）
+    view.go            # View 渲染（Header + list.View() + Footer）+ styles 定义
     keys.go            # 按键绑定
-    entry.go           # 目录条目类型定义（实现 list.Item 接口）
+    entry.go           # 目录条目类型定义（实现 list.Item 接口）+ 工具函数
+    loader.go          # 目录加载（loadAllTries）和列表刷新（refreshList）
+    dialogs.go         # DialogInstance 接口、DialogFactory、对话框路由
+    testkeys.go        # 测试按键解析（ParseTestKeys、KeyToMsg）
   dialog/              # 对话框子模型
+    dialog.go          # Dialog 接口定义
     delete.go          # 删除确认对话框
     rename.go          # 重命名对话框
     ship.go            # ship 对话框
@@ -44,11 +50,9 @@ internal/
     template.go        # 包装函数模板生成
   script/              # 操作执行 + cd 脚本生成
     exec.go            # Go 直接执行副作用操作（mkdir/rm/mv/git）
-    script.go          # cd 脚本输出（quote + emitCd）
+    script.go          # cd 脚本输出（Quote + EmitCd）
   git/                 # Git 集成
-    uri.go             # Git URI 解析
-    clone.go           # Clone 命令
-    worktree.go        # Worktree 命令
+    uri.go             # Git URI 解析、IsGitURI、GenerateCloneDirName、ResolveUniqueName
 go.mod
 go.sum
 ```
@@ -163,6 +167,8 @@ SelectorModel 维护以下状态：
 |-----|------|--------|
 | `path` | tries 根目录 | `~/src/tries` |
 | `ship` | ship 目标目录 | `~/src/ship` |
+| `theme` | 配色主题 | `auto` |
+| `locale` | 界面语言 | `auto` |
 
 ## 环境变量
 
@@ -170,44 +176,36 @@ SelectorModel 维护以下状态：
 |------|------|--------|
 | `TRY_PATH` | tries 根目录（优先于配置文件） | `~/src/tries` |
 | `TRY_PROJECTS` | ship 目标目录（优先于配置文件） | `~/src/ship` |
+| `TRY_THEME` | 配色主题（`dark` / `light`，优先于配置文件） | `auto` |
+| `TRY_LOCALE` | 界面语言（`en` / `zh`，优先于配置文件） | `auto` |
 | `NO_COLOR` | 非空时禁用颜色 | — |
 | `TRY_WIDTH` | 覆盖终端宽度（测试用） | — |
 | `TRY_HEIGHT` | 覆盖终端高度（测试用） | — |
 
 ## 工具函数
 
-多个模块共用的小型工具函数，放在 `internal/util/` 或各自包内：
+共用工具函数分布在各自包内：
+
+`internal/selector/entry.go`（导出，供其他包使用）：
 
 ```go
-func dirExists(path string) bool {
-    info, err := os.Stat(path)
-    return err == nil && info.IsDir()
-}
+func DirExists(path string) bool
+func FileExists(path string) bool
+func IsFile(path string) bool
+func EnvInt(key string) int
+func FormatTimeAgo(d time.Duration) string
+```
 
-func fileExists(path string) bool {
-    _, err := os.Stat(path)
-    return err == nil
-}
+`internal/config/config.go`（导出）：
 
-func isFile(path string) bool {
-    info, err := os.Stat(path)
-    return err == nil && !info.IsDir()
-}
+```go
+func ExpandPath(s string) string  // 展开 ~ 为用户 home 目录
+```
 
-// expandPath 展开 ~ 为用户 home 目录
-func expandPath(s string) string {
-    if strings.HasPrefix(s, "~/") {
-        home, _ := os.UserHomeDir()
-        return filepath.Join(home, s[2:])
-    }
-    return s
-}
+`internal/git/uri.go`（内部）：
 
-// envInt 读取环境变量为 int，不存在或解析失败返回 0
-func envInt(key string) int {
-    v, _ := strconv.Atoi(os.Getenv(key))
-    return v
-}
+```go
+func dirExists(path string) bool  // git 包内部使用
 ```
 
 ### getParentProcessName（Shell 检测用）
@@ -230,7 +228,7 @@ func getParentProcessName() string {
 
 ## 版本号
 
-两处同步：`version` 常量（通过 `go build -ldflags "-X main.version=..."` 注入，未注入时回退到硬编码的 `"dev"`）、Git tag。
+两处同步：`cli.version` 变量（通过 `go build -ldflags "-X github.com/xleine/try/internal/cli.version=..."` 注入，未注入时回退到硬编码的 `"dev"`）、Git tag。
 
 ## 分发渠道
 

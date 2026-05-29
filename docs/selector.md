@@ -159,10 +159,9 @@ func (m *SelectorModel) refreshList() tea.Cmd {
 ```go
 func (m SelectorModel) Init() tea.Cmd {
     cmds := []tea.Cmd{
-        m.textInput.Focus(),      // 聚焦搜索框
-        m.textInput.Init(),       // 启动光标闪烁
-        m.refreshList(),          // 初始加载目录列表
-        tea.RequestWindowSize(),  // 获取终端尺寸
+        m.textInput.Focus(),                                   // 聚焦搜索框
+        m.refreshList(),                                       // 初始加载目录列表
+        func() tea.Msg { return tea.RequestWindowSize() },     // 获取终端尺寸
     }
 
     // --and-exit 模式：渲染一帧后退出
@@ -333,7 +332,7 @@ func (m SelectorModel) handleCreateNew() (tea.Model, tea.Cmd) {
     name := strings.ReplaceAll(input, " ", "-")
     dateSuffix := time.Now().Format("2006-01-02")
     // 处理同名目录冲突（同一天创建多次时自动追加 -2、-3...）
-    name = resolveUniqueName(m.basePath, name, dateSuffix)
+    name = git.ResolveUniqueName(m.basePath, name, dateSuffix)
     dirName := name + "-" + dateSuffix
     m.selected = &SelectionResult{
         Type: SelectMkdir,
@@ -592,7 +591,7 @@ func (d EntryDelegate) Update(msg tea.Msg, m *list.Model) tea.Cmd { return nil }
 
 Ctrl-T 或在"Create new"行上按 Enter 触发：
 
-- **输入框非空**：使用当前输入作为目录名（`{input}-YYYY-MM-DD`），通过 `resolveUniqueName` 处理同名冲突后设置 selected = `{type: mkdir, path: fullPath}`
+- **输入框非空**：使用当前输入作为目录名（`{input}-YYYY-MM-DD`），通过 `git.ResolveUniqueName` 处理同名冲突后设置 selected = `{type: mkdir, path: fullPath}`
 - **输入框为空**：不执行操作
 
 ### 空目录场景

@@ -123,7 +123,7 @@ func worktreePath(triesPath, repoDir, customName string) string {
         base = filepath.Base(repoDir)
     }
     dateSuffix := time.Now().Format("2006-01-02")
-    base = resolveUniqueName(triesPath, base, dateSuffix)
+    base = git.ResolveUniqueName(triesPath, base, dateSuffix)
     return filepath.Join(triesPath, base + "-" + dateSuffix)
 }
 ```
@@ -157,7 +157,7 @@ Go 直接执行 worktree 创建，不生成 Shell 脚本。详见 `script-genera
 当目标目录已存在时，自动递增后缀：
 
 ```go
-func resolveUniqueName(triesPath, base, dateSuffix string) string {
+func ResolveUniqueName(triesPath, base, dateSuffix string) string {
     initial := base + "-" + dateSuffix
     if !dirExists(filepath.Join(triesPath, initial)) { return base }
 

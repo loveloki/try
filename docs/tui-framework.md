@@ -19,20 +19,20 @@ charm.land/lipgloss/v2     # 样式
 `--no-colors` / `NO_COLOR` 环境变量禁用所有样式。实现方式：
 
 ```go
-// 通过 colorprofile.Writer 控制颜色输出
-// 禁用颜色时将 profile 设为 colorprofile.Ascii
-
 func newStyles(colorsEnabled bool, theme string) *styles {
-    var profile colorprofile.Profile
-    if colorsEnabled {
-        w := colorprofile.NewWriter(os.Stderr, os.Environ())
-        profile = w.Profile
-    } else {
-        profile = colorprofile.Ascii
+    if !colorsEnabled {
+        // 所有样式设为空（无颜色、无加粗）
+        return &styles{
+            header:     lipgloss.NewStyle(),
+            highlight:  lipgloss.NewStyle(),
+            // ...
+        }
     }
     // 根据 theme 选择色板，构建样式...
 }
 ```
+
+颜色降采样交由 bubbletea v2 内置渲染器处理，`newStyles` 不做额外 colorprofile 降采样以避免双重转换导致背景色丢失。
 
 ### 主题系统
 
@@ -117,11 +117,12 @@ type styles struct {
     selectedBg lipgloss.Style // 仅存储背景色，供 delegate 提取
     dangerBg   lipgloss.Style // 同上
     accent     lipgloss.Style
-    profile    colorprofile.Profile
 }
 
-// 通过 colorprofile 降采样后渲染
-func (s *styles) render(style lipgloss.Style, text string) string
+// render 渲染带样式的文本，颜色降采样由 bubbletea 渲染器统一处理
+func (s *styles) render(style lipgloss.Style, text string) string {
+    return style.Render(text)
+}
 ```
 
 ## 布局结构

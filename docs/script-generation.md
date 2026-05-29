@@ -22,35 +22,37 @@
 ## cd 脚本输出
 
 ```go
-// quote 用单引号包裹路径，处理路径中的单引号
-func quote(s string) string {
+const ScriptWarning = "# if you can read this, you didn't launch try from an alias. run try --help."
+
+// Quote 用单引号包裹路径，处理路径中的单引号
+func Quote(s string) string {
     return "'" + strings.ReplaceAll(s, "'", `'"'"'`) + "'"
 }
 
-// emitCd 输出 cd 脚本到 stdout，由父 Shell eval 执行
-func emitCd(path string) {
-    fmt.Println(scriptWarning)
-    fmt.Println("cd " + quote(path))
+// EmitCd 输出 cd 脚本到 stdout
+func EmitCd(path string) {
+    EmitCdTo(os.Stdout, path)
 }
 
-const scriptWarning = "# if you can read this, you didn't launch try from an alias. run try --help."
+// EmitCdTo 输出 cd 脚本到指定 writer，便于测试
+func EmitCdTo(w io.Writer, path string) {
+    fmt.Fprintln(w, ScriptWarning)
+    fmt.Fprintln(w, "cd "+Quote(path))
+}
 ```
 
-`quote()` 仍然需要，因为 `cd` 命令必须走 Shell，路径中的特殊字符需要转义。
+`Quote()` 仍然需要，因为 `cd` 命令必须走 Shell，路径中的特殊字符需要转义。所有脚本输出函数接受 `io.Writer` 参数，便于测试时捕获输出。
 
 ## 操作执行函数
 
 ### execCd（选择目录）
 
 ```go
-func execCd(path string) error {
-    // 更新 mtime（影响下次排序）
+func execCd(stdout, stderr io.Writer, path string) error {
     now := time.Now()
     os.Chtimes(path, now, now)
-    // 输出提示到 stderr
-    fmt.Fprintln(os.Stderr, path)
-    // 输出 cd 脚本到 stdout
-    emitCd(path)
+    fmt.Fprintln(stderr, path)
+    EmitCdTo(stdout, path)
     return nil
 }
 ```
@@ -58,32 +60,31 @@ func execCd(path string) error {
 ### execMkdir（创建新目录）
 
 ```go
-func execMkdir(path string) error {
-    if err := os.MkdirAll(path, 0755); err != nil {
+func execMkdir(stdout, stderr io.Writer, path string) error {
+    if err := os.MkdirAll(path, 0o755); err != nil {
         return fmt.Errorf("创建目录失败: %w", err)
     }
-    return execCd(path)
+    return execCd(stdout, stderr, path)
 }
 ```
 
 ### execClone（克隆仓库）
 
 ```go
-func execClone(path, uri string) error {
-    if err := os.MkdirAll(filepath.Dir(path), 0755); err != nil {
+func execClone(stdout, stderr io.Writer, path, uri string) error {
+    if err := os.MkdirAll(filepath.Dir(path), 0o755); err != nil {
         return fmt.Errorf("创建父目录失败: %w", err)
     }
 
-    fmt.Fprintln(os.Stderr, "Using git clone to create this trial from "+uri+".")
+    fmt.Fprintln(stderr, "Using git clone to create this trial from "+uri+".")
     cmd := exec.Command("git", "clone", uri, path)
-    cmd.Stdout = os.Stderr  // git 输出到 stderr（stdout 是脚本通道）
-    cmd.Stderr = os.Stderr
+    cmd.Stdout = stderr  // git 输出到 stderr（stdout 是脚本通道）
+    cmd.Stderr = stderr
     if err := cmd.Run(); err != nil {
-        // clone 失败：清理已创建的空目录
         os.RemoveAll(path)
         return fmt.Errorf("git clone 失败: %w", err)
     }
-    return execCd(path)
+    return execCd(stdout, stderr, path)
 }
 ```
 
@@ -92,22 +93,22 @@ func execClone(path, uri string) error {
 ### execWorktree（创建 worktree）
 
 ```go
-func execWorktree(targetPath, repoDir string) error {
-    if err := os.MkdirAll(targetPath, 0755); err != nil {
+func execWorktree(stdout, stderr io.Writer, targetPath, repoDir string) error {
+    if err := os.MkdirAll(targetPath, 0o755); err != nil {
         return fmt.Errorf("创建目录失败: %w", err)
     }
 
-    // 检查是否在 Git 仓库中
     root, err := gitRepoRoot(repoDir)
     if err == nil {
-        // 创建 detached HEAD worktree（失败不阻塞）
         cmd := exec.Command("git", "-C", root, "worktree", "add", "--detach", targetPath)
-        cmd.Stdout = os.Stderr
-        cmd.Stderr = os.Stderr
-        cmd.Run() // 忽略错误：worktree 失败仍然 cd 到目录
+        cmd.Stdout = stderr
+        cmd.Stderr = stderr
+        if err := cmd.Run(); err != nil {
+            fmt.Fprintf(stderr, "git worktree add 失败（已创建普通目录）: %v\n", err)
+        }
     }
 
-    return execCd(targetPath)
+    return execCd(stdout, stderr, targetPath)
 }
 
 func gitRepoRoot(dir string) (string, error) {
@@ -121,7 +122,7 @@ func gitRepoRoot(dir string) (string, error) {
 ### execDelete（删除目录）
 
 ```go
-func execDelete(items []DeleteItem, basePath string) error {
+func execDelete(stdout io.Writer, items []selector.DeleteItem, basePath string) error {
     var failed []string
     for _, item := range items {
         if err := os.RemoveAll(item.Path); err != nil {
@@ -133,12 +134,11 @@ func execDelete(items []DeleteItem, basePath string) error {
         return fmt.Errorf("部分删除失败:\n%s", strings.Join(failed, "\n"))
     }
 
-    // 输出 cd 脚本：回到原 cwd，若已被删除则回退到 basePath
     cwd, _ := os.Getwd()
-    if dirExists(cwd) {
-        emitCd(cwd)
+    if selector.DirExists(cwd) {
+        EmitCdTo(stdout, cwd)
     } else {
-        emitCd(basePath)
+        EmitCdTo(stdout, basePath)
     }
     return nil
 }
@@ -149,65 +149,74 @@ func execDelete(items []DeleteItem, basePath string) error {
 ### execRename（重命名目录）
 
 ```go
-func execRename(basePath, oldName, newName string) error {
+func execRename(stdout, stderr io.Writer, basePath, oldName, newName string) error {
     oldPath := filepath.Join(basePath, oldName)
     newPath := filepath.Join(basePath, newName)
     if err := os.Rename(oldPath, newPath); err != nil {
         return fmt.Errorf("重命名失败: %w", err)
     }
-    return execCd(newPath)
+    return execCd(stdout, stderr, newPath)
 }
 ```
 
 ### execShip（发布为正式项目）
 
 ```go
-func execShip(source, dest, basename, basePath string) error {
+func execShip(stdout, stderr io.Writer, source, dest, basename string) error {
     gitFile := filepath.Join(source, ".git")
 
-    // 区分 Git worktree 和普通仓库
-    if isFile(gitFile) {
-        // .git 是文件 → worktree，用 git worktree move
+    if selector.IsFile(gitFile) {
         cmd := exec.Command("git", "worktree", "move", source, dest)
-        cmd.Stdout = os.Stderr
-        cmd.Stderr = os.Stderr
+        cmd.Stdout = stderr
+        cmd.Stderr = stderr
         if err := cmd.Run(); err != nil {
             return fmt.Errorf("git worktree move 失败: %w", err)
         }
     } else {
-        // .git 是目录或不存在 → 普通 mv
         if err := os.Rename(source, dest); err != nil {
             return fmt.Errorf("移动目录失败: %w", err)
         }
     }
 
-    fmt.Fprintln(os.Stderr, "Shipped: "+basename+" → "+dest)
-    return execCd(dest)
+    fmt.Fprintln(stderr, "Shipped: "+basename+" → "+dest)
+    return execCd(stdout, stderr, dest)
 }
 ```
 
 
 ## 选择结果到执行函数的映射
 
-```go
-func Execute(result *SelectionResult) error {
-    if result == nil { return nil }
+`Execute` 是便捷入口（默认 stdout/stderr），内部委托给 `ExecuteTo`：
 
+```go
+func Execute(result *selector.SelectionResult) error {
+    if result == nil { return nil }
+    return ExecuteTo(os.Stdout, os.Stderr, result)
+}
+
+func ExecuteTo(stdout, stderr io.Writer, result *selector.SelectionResult) error {
     switch result.Type {
-    case SelectCD:
-        return execCd(result.Path)
-    case SelectMkdir:
-        return execMkdir(result.Path)
-    case SelectDelete:
-        return execDelete(result.Paths, result.BasePath)
-    case SelectRename:
-        return execRename(result.BasePath, result.Old, result.New)
-    case SelectShip:
-        return execShip(result.Source, result.Dest, result.Basename, result.BasePath)
+    case selector.SelectCD:
+        return execCd(stdout, stderr, result.Path)
+    case selector.SelectMkdir:
+        return execMkdir(stdout, stderr, result.Path)
+    case selector.SelectDelete:
+        return execDelete(stdout, result.Paths, result.BasePath)
+    case selector.SelectRename:
+        return execRename(stdout, stderr, result.BasePath, result.Old, result.New)
+    case selector.SelectShip:
+        return execShip(stdout, stderr, result.Source, result.Dest, result.Basename)
     default:
         return fmt.Errorf("未知的操作类型: %d", result.Type)
     }
 }
+```
+
+另有导出入口供 CLI 直接调用（不经过 SelectionResult）：
+
+```go
+func ExecClone(stdout, stderr io.Writer, path, uri string) error
+func ExecWorktree(stdout, stderr io.Writer, targetPath, repoDir string) error
 ```
 
 ## 测试注意

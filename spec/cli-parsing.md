@@ -7,18 +7,20 @@
 ## 解析顺序
 
 ```
-1. 检查 --help / -h → 输出帮助并退出
-2. 检查 --version / -v → 输出版本并退出
-3. parseGlobalFlags：
+1. parseGlobalFlags：
    a. 提取颜色标志：--no-colors / --no-expand-tokens + NO_COLOR 环境变量
    b. 提取 --path VALUE
    c. 提取 --theme VALUE 和 --locale VALUE
    d. 提取测试参数：--and-exit、--and-type、--and-keys、--and-confirm
    e. LoadConfig 加载配置文件
    f. ResolvePaths / ResolveTheme / ResolveLocale 合并优先级
+2. 检查 --help / -h → 输出帮助并退出
+3. 检查 --version / -v → 输出版本并退出
 4. shift 出第一个非选项参数作为 command
 5. 根据 command 分派到对应处理函数
 ```
+
+所有命令（包括 `--help` 和 `--version`）统一走完整的全局标志解析流程，确保帮助文本的语言由配置文件和环境变量正确决定。
 
 ## 全局选项
 

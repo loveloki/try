@@ -32,19 +32,17 @@ type runOptions struct {
 
 // Run 是 CLI 的主入口，返回退出码
 func Run(args []string) int {
-	// 轻量 locale 解析（不加载配置文件），确保 help 文本正确本地化
-	msgs := i18n.ForLocale(quickResolveLocale(args))
+	// 所有命令统一走完整的全局标志解析（包括加载配置文件）
+	opts, args := parseGlobalFlags(args)
 
 	if hasFlag(args, "--help", "-h") {
-		fmt.Fprintln(os.Stderr, msgs.HelpText)
+		fmt.Fprintln(os.Stderr, opts.messages.HelpText)
 		return 2
 	}
 	if hasFlag(args, "--version", "-v") {
 		fmt.Fprintln(os.Stderr, "try "+version)
 		return 0
 	}
-
-	opts, args := parseGlobalFlags(args)
 
 	if len(args) == 0 {
 		return runSelector(opts, "")
@@ -169,17 +167,3 @@ func (f *dialogFactoryImpl) NewShipDialog(entry *selector.MatchedEntry, basePath
 	return dialog.NewShipDialog(entry, basePath, shipPath, width, msgs)
 }
 
-// quickResolveLocale 轻量 locale 解析：仅检查参数和环境变量，不加载配置文件。
-// 用于 --help 等需要在配置解析之前确定语言的场景。
-func quickResolveLocale(args []string) string {
-	locale, _ := extractValueFlag(args, "--locale")
-	if locale == "" {
-		locale = os.Getenv("TRY_LOCALE")
-	}
-	switch locale {
-	case "en", "zh":
-		return locale
-	default:
-		return config.DetectLocale()
-	}
-}

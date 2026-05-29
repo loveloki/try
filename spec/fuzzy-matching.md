@@ -23,74 +23,30 @@ type MatchResult struct {
     Score      float64  // 最终综合评分
 }
 
-// 使用方式
-results := fuzzy.Match(entries, query, limit)
-// results 按 Score 降序排列
+func Match(entries []Entry, query string, limit int) []MatchResult
 ```
+
+返回结果按 `Score` 降序排列。
 
 ### 与 selector 包的类型映射
 
-fuzzy 包定义自己的 Entry/MatchResult 类型，与 selector 包的类型分离。调用方负责转换：
-
-```go
-// selector.Entry → fuzzy.Entry（loadAllTries 后构建）
-fuzzyEntries := make([]fuzzy.Entry, len(allTries))
-for i, e := range allTries {
-    fuzzyEntries[i] = fuzzy.Entry{
-        Text:      e.Basename,
-        BaseScore: e.BaseScore,
-        Data:      e,  // 透传原始 selector.Entry
-    }
-}
-
-// fuzzy.MatchResult → selector.MatchedEntry（refreshList 中转换）
-results := fuzzy.Match(fuzzyEntries, query, limit)
-matched := make([]MatchedEntry, len(results))
-for i, r := range results {
-    matched[i] = MatchedEntry{
-        Entry:              r.Entry.Data.(Entry),  // 还原透传数据
-        Score:              r.Score,
-        HighlightPositions: r.Positions,
-    }
-}
-```
+fuzzy 包定义自己的 `Entry`/`MatchResult` 类型，与 selector 包分离。调用方负责：
+- `selector.Entry` → `fuzzy.Entry`（`loadAllTries` 后构建，`Data` 存原始 `selector.Entry`）
+- `fuzzy.MatchResult` → `selector.MatchedEntry`（`refreshList` 中转换，从 `Data` 还原）
 
 ## 匹配层（委托 sahilm/fuzzy）
 
-子序列匹配和字符位置追踪委托给 `sahilm/fuzzy` 库：
-
 ```go
-import "github.com/sahilm/fuzzy"
-
-// 实现 fuzzy.Source 接口适配 Entry 切片
 type entrySource []Entry
-func (s entrySource) String(i int) string { return s[i].Text }
-func (s entrySource) Len() int            { return len(s) }
-
-func Match(entries []Entry, query string, limit int) []MatchResult {
-    if query == "" {
-        return matchAll(entries, limit)  // 空 query 走纯 base_score 排序
-    }
-
-    // sahilm/fuzzy 负责：子序列匹配、大小写不敏感、位置追踪
-    matches := fuzzy.FindFrom(query, entrySource(entries))
-
-    // 丢弃库的 Score，用自定义公式重新评分
-    results := make([]MatchResult, len(matches))
-    for i, m := range matches {
-        entry := entries[m.Index]
-        score := computeScore(entry.BaseScore, m.MatchedIndexes, entry.Text, query)
-        results[i] = MatchResult{
-            Entry:     entry,
-            Positions: m.MatchedIndexes,
-            Score:     score,
-        }
-    }
-    return topK(results, limit)
-}
+func (s entrySource) String(i int) string
+func (s entrySource) Len() int
 ```
 
-sahilm/fuzzy 已作为 bubbles 的间接依赖存在，不增加新依赖。我们只使用其匹配功能，评分和排序完全自定义。
+实现 `fuzzy.Source` 接口适配 Entry 切片。`Match` 函数调用 `fuzzy.FindFrom` 获取匹配结果，丢弃库的 Score，用自定义 `computeScore` 重新评分，最后通过 `topK` 排序。
+
+空 query 时走 `matchAll` 分支，所有条目匹配，仅按 `BaseScore` 排序。
+
+sahilm/fuzzy 已作为 bubbles 的间接依赖存在，不增加新依赖。
 
 ### 评分公式
 
@@ -118,32 +74,18 @@ base_score += 2.0 if name matches /-\d{4}-\d{2}-\d{2}$/  // 日期后缀加成
 
 #### 3. 词边界加成（+1.0）
 
-匹配字符位于字符串开头或紧跟非字母数字字符时触发。
-
-```
-WORD_BOUNDARY_RE = /[^a-z0-9]/
-
-if found == 0 || text[found - 1] matches WORD_BOUNDARY_RE:
-    score += 1.0
-```
-
-例如 query `c` 匹配 `redis-connection` 中的 `c` 会得到边界加成（因为前面是 `-`）。
+匹配字符位于字符串开头或紧跟非字母数字字符时触发。判断使用 `/[^a-z0-9]/` 正则。
 
 #### 4. 邻近加成
 
 ```
-if lastPos >= 0:
-    gap = found - lastPos - 1
-    score += 2.0 / sqrt(gap + 1)
+gap = found - lastPos - 1
+score += 2.0 / sqrt(gap + 1)
 ```
 
 连续匹配（gap=0）加成最大（+2.0），间隔越远加成越小。
 
-预计算 sqrt 表（gap 0-63）避免热路径中的浮点运算：
-
-```
-SQRT_TABLE[i] = 2.0 / sqrt(i + 1)  // i = 0..64
-```
+预计算 sqrt 表（gap 0-63）避免热路径中的浮点运算：`SQRT_TABLE[i] = 2.0 / sqrt(i + 1)`
 
 典型值：
 - gap=0（连续）：+2.0
@@ -179,13 +121,7 @@ query 为空时所有条目都匹配，只有 base_score 生效（时间权重 +
 
 ### 结果缓存
 
-查询未变化时直接返回缓存结果，避免每次按键都重新计算。在 SelectorModel 层实现：
-
-```go
-if m.lastQuery == m.textInput.Value() && m.cachedResults != nil {
-    return m.cachedResults
-}
-```
+查询未变化时直接返回缓存结果，避免每次按键都重新计算。在 SelectorModel 层实现（比较 `lastQuery` 与当前输入值）。
 
 ### limit 动态计算
 

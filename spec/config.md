@@ -77,99 +77,36 @@ ship 目标目录（`ship`）解析优先级：
 
 所有路径最终展开为绝对路径（`~` → home 目录）。
 
-## 解析实现
+## 类型定义
 
 ```go
-// Config 配置结构体，JSON 字段名为小写
 type Config struct {
     Path   string `json:"path"`   // tries 根目录
     Ship   string `json:"ship"`   // ship 目标目录
     Theme  string `json:"theme"`  // 主题：dark / light / auto
     Locale string `json:"locale"` // 语言：en / zh / auto
 }
-
-var defaultConfig = Config{
-    Path:   "~/src/tries",
-    Ship:   "~/src/ship",
-    Theme:  "auto",
-    Locale: "auto",
-}
-
-// LoadConfig 从 ~/.config/try/config.json 读取配置，合并默认值
-func LoadConfig() Config {
-    home, err := os.UserHomeDir()
-    if err != nil {
-        return defaultConfig
-    }
-    data, err := os.ReadFile(filepath.Join(home, ".config", "try", "config.json"))
-    if err != nil {
-        return defaultConfig
-    }
-    return parseConfigData(data)
-}
-
-// parseConfigData 解析 JSON 格式的配置内容，未设置的字段保留默认值。
-// 空内容视为无配置（不告警），JSON 语法错误时输出 warning。
-func parseConfigData(data []byte) Config {
-    cfg := defaultConfig
-    if len(data) == 0 {
-        return cfg
-    }
-    if err := json.Unmarshal(data, &cfg); err != nil {
-        fmt.Fprintf(os.Stderr, "try: 配置文件解析失败，使用默认值: %v\n", err)
-    }
-    return cfg
-}
 ```
 
-### 主题解析
+默认值：`Path="~/src/tries"`, `Ship="~/src/ship"`, `Theme="auto"`, `Locale="auto"`。
+
+## 导出函数
 
 ```go
-// ResolveTheme 按优先级解析主题
-func ResolveTheme(cliTheme string, cfg Config) string {
-    theme := cfg.Theme
-    if env := os.Getenv("TRY_THEME"); env != "" {
-        theme = env
-    }
-    if cliTheme != "" {
-        theme = cliTheme
-    }
-    switch theme {
-    case "light", "dark":
-        return theme
-    default:
-        return detectTheme() // COLORFGBG 推断，默认 dark
-    }
-}
+func LoadConfig() Config
+func ResolvePaths(cliPath string, cfg Config) (triesPath, shipPath string)
+func ResolveTheme(cliTheme string, cfg Config) string
+func ResolveLocale(cliLocale string, cfg Config) string
+func ExpandPath(s string) string
 ```
 
-## 路径解析函数
+### 行为规格
 
-`config` 包导出 `ResolvePaths`，按优先级合并所有来源的路径：
-
-```go
-// ResolvePaths 按优先级解析 tries 和 ship 路径
-func ResolvePaths(cliPath string, cfg Config) (triesPath, shipPath string) {
-    // tries 路径：--path > TRY_PATH > config > default
-    triesPath = cfg.Path
-    if env := os.Getenv("TRY_PATH"); env != "" {
-        triesPath = env
-    }
-    if cliPath != "" {
-        triesPath = cliPath
-    }
-
-    // ship 路径：TRY_PROJECTS > config > default
-    shipPath = cfg.Ship
-    if env := os.Getenv("TRY_PROJECTS"); env != "" {
-        shipPath = env
-    }
-
-    triesPath = ExpandPath(triesPath)
-    shipPath = ExpandPath(shipPath)
-    return
-}
-```
+- `LoadConfig`：从 `~/.config/try/config.json` 读取。文件不存在时返回默认值。空文件视为无配置。JSON 语法错误时输出 warning 到 stderr 并返回默认值。
+- `ResolvePaths`：按优先级链合并 tries 和 ship 路径，最终展开为绝对路径。
+- `ResolveTheme`：auto 模式通过 `COLORFGBG` 环境变量推断终端亮暗（背景色值 0-6 判定为 light），无法推断时默认 dark。
+- `ResolveLocale`：auto 模式通过 `LC_ALL` > `LC_MESSAGES` > `LANG` 推断语言（以 `zh` 开头时为中文），默认 en。
+- `ExpandPath`：展开 `~` 为用户 home 目录。
 
 ## 配置文件不存在时的行为
 

@@ -68,28 +68,11 @@
 
 ### 查询词合并
 
-当用户输入多个非选项参数时（如 `try foo bar`），将它们用连字符合并为单个搜索词：
-
-```go
-searchTerm := strings.Join(remainingArgs, "-")  // "foo bar" → "foo-bar"
-```
-
-这与目录命名规则一致（空格转连字符），使得 `try foo bar` 等效于搜索 `foo-bar`。
+当用户输入多个非选项参数时（如 `try foo bar`），将它们用连字符合并为单个搜索词（`"foo-bar"`）。这与目录命名规则一致（空格转连字符），使得 `try foo bar` 等效于搜索 `foo-bar`。
 
 ## exec 子命令
 
 `exec` 是 Shell 包装函数的内部调用入口，支持二级分派：
-
-```
-try exec clone <url> [name]     → cmdClone
-try exec worktree <dir> [name]  → cmdWorktree
-try exec cd [query]             → cmdCd
-try exec [query]                → cmdCd（默认）
-```
-
-## cmdExec 二级分派
-
-`cmdExec` 处理包装函数内部调用：
 
 ```
 try exec clone <url> [name]     → cmdClone
@@ -102,11 +85,9 @@ try exec [query]                → cmdExecDefault
 
 `cmdExecDefault` 按顺序处理三种情况：
 
-```
-1. 参数看起来像 Git URL → doClone（clone 工作流）
-2. 参数以 "." 开头 → handleDot（worktree / mkdir 快捷方式）
+1. 参数看起来像 Git URL（`IsGitURI`）→ doClone（clone 工作流）
+2. 参数以 `.` 开头 → handleDot（worktree / mkdir 快捷方式）
 3. 其他 → runSelector（启动交互式选择器）
-```
 
 ### "." 命令处理
 
@@ -120,12 +101,10 @@ try .           → 报错退出（防误触，必须提供名称）
 
 满足任一条件即识别为 Git URL，自动进入 clone 工作流：
 
-```
-- 以 https:// 或 http:// 或 git@ 开头
-- 包含 github.com
-- 包含 gitlab.com
-- 以 .git 结尾
-```
+- 以 `https://` 或 `http://` 或 `git@` 开头
+- 包含 `github.com`
+- 包含 `gitlab.com`
+- 以 `.git` 结尾
 
 ## 测试专用参数
 
@@ -151,83 +130,30 @@ CTRL-D,TYPE=hello,ENTER → Ctrl-D + 逐字输入 "hello" + 回车
 
 支持的 token：`UP`、`DOWN`、`LEFT`、`RIGHT`、`ENTER`、`ESC`、`BACKSPACE`、`CTRL-A` 到 `CTRL-W`、`TYPE=...`
 
-#### TYPE=... 展开
-
-`TYPE=text` 在解析阶段被展开为逐字符 token，keyToMsg 不需要处理 TYPE= 前缀：
-
-```go
-// parseTestKeys 中处理 TYPE= token
-if strings.HasPrefix(token, "TYPE=") {
-    text := token[5:]
-    for _, ch := range text {
-        keys = append(keys, string(ch))  // 每个字符作为独立 token
-    }
-    continue
-}
-keys = append(keys, token)
-```
-
-例如 `TYPE=hello` → `["h", "e", "l", "l", "o"]`，每个字符经 keyToMsg 转为 `tea.KeyPressMsg{Code: 'h', Text: "h"}` 等。
+`TYPE=text` 在解析阶段展开为逐字符 token，每个字符经 `keyToMsg` 转为 `tea.KeyPressMsg`。
 
 **Raw 模式**（其他情况）：
 
-逐字符解析，自动识别 `\e[X` 转义序列（箭头键等）：
-
-```go
-// Raw 模式解析
-for i := 0; i < len(spec); {
-    if spec[i] == '\x1b' && i+2 < len(spec) && spec[i+1] == '[' {
-        // ANSI 转义序列：\e[A=UP, \e[B=DOWN, \e[C=RIGHT, \e[D=LEFT
-        switch spec[i+2] {
-        case 'A': keys = append(keys, "UP")
-        case 'B': keys = append(keys, "DOWN")
-        case 'C': keys = append(keys, "RIGHT")
-        case 'D': keys = append(keys, "LEFT")
-        }
-        i += 3
-    } else if spec[i] == '\x1b' {
-        keys = append(keys, "ESC")
-        i++
-    } else if spec[i] == '\r' || spec[i] == '\n' {
-        keys = append(keys, "ENTER")
-        i++
-    } else if spec[i] < 0x20 {
-        // 控制字符 → CTRL-X
-        keys = append(keys, "CTRL-"+string(rune(spec[i]+'A'-1)))
-        i++
-    } else {
-        keys = append(keys, string(spec[i]))
-        i++
-    }
-}
-```
+逐字符解析，自动识别 `\e[X` 转义序列（`\e[A`=UP、`\e[B`=DOWN、`\e[C`=RIGHT、`\e[D`=LEFT）、`\r`/`\n`=ENTER、控制字符=CTRL-X。
 
 ## 启动选择器
 
-CLI 解析完成后，构造 SelectorModel 并启动 Bubbletea Program：
+CLI 解析完成后，构造 `selector.Config` 并启动 Bubbletea Program。关键字段映射：
 
-```go
-cfg := selector.Config{
-    SearchTerm:     searchTerm,
-    BasePath:       opts.triesPath,
-    ShipPath:       opts.shipPath,
-    InitialInput:   opts.andType,
-    TestRenderOnce: opts.andExit,
-    TestKeys:       testKeys,      // 已通过 selector.ParseTestKeys 解析
-    TestConfirm:    opts.andConfirm,
-    ColorsEnabled:  opts.colorsEnabled,
-    Theme:          opts.theme,
-    Messages:       i18n.ForLocale(opts.locale),
-}
+| Config 字段 | 来源 |
+|-------------|------|
+| `SearchTerm` | 位置参数（连字符合并） |
+| `BasePath` | `opts.triesPath`（已解析优先级） |
+| `ShipPath` | `opts.shipPath` |
+| `InitialInput` | `--and-type`（优先于 SearchTerm） |
+| `TestRenderOnce` | `--and-exit` |
+| `TestKeys` | `--and-keys`（已通过 `parseTestKeys` 解析） |
+| `TestConfirm` | `--and-confirm` |
+| `ColorsEnabled` | `--no-colors` / `NO_COLOR` 取反 |
+| `Theme` | 已解析优先级 |
+| `Messages` | `i18n.ForLocale(opts.locale)` |
 
-model := selector.New(cfg)
-model.SetDialogFactory(&dialogFactoryImpl{})  // 注入对话框工厂
-
-p := tea.NewProgram(model, tea.WithOutput(os.Stderr))
-result, err := p.Run()
-```
-
-`InitialInput` 非空时优先于 `SearchTerm` 设置 `textInput` 的初始值。`Messages` 通过 `i18n.ForLocale` 根据 locale 选择对应语言包。
+创建 model 后通过 `SetDialogFactory` 注入对话框工厂，以 `tea.WithOutput(os.Stderr)` 启动 Program。
 
 ## 退出码
 

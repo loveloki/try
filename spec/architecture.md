@@ -210,21 +210,7 @@ func dirExists(path string) bool  // git 包内部使用
 
 ### getParentProcessName（Shell 检测用）
 
-```go
-func getParentProcessName() string {
-    ppid := os.Getppid()
-    // Linux: 读取 /proc/<ppid>/comm
-    if data, err := os.ReadFile(fmt.Sprintf("/proc/%d/comm", ppid)); err == nil {
-        return strings.TrimSpace(string(data))
-    }
-    // macOS/BSD: 回退到 ps 命令
-    out, err := exec.Command("ps", "-p", strconv.Itoa(ppid), "-o", "comm=").Output()
-    if err == nil {
-        return strings.TrimSpace(string(out))
-    }
-    return ""
-}
-```
+`internal/shell/detect.go` 中的内部函数。优先读取 `/proc/<ppid>/comm`（Linux），回退到 `ps` 命令（macOS/BSD）。
 
 ## 版本号
 
@@ -237,4 +223,4 @@ func getParentProcessName() string {
 | GitHub Releases | 预编译二进制（linux/darwin/windows × amd64/arm64） |
 | Nix | `flake.nix`（packages.default + Home Manager module） |
 | Homebrew | `Formula/try.rb` |
-| `go install` | `go install github.com/user/try/cmd/try@latest` |
+| `go install` | `go install github.com/xleine/try/cmd/try@latest` |

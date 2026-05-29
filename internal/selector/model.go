@@ -1,7 +1,6 @@
 package selector
 
 import (
-	"math"
 	"os"
 	"path/filepath"
 	"strings"
@@ -11,7 +10,6 @@ import (
 	"charm.land/bubbles/v2/key"
 	"charm.land/bubbles/v2/list"
 	"charm.land/bubbles/v2/textinput"
-	"github.com/xleine/try/internal/fuzzy"
 	"github.com/xleine/try/internal/git"
 	"github.com/xleine/try/internal/i18n"
 )
@@ -60,23 +58,11 @@ type SelectorModel struct {
 	messages          *i18n.Messages
 }
 
-// DialogInstance 对话框实例接口（导出供 CLI 层的工厂实现使用）
-type DialogInstance interface {
-	tea.Model
-	Result() *SelectionResult
-	Done() bool
-	ViewContent() string
-}
-
-// dialog 是内部别名
-type dialog = DialogInstance
-
 type renderOnceMsg struct{}
 type testKeyMsg struct{}
 
 // New 创建选择器实例
 func New(cfg Config) SelectorModel {
-	// 确保 basePath 目录存在
 	os.MkdirAll(cfg.BasePath, 0o755)
 
 	ti := textinput.New()
@@ -160,23 +146,7 @@ func (m SelectorModel) Update(msg tea.Msg) (tea.Model, tea.Cmd) {
 		return m.Update(tea.KeyPressMsg{Code: tea.KeyEscape})
 
 	case tea.WindowSizeMsg:
-		m.width = msg.Width
-		m.height = msg.Height
-		if w := EnvInt("TRY_WIDTH"); w > 0 {
-			m.width = w
-		}
-		if h := EnvInt("TRY_HEIGHT"); h > 0 {
-			m.height = h
-		}
-		bodyHeight := m.height - headerLines - footerLines
-		if bodyHeight < 1 {
-			bodyHeight = 1
-		}
-		m.list.SetSize(m.width, bodyHeight)
-		m.delegate.width = m.width
-		m.cachedResults = nil
-		refreshCmd := m.refreshList()
-		return m, refreshCmd
+		return m.handleWindowSize(msg)
 
 	case tea.KeyPressMsg:
 		if m.activeDialog != nil {
@@ -193,6 +163,25 @@ func (m SelectorModel) Update(msg tea.Msg) (tea.Model, tea.Cmd) {
 	m.list, cmd = m.list.Update(msg)
 	cmds = append(cmds, cmd)
 	return m, tea.Batch(cmds...)
+}
+
+func (m SelectorModel) handleWindowSize(msg tea.WindowSizeMsg) (tea.Model, tea.Cmd) {
+	m.width = msg.Width
+	m.height = msg.Height
+	if w := EnvInt("TRY_WIDTH"); w > 0 {
+		m.width = w
+	}
+	if h := EnvInt("TRY_HEIGHT"); h > 0 {
+		m.height = h
+	}
+	bodyHeight := m.height - headerLines - footerLines
+	if bodyHeight < 1 {
+		bodyHeight = 1
+	}
+	m.list.SetSize(m.width, bodyHeight)
+	m.delegate.width = m.width
+	m.cachedResults = nil
+	return m, m.refreshList()
 }
 
 func (m SelectorModel) View() tea.View {
@@ -219,7 +208,6 @@ func (m SelectorModel) Selected() *SelectionResult {
 // --- 按键处理 ---
 
 func (m SelectorModel) handleKey(msg tea.KeyPressMsg) (tea.Model, tea.Cmd) {
-	// 清除上一次的删除状态消息
 	m.deleteStatus = ""
 
 	switch {
@@ -243,18 +231,20 @@ func (m SelectorModel) handleKey(msg tea.KeyPressMsg) (tea.Model, tea.Cmd) {
 		return m.handleQuit()
 	}
 
-	// 转发给 textinput
+	return m.handleTextInput(msg)
+}
+
+// handleTextInput 将按键转发给 textInput，变化时刷新列表
+func (m SelectorModel) handleTextInput(msg tea.KeyPressMsg) (tea.Model, tea.Cmd) {
 	prevValue := m.textInput.Value()
 	var cmd tea.Cmd
 	m.textInput, cmd = m.textInput.Update(msg)
 
 	if m.textInput.Value() != prevValue {
 		m.list.Select(0)
-		refreshCmd := m.refreshList()
-		return m, tea.Batch(cmd, refreshCmd)
+		return m, tea.Batch(cmd, m.refreshList())
 	}
 
-	// 未被 textinput 消费的导航键转发给 list
 	var listCmd tea.Cmd
 	m.list, listCmd = m.list.Update(msg)
 	return m, tea.Batch(cmd, listCmd)
@@ -330,168 +320,4 @@ func (m SelectorModel) selectedEntry() *MatchedEntry {
 	}
 	entry := item.(MatchedEntry)
 	return &entry
-}
-
-// --- 对话框 ---
-
-func (m SelectorModel) updateDialog(msg tea.KeyPressMsg) (tea.Model, tea.Cmd) {
-	dlg, cmd := m.activeDialog.Update(msg)
-	m.activeDialog = dlg.(dialog)
-	if m.activeDialog.Done() {
-		if result := m.activeDialog.Result(); result != nil {
-			m.selected = result
-			return m, tea.Quit
-		}
-		m.activeDialog = nil
-	}
-	return m, cmd
-}
-
-func (m SelectorModel) openDeleteDialog() (tea.Model, tea.Cmd) {
-	var items []DeleteItem
-	for _, entry := range m.cachedResults {
-		if m.markedForDeletion[entry.Entry.Path] {
-			items = append(items, DeleteItem{Path: entry.Entry.Path, Basename: entry.Entry.Basename})
-		}
-	}
-	// 延迟导入 dialog 包会导致循环依赖，这里直接构建
-	// dialog 包通过 SetDialog 方法注入（见下方 SetDialogFactory）
-	if m.dialogFactory != nil {
-		dlg := m.dialogFactory.NewDeleteDialog(items, m.basePath, m.testConfirm, m.width, m.messages)
-		m.activeDialog = dlg
-		return m, dlg.Init()
-	}
-	return m, nil
-}
-
-func (m SelectorModel) enterRenameDialog() (tea.Model, tea.Cmd) {
-	entry := m.selectedEntry()
-	if entry == nil {
-		return m, nil
-	}
-	m.deleteMode = false
-	m.markedForDeletion = map[string]bool{}
-	if m.dialogFactory != nil {
-		dlg := m.dialogFactory.NewRenameDialog(entry, m.basePath, m.width, m.messages)
-		m.activeDialog = dlg
-		return m, dlg.Init()
-	}
-	return m, nil
-}
-
-func (m SelectorModel) enterShipDialog() (tea.Model, tea.Cmd) {
-	entry := m.selectedEntry()
-	if entry == nil {
-		return m, nil
-	}
-	m.deleteMode = false
-	m.markedForDeletion = map[string]bool{}
-	if m.dialogFactory != nil {
-		dlg := m.dialogFactory.NewShipDialog(entry, m.basePath, m.shipPath, m.width, m.messages)
-		m.activeDialog = dlg
-		return m, dlg.Init()
-	}
-	return m, nil
-}
-
-// --- 目录加载与匹配 ---
-
-func (m *SelectorModel) loadAllTries() []Entry {
-	if m.allTries != nil {
-		return m.allTries
-	}
-
-	entries, err := os.ReadDir(m.basePath)
-	if err != nil {
-		return nil
-	}
-
-	now := time.Now()
-	var result []Entry
-	for _, entry := range entries {
-		if strings.HasPrefix(entry.Name(), ".") {
-			continue
-		}
-		if !entry.IsDir() {
-			continue
-		}
-
-		info, err := entry.Info()
-		if err != nil {
-			continue
-		}
-
-		mtime := info.ModTime()
-		hoursSinceMod := now.Sub(mtime).Hours()
-		baseScore := 3.0 / math.Sqrt(hoursSinceMod+1)
-		if DateSuffixRe.MatchString(entry.Name()) {
-			baseScore += 2.0
-		}
-
-		result = append(result, Entry{
-			Basename:  entry.Name(),
-			Path:      filepath.Join(m.basePath, entry.Name()),
-			Mtime:     mtime,
-			BaseScore: baseScore,
-		})
-	}
-
-	m.allTries = result
-	return result
-}
-
-func (m *SelectorModel) refreshList() tea.Cmd {
-	query := m.textInput.Value()
-	if query == m.lastQuery && m.cachedResults != nil {
-		return nil
-	}
-
-	allTries := m.loadAllTries()
-	maxResults := m.height - 6
-	if maxResults < 3 {
-		maxResults = 3
-	}
-
-	// selector.Entry → fuzzy.Entry 转换
-	fuzzyEntries := make([]fuzzy.Entry, len(allTries))
-	for i, e := range allTries {
-		fuzzyEntries[i] = fuzzy.Entry{
-			Text:      e.Basename,
-			BaseScore: e.BaseScore,
-			Data:      e,
-		}
-	}
-
-	results := fuzzy.Match(fuzzyEntries, query, maxResults)
-
-	matched := make([]MatchedEntry, len(results))
-	for i, r := range results {
-		matched[i] = MatchedEntry{
-			Entry:              r.Entry.Data.(Entry),
-			Score:              r.Score,
-			HighlightPositions: r.Positions,
-		}
-	}
-	m.cachedResults = matched
-	m.lastQuery = query
-
-	items := make([]list.Item, len(matched))
-	for i, me := range matched {
-		items[i] = me
-	}
-	return m.list.SetItems(items)
-}
-
-// --- 对话框工厂（解耦 dialog 包依赖） ---
-
-// DialogFactory 对话框创建接口，由外部（CLI 层）注入，避免循环依赖
-type DialogFactory interface {
-	NewDeleteDialog(items []DeleteItem, basePath, testConfirm string, width int, msgs *i18n.Messages) DialogInstance
-	NewRenameDialog(entry *MatchedEntry, basePath string, width int, msgs *i18n.Messages) DialogInstance
-	NewShipDialog(entry *MatchedEntry, basePath, shipPath string, width int, msgs *i18n.Messages) DialogInstance
-}
-
-// SetDialogFactory 注入对话框工厂（避免 selector → dialog 循环依赖）
-func (m *SelectorModel) SetDialogFactory(f DialogFactory) {
-	m.dialogFactory = f
 }

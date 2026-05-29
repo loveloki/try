@@ -3,6 +3,7 @@ package dialog
 import (
 	"os"
 	"path/filepath"
+	"strings"
 	"testing"
 
 	"github.com/xleine/try/internal/i18n"
@@ -134,7 +135,7 @@ func checkShipConfirm(t *testing.T, input, sourcePath, basePath string, wantHasR
 	result, errMsg := d.confirmShip()
 
 	if wantErrContains != "" {
-		if errMsg == "" || !contains(errMsg, wantErrContains) {
+		if errMsg == "" || !strings.Contains(errMsg, wantErrContains) {
 			t.Errorf("confirmShip(%q) errMsg = %q, want containing %q", input, errMsg, wantErrContains)
 		}
 		return
@@ -148,19 +149,6 @@ func checkShipConfirm(t *testing.T, input, sourcePath, basePath string, wantHasR
 	}
 }
 
-func contains(s, substr string) bool {
-	return len(s) >= len(substr) && (s == substr || len(substr) == 0 ||
-		(len(s) > 0 && len(substr) > 0 && containsStr(s, substr)))
-}
-
-func containsStr(s, substr string) bool {
-	for i := 0; i+len(substr) <= len(s); i++ {
-		if s[i:i+len(substr)] == substr {
-			return true
-		}
-	}
-	return false
-}
 
 func TestShipConfirm(t *testing.T) {
 	tmpDir := t.TempDir()

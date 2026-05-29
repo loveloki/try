@@ -2,6 +2,7 @@ package config
 
 import (
 	"encoding/json"
+	"fmt"
 	"os"
 	"path/filepath"
 	"strings"
@@ -36,10 +37,16 @@ func LoadConfig() Config {
 	return parseConfigData(data)
 }
 
-// parseConfigData 解析 JSON 格式的配置内容，未设置的字段保留默认值
+// parseConfigData 解析 JSON 格式的配置内容，未设置的字段保留默认值。
+// 空内容视为无配置（不告警），JSON 语法错误时输出 warning。
 func parseConfigData(data []byte) Config {
 	cfg := defaultConfig
-	json.Unmarshal(data, &cfg)
+	if len(data) == 0 {
+		return cfg
+	}
+	if err := json.Unmarshal(data, &cfg); err != nil {
+		fmt.Fprintf(os.Stderr, "try: 配置文件解析失败，使用默认值: %v\n", err)
+	}
 	return cfg
 }
 

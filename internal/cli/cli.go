@@ -193,7 +193,11 @@ func handleDot(triesPath string, args []string) int {
 		}
 	}
 
-	absRepo, _ := filepath.Abs(repoDir)
+	absRepo, err := filepath.Abs(repoDir)
+	if err != nil {
+		fmt.Fprintln(os.Stderr, "无法解析路径: "+err.Error())
+		return 1
+	}
 	targetPath := worktreePath(triesPath, absRepo, name)
 
 	// 检查是否是 Git 仓库

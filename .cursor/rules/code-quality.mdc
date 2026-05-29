@@ -36,8 +36,22 @@ go test ./... -count=1  # 全量测试
 - bug 修复必须附带复现测试
 - 用 `t.Setenv`、`t.TempDir` 隔离环境
 
+## 文档同步（每次提交前检查）
+
+代码变更后**必须**检查以下文档是否需要同步更新：
+
+| 变更类型 | 需检查的文档 |
+|----------|-------------|
+| 函数签名/结构体变更 | 对应模块的 `docs/*.md` |
+| 新增/删除配置项 | `docs/config.md`、`README.md` |
+| 快捷键/交互变更 | `docs/selector.md`、`README.md` |
+| 依赖版本变更 | `docs/dependencies.md` |
+| 新增/删除文件 | `docs/architecture.md` |
+| 错误处理/行为变更 | 对应模块的 `docs/*.md` |
+
+如果变更影响了文档中描述的行为，文档更新应与代码变更在**同一个 commit** 中提交。
+
 ## 注释与提交
 
 - 关键注释使用中文，不写显而易见的注释
 - 每完成独立功能提交 commit（`feat/fix/refactor: 简要描述`）
-- 代码变更后同步检查 README 和 docs/ 是否需要更新

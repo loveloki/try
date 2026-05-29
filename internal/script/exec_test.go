@@ -7,6 +7,7 @@ import (
 	"strings"
 	"testing"
 
+	"github.com/xleine/try/internal/i18n"
 	"github.com/xleine/try/internal/selector"
 )
 
@@ -14,7 +15,7 @@ import (
 func checkExecute(t *testing.T, result *selector.SelectionResult, wantStdoutContains []string, wantErr bool) {
 	t.Helper()
 	var stdout, stderr bytes.Buffer
-	err := ExecuteTo(&stdout, &stderr, result)
+	err := ExecuteTo(&stdout, &stderr, result, &i18n.EN)
 	if wantErr && err == nil {
 		t.Error("expected error, got nil")
 	}
@@ -30,7 +31,7 @@ func checkExecute(t *testing.T, result *selector.SelectionResult, wantStdoutCont
 }
 
 func TestExecuteNil(t *testing.T) {
-	err := Execute(nil)
+	err := Execute(nil, &i18n.EN)
 	if err != nil {
 		t.Errorf("Execute(nil) = %v, want nil", err)
 	}

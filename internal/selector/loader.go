@@ -20,7 +20,7 @@ func (m *SelectorModel) loadAllTries() []Entry {
 
 	entries, err := os.ReadDir(m.basePath)
 	if err != nil {
-		m.deleteStatus = "无法读取目录: " + err.Error()
+		m.deleteStatus = m.messages.ErrReadDir + err.Error()
 		return nil
 	}
 

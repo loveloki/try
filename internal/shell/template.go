@@ -44,7 +44,7 @@ func fishRCFile() string {
 func mustHomeDir() string {
 	home, err := os.UserHomeDir()
 	if err != nil {
-		fmt.Fprintf(os.Stderr, "try: 无法获取 home 目录: %v\n", err)
+		fmt.Fprintf(os.Stderr, "try: cannot get home directory: %v\n", err)
 		return ""
 	}
 	return home

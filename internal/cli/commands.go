@@ -20,9 +20,9 @@ func cmdExec(opts runOptions, args []string) int {
 
 	switch args[0] {
 	case "clone":
-		return cmdClone(opts.triesPath, args[1:])
+		return cmdClone(opts, args[1:])
 	case "worktree":
-		return cmdWorktree(opts.triesPath, args[1:])
+		return cmdWorktree(opts, args[1:])
 	case "cd":
 		return runSelector(opts, strings.Join(args[1:], "-"))
 	default:
@@ -37,19 +37,19 @@ func cmdExecDefault(opts runOptions, args []string) int {
 		if len(args) > 1 {
 			customName = args[1]
 		}
-		return doClone(opts.triesPath, arg, customName)
+		return doClone(opts, arg, customName)
 	}
 
 	if strings.HasPrefix(arg, ".") {
-		return handleDot(opts.triesPath, args)
+		return handleDot(opts, args)
 	}
 
 	return runSelector(opts, strings.Join(args, "-"))
 }
 
-func cmdClone(triesPath string, args []string) int {
+func cmdClone(opts runOptions, args []string) int {
 	if len(args) == 0 {
-		fmt.Fprintln(os.Stderr, "Usage: try clone <url> [name]")
+		fmt.Fprintln(os.Stderr, opts.messages.UsageClone)
 		return 1
 	}
 	uri := args[0]
@@ -57,26 +57,26 @@ func cmdClone(triesPath string, args []string) int {
 	if len(args) > 1 {
 		customName = args[1]
 	}
-	return doClone(triesPath, uri, customName)
+	return doClone(opts, uri, customName)
 }
 
-func doClone(triesPath, uri, customName string) int {
+func doClone(opts runOptions, uri, customName string) int {
 	dirName := git.GenerateCloneDirName(uri, customName)
 	if dirName == "" {
-		fmt.Fprintln(os.Stderr, "无法解析 Git URI: "+uri)
+		fmt.Fprintln(os.Stderr, opts.messages.ErrParseGitURI+uri)
 		return 1
 	}
-	targetPath := filepath.Join(triesPath, dirName)
-	if err := script.ExecClone(os.Stdout, os.Stderr, targetPath, uri); err != nil {
+	targetPath := filepath.Join(opts.triesPath, dirName)
+	if err := script.ExecClone(os.Stdout, os.Stderr, targetPath, uri, opts.messages); err != nil {
 		fmt.Fprintln(os.Stderr, err)
 		return 1
 	}
 	return 0
 }
 
-func cmdWorktree(triesPath string, args []string) int {
+func cmdWorktree(opts runOptions, args []string) int {
 	if len(args) == 0 {
-		fmt.Fprintln(os.Stderr, "Usage: try worktree <dir> [name]")
+		fmt.Fprintln(os.Stderr, opts.messages.UsageWorktree)
 		return 1
 	}
 	repoDir := args[0]
@@ -85,17 +85,17 @@ func cmdWorktree(triesPath string, args []string) int {
 		customName = args[1]
 	}
 
-	targetPath := worktreePath(triesPath, repoDir, customName)
-	if err := script.ExecWorktree(os.Stdout, os.Stderr, targetPath, repoDir); err != nil {
+	targetPath := worktreePath(opts.triesPath, repoDir, customName)
+	if err := script.ExecWorktree(os.Stdout, os.Stderr, targetPath, repoDir, opts.messages); err != nil {
 		fmt.Fprintln(os.Stderr, err)
 		return 1
 	}
 	return 0
 }
 
-func handleDot(triesPath string, args []string) int {
+func handleDot(opts runOptions, args []string) int {
 	if len(args) < 2 {
-		fmt.Fprintln(os.Stderr, "Usage: try . <name>")
+		fmt.Fprintln(os.Stderr, opts.messages.UsageDot)
 		return 1
 	}
 	repoDir := "."
@@ -110,29 +110,21 @@ func handleDot(triesPath string, args []string) int {
 
 	absRepo, err := filepath.Abs(repoDir)
 	if err != nil {
-		fmt.Fprintln(os.Stderr, "无法解析路径: "+err.Error())
+		fmt.Fprintln(os.Stderr, opts.messages.ErrParsePath+err.Error())
 		return 1
 	}
-	targetPath := worktreePath(triesPath, absRepo, name)
+	targetPath := worktreePath(opts.triesPath, absRepo, name)
 
 	gitPath := filepath.Join(absRepo, ".git")
 	if selector.FileExists(gitPath) {
-		return doExecWorktree(triesPath, targetPath, absRepo)
+		if err := script.ExecWorktree(os.Stdout, os.Stderr, targetPath, absRepo, opts.messages); err != nil {
+			fmt.Fprintln(os.Stderr, err)
+			return 1
+		}
+		return 0
 	}
-	return doExecMkdir(targetPath)
-}
-
-func doExecWorktree(triesPath, targetPath, repoDir string) int {
-	if err := script.ExecWorktree(os.Stdout, os.Stderr, targetPath, repoDir); err != nil {
-		fmt.Fprintln(os.Stderr, err)
-		return 1
-	}
-	return 0
-}
-
-func doExecMkdir(path string) int {
-	result := &selector.SelectionResult{Type: selector.SelectMkdir, Path: path}
-	if err := script.Execute(result); err != nil {
+	result := &selector.SelectionResult{Type: selector.SelectMkdir, Path: targetPath}
+	if err := script.Execute(result, opts.messages); err != nil {
 		fmt.Fprintln(os.Stderr, err)
 		return 1
 	}

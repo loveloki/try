@@ -5,60 +5,59 @@ import (
 	"os"
 	"path/filepath"
 	"strings"
+
+	"github.com/xleine/try/internal/i18n"
 )
 
 // Install 自动检测 Shell 类型并将包装函数追加到配置文件
-func Install() error {
+func Install(msgs *i18n.Messages) error {
 	shellType := DetectShell()
 	if shellType == "" {
-		return fmt.Errorf("无法检测 Shell 类型，请确认使用 bash、zsh 或 fish")
+		return fmt.Errorf("%s", msgs.ErrDetectShell)
 	}
 
 	cfg, ok := Shells[shellType]
 	if !ok {
-		return fmt.Errorf("不支持的 Shell 类型: %s", shellType)
+		return fmt.Errorf(msgs.ErrUnsupportShell, shellType) //nolint:govet // 模板来自 i18n 消息
 	}
 
-	return installToFile(cfg)
+	return installToFile(cfg, msgs)
 }
 
-func installToFile(cfg ShellConfig) error {
+func installToFile(cfg ShellConfig, msgs *i18n.Messages) error {
 	rcFile := cfg.RCFile()
 
-	// 获取 try 二进制的绝对路径
 	binaryPath, err := os.Executable()
 	if err != nil {
-		return fmt.Errorf("无法获取 try 可执行文件路径: %w", err)
+		return fmt.Errorf("%s: %w", msgs.ErrGetExePath, err)
 	}
 	binaryPath, _ = filepath.EvalSymlinks(binaryPath)
 
 	// 检查是否已安装
 	if data, err := os.ReadFile(rcFile); err == nil {
 		if strings.Contains(string(data), marker) {
-			fmt.Fprintf(os.Stderr, "try shell integration 已安装在 %s 中。\n", rcFile)
-			fmt.Fprintf(os.Stderr, "如需重新安装，请先手动移除旧版（搜索 \"%s\"）。\n", marker)
+			fmt.Fprintf(os.Stderr, msgs.MsgAlreadyInstall+"\n", rcFile)
+			fmt.Fprintf(os.Stderr, msgs.MsgReinstallHint+"\n", marker)
 			return nil
 		}
 	}
 
-	// 确保父目录存在
 	if err := os.MkdirAll(filepath.Dir(rcFile), 0o755); err != nil {
-		return fmt.Errorf("创建目录失败: %w", err)
+		return fmt.Errorf("%s: %w", msgs.ErrCreateDir, err)
 	}
 
-	// 追加包装函数
 	initContent := cfg.InitFunc(binaryPath)
 	f, err := os.OpenFile(rcFile, os.O_APPEND|os.O_CREATE|os.O_WRONLY, 0o644)
 	if err != nil {
-		return fmt.Errorf("无法写入 %s: %w", rcFile, err)
+		return fmt.Errorf(msgs.ErrWriteFile+": %w", rcFile, err)
 	}
 	defer f.Close()
 
 	if _, err := fmt.Fprintf(f, "\n%s\n", initContent); err != nil {
-		return fmt.Errorf("写入失败: %w", err)
+		return fmt.Errorf("%s: %w", msgs.ErrWrite, err)
 	}
 
-	fmt.Fprintf(os.Stderr, "已将 try shell integration 写入 %s\n", rcFile)
-	fmt.Fprintf(os.Stderr, "请运行 source %s 或重启终端以生效。\n", rcFile)
+	fmt.Fprintf(os.Stderr, msgs.MsgInstalled+"\n", rcFile)
+	fmt.Fprintf(os.Stderr, msgs.MsgSourceHint+"\n", rcFile)
 	return nil
 }

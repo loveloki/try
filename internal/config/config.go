@@ -45,7 +45,7 @@ func parseConfigData(data []byte) Config {
 		return cfg
 	}
 	if err := json.Unmarshal(data, &cfg); err != nil {
-		fmt.Fprintf(os.Stderr, "try: 配置文件解析失败，使用默认值: %v\n", err)
+		fmt.Fprintf(os.Stderr, "try: failed to parse config, using defaults: %v\n", err)
 	}
 	return cfg
 }
@@ -117,12 +117,12 @@ func ResolveLocale(cliLocale string, cfg Config) string {
 	case "en", "zh":
 		return locale
 	default:
-		return detectLocale()
+		return DetectLocale()
 	}
 }
 
-// detectLocale 通过 LC_ALL > LC_MESSAGES > LANG 推断语言
-func detectLocale() string {
+// DetectLocale 通过 LC_ALL > LC_MESSAGES > LANG 推断语言
+func DetectLocale() string {
 	for _, key := range []string{"LC_ALL", "LC_MESSAGES", "LANG"} {
 		if val := os.Getenv(key); val != "" {
 			if strings.HasPrefix(val, "zh") {

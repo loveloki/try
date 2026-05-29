@@ -4,6 +4,8 @@ import (
 	"os"
 	"strings"
 	"testing"
+
+	"github.com/xleine/try/internal/i18n"
 )
 
 // --- 参数解析测试 ---
@@ -160,7 +162,7 @@ func TestQueryJoin(t *testing.T) {
 // --- exec 分派测试 ---
 
 func TestCmdExecCloneNoURL(t *testing.T) {
-	opts := runOptions{triesPath: t.TempDir()}
+	opts := runOptions{triesPath: t.TempDir(), messages: &i18n.EN}
 	code := cmdExec(opts, []string{"clone"})
 	if code != 1 {
 		t.Errorf("cmdExec clone (no url) = %d, want 1", code)
@@ -168,7 +170,7 @@ func TestCmdExecCloneNoURL(t *testing.T) {
 }
 
 func TestCmdExecWorktreeNoDir(t *testing.T) {
-	opts := runOptions{triesPath: t.TempDir()}
+	opts := runOptions{triesPath: t.TempDir(), messages: &i18n.EN}
 	code := cmdExec(opts, []string{"worktree"})
 	if code != 1 {
 		t.Errorf("cmdExec worktree (no dir) = %d, want 1", code)
@@ -176,7 +178,8 @@ func TestCmdExecWorktreeNoDir(t *testing.T) {
 }
 
 func TestCmdWorktreeNoArgs(t *testing.T) {
-	code := cmdWorktree(t.TempDir(), nil)
+	opts := runOptions{triesPath: t.TempDir(), messages: &i18n.EN}
+	code := cmdWorktree(opts, nil)
 	if code != 1 {
 		t.Errorf("cmdWorktree(nil) = %d, want 1", code)
 	}
@@ -185,7 +188,8 @@ func TestCmdWorktreeNoArgs(t *testing.T) {
 // --- dot 处理测试 ---
 
 func TestHandleDotNoName(t *testing.T) {
-	code := handleDot(t.TempDir(), []string{"."})
+	opts := runOptions{triesPath: t.TempDir(), messages: &i18n.EN}
+	code := handleDot(opts, []string{"."})
 	if code != 1 {
 		t.Errorf("handleDot(\".\") = %d, want 1 (missing name)", code)
 	}
@@ -193,8 +197,9 @@ func TestHandleDotNoName(t *testing.T) {
 
 func TestHandleDotMkdir(t *testing.T) {
 	tmpDir := t.TempDir()
+	opts := runOptions{triesPath: tmpDir, messages: &i18n.EN}
 	// 没有 .git 文件，应走 mkdir 分支
-	code := handleDot(tmpDir, []string{".", "my-test"})
+	code := handleDot(opts, []string{".", "my-test"})
 	if code != 0 {
 		t.Errorf("handleDot mkdir = %d, want 0", code)
 	}

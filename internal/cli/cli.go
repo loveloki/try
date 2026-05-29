@@ -16,7 +16,7 @@ import (
 
 var version = "dev"
 
-// runOptions 聚合选择器运行所需的全部参数，避免跨函数传递过多散参
+// runOptions 聚合运行所需的全部参数，避免跨函数传递过多散参
 type runOptions struct {
 	triesPath     string
 	shipPath      string
@@ -27,13 +27,16 @@ type runOptions struct {
 	andType       string
 	andKeys       string
 	andConfirm    string
+	messages      *i18n.Messages
 }
 
 // Run 是 CLI 的主入口，返回退出码
 func Run(args []string) int {
-	// 提前处理 --help / --version（不依赖配置解析）
+	// 轻量 locale 解析（不加载配置文件），确保 help 文本正确本地化
+	msgs := i18n.ForLocale(quickResolveLocale(args))
+
 	if hasFlag(args, "--help", "-h") {
-		printHelp()
+		fmt.Fprintln(os.Stderr, msgs.HelpText)
 		return 2
 	}
 	if hasFlag(args, "--version", "-v") {
@@ -49,15 +52,15 @@ func Run(args []string) int {
 
 	switch args[0] {
 	case "install":
-		if err := shell.Install(); err != nil {
+		if err := shell.Install(opts.messages); err != nil {
 			fmt.Fprintln(os.Stderr, err)
 			return 1
 		}
 		return 0
 	case "clone":
-		return cmdClone(opts.triesPath, args[1:])
+		return cmdClone(opts, args[1:])
 	case "worktree":
-		return cmdWorktree(opts.triesPath, args[1:])
+		return cmdWorktree(opts, args[1:])
 	case "exec":
 		return cmdExec(opts, args[1:])
 	default:
@@ -103,6 +106,7 @@ func parseGlobalFlags(args []string) (runOptions, []string) {
 		andType:       andType,
 		andKeys:       andKeys,
 		andConfirm:    andConfirm,
+		messages:      i18n.ForLocale(locale),
 	}, args
 }
 
@@ -123,7 +127,7 @@ func runSelector(opts runOptions, searchTerm string) int {
 		TestConfirm:    opts.andConfirm,
 		ColorsEnabled:  opts.colorsEnabled,
 		Theme:          opts.theme,
-		Messages:       i18n.ForLocale(opts.locale),
+		Messages:       opts.messages,
 	}
 
 	model := selector.New(cfg)
@@ -142,7 +146,7 @@ func runSelector(opts runOptions, searchTerm string) int {
 		return 1
 	}
 
-	if err := script.Execute(selected); err != nil {
+	if err := script.Execute(selected, opts.messages); err != nil {
 		fmt.Fprintln(os.Stderr, err)
 		return 1
 	}
@@ -165,33 +169,17 @@ func (f *dialogFactoryImpl) NewShipDialog(entry *selector.MatchedEntry, basePath
 	return dialog.NewShipDialog(entry, basePath, shipPath, width, msgs)
 }
 
-// --- 帮助文本 ---
-
-func printHelp() {
-	help := `try - 临时实验目录管理工具
-
-用法:
-  try [query]                搜索并选择目录
-  try clone <url> [name]     克隆 Git 仓库
-  try worktree <dir> [name]  创建 Git worktree
-  try install                安装 Shell 集成
-  try . <name>               创建 worktree 或目录
-
-选项:
-  --help, -h           显示帮助
-  --version, -v        显示版本
-  --path PATH          指定 tries 根目录
-  --theme dark|light   配色主题（默认 auto 自动检测）
-  --locale en|zh       界面语言（默认 auto 自动检测）
-  --no-colors          禁用颜色
-
-快捷键:
-  Enter    选择/确认
-  Ctrl-T   创建新目录
-  Ctrl-D   标记/取消删除
-  Ctrl-R   重命名
-  Ctrl-G   Ship（发布为正式项目）
-  Ctrl-P/N 上下移动
-  Esc      退出`
-	fmt.Fprintln(os.Stderr, help)
+// quickResolveLocale 轻量 locale 解析：仅检查参数和环境变量，不加载配置文件。
+// 用于 --help 等需要在配置解析之前确定语言的场景。
+func quickResolveLocale(args []string) string {
+	locale, _ := extractValueFlag(args, "--locale")
+	if locale == "" {
+		locale = os.Getenv("TRY_LOCALE")
+	}
+	switch locale {
+	case "en", "zh":
+		return locale
+	default:
+		return config.DetectLocale()
+	}
 }

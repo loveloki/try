@@ -138,3 +138,7 @@ staticcheck ./...   # 第三方静态检查（需安装：go install honnef.co/g
 ```
 
 依赖 [svu](https://github.com/caarlos0/svu)（`go install github.com/caarlos0/svu@latest`）。GoReleaser 会构建全平台二进制并创建 GitHub Release。
+
+## 致谢
+
+本项目受 [tobi/try](https://github.com/tobi/try) 启发。

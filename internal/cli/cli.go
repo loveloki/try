@@ -32,7 +32,6 @@ type runOptions struct {
 
 // Run 是 CLI 的主入口，返回退出码
 func Run(args []string) int {
-	// 所有命令统一走完整的全局标志解析（包括加载配置文件）
 	opts, args := parseGlobalFlags(args)
 
 	if hasFlag(args, "--help", "-h") {

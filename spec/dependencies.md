@@ -52,6 +52,8 @@
 | `github.com/lucasb-eyer/go-colorful` | lipgloss | 颜色空间转换 |
 | `github.com/rivo/uniseg` | bubbles | Unicode 分词（文本光标定位） |
 | `github.com/xo/terminfo` | bubbletea | 终端信息查询 |
+| `golang.org/x/sync` | bubbletea | 并发同步原语 |
+| `golang.org/x/sys` | bubbletea, term | 系统调用接口（终端控制等） |
 
 ## go.mod 示例
 

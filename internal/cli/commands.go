@@ -8,6 +8,7 @@ import (
 	"time"
 
 	"github.com/xleine/try/internal/git"
+	"github.com/xleine/try/internal/i18n"
 	"github.com/xleine/try/internal/script"
 	"github.com/xleine/try/internal/selector"
 )
@@ -49,7 +50,7 @@ func cmdExecDefault(opts runOptions, args []string) int {
 
 func cmdClone(opts runOptions, args []string) int {
 	if len(args) == 0 {
-		fmt.Fprintln(os.Stderr, opts.messages.UsageClone)
+		fmt.Fprintln(os.Stderr, i18n.Get().UsageClone)
 		return 1
 	}
 	uri := args[0]
@@ -63,11 +64,11 @@ func cmdClone(opts runOptions, args []string) int {
 func doClone(opts runOptions, uri, customName string) int {
 	dirName := git.GenerateCloneDirName(uri, customName)
 	if dirName == "" {
-		fmt.Fprintln(os.Stderr, opts.messages.ErrParseGitURI+uri)
+		fmt.Fprintln(os.Stderr, i18n.Get().ErrParseGitURI+uri)
 		return 1
 	}
 	targetPath := filepath.Join(opts.triesPath, dirName)
-	if err := script.ExecClone(os.Stdout, os.Stderr, targetPath, uri, opts.messages); err != nil {
+	if err := script.ExecClone(os.Stdout, os.Stderr, targetPath, uri); err != nil {
 		fmt.Fprintln(os.Stderr, err)
 		return 1
 	}
@@ -76,7 +77,7 @@ func doClone(opts runOptions, uri, customName string) int {
 
 func cmdWorktree(opts runOptions, args []string) int {
 	if len(args) == 0 {
-		fmt.Fprintln(os.Stderr, opts.messages.UsageWorktree)
+		fmt.Fprintln(os.Stderr, i18n.Get().UsageWorktree)
 		return 1
 	}
 	repoDir := args[0]
@@ -86,7 +87,7 @@ func cmdWorktree(opts runOptions, args []string) int {
 	}
 
 	targetPath := worktreePath(opts.triesPath, repoDir, customName)
-	if err := script.ExecWorktree(os.Stdout, os.Stderr, targetPath, repoDir, opts.messages); err != nil {
+	if err := script.ExecWorktree(os.Stdout, os.Stderr, targetPath, repoDir); err != nil {
 		fmt.Fprintln(os.Stderr, err)
 		return 1
 	}
@@ -95,7 +96,7 @@ func cmdWorktree(opts runOptions, args []string) int {
 
 func handleDot(opts runOptions, args []string) int {
 	if len(args) < 2 {
-		fmt.Fprintln(os.Stderr, opts.messages.UsageDot)
+		fmt.Fprintln(os.Stderr, i18n.Get().UsageDot)
 		return 1
 	}
 	repoDir := "."
@@ -110,21 +111,21 @@ func handleDot(opts runOptions, args []string) int {
 
 	absRepo, err := filepath.Abs(repoDir)
 	if err != nil {
-		fmt.Fprintln(os.Stderr, opts.messages.ErrParsePath+err.Error())
+		fmt.Fprintln(os.Stderr, i18n.Get().ErrParsePath+err.Error())
 		return 1
 	}
 	targetPath := worktreePath(opts.triesPath, absRepo, name)
 
 	gitPath := filepath.Join(absRepo, ".git")
 	if selector.FileExists(gitPath) {
-		if err := script.ExecWorktree(os.Stdout, os.Stderr, targetPath, absRepo, opts.messages); err != nil {
+		if err := script.ExecWorktree(os.Stdout, os.Stderr, targetPath, absRepo); err != nil {
 			fmt.Fprintln(os.Stderr, err)
 			return 1
 		}
 		return 0
 	}
 	result := &selector.SelectionResult{Type: selector.SelectMkdir, Path: targetPath}
-	if err := script.Execute(result, opts.messages); err != nil {
+	if err := script.Execute(result); err != nil {
 		fmt.Fprintln(os.Stderr, err)
 		return 1
 	}

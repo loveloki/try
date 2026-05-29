@@ -4,7 +4,7 @@
 
 选择器中有三种对话框：删除确认、重命名、ship（发布为正式项目）。每种对话框实现为独立的 Bubbletea 子模型，通过 SelectorModel 的 `activeDialog` 字段切换。
 
-所有对话框的用户可见文本（标题、提示、错误消息、底栏按键说明）均通过 `msgs *i18n.Messages` 参数获取，支持中英文切换。下方示例展示的是英文 locale（`en`）的界面效果，中文 locale 下所有文本自动替换为对应中文。图标（🗑️、📁、✏️、🚀）和分隔线为语言无关的固定元素。
+所有对话框的用户可见文本（标题、提示、错误消息、底栏按键说明）均通过 `i18n.Get()` 全局语言包获取，支持中英文切换。下方示例展示的是英文 locale（`en`）的界面效果，中文 locale 下所有文本自动替换为对应中文。图标（🗑️、📁、✏️、🚀）和分隔线为语言无关的固定元素。
 
 ## 接口与工厂
 
@@ -20,9 +20,9 @@ type DialogInstance interface {
 }
 
 type DialogFactory interface {
-    NewDeleteDialog(items []DeleteItem, basePath, testConfirm string, width int, msgs *i18n.Messages) DialogInstance
-    NewRenameDialog(entry *MatchedEntry, basePath string, width int, msgs *i18n.Messages) DialogInstance
-    NewShipDialog(entry *MatchedEntry, basePath, shipPath string, width int, msgs *i18n.Messages) DialogInstance
+    NewDeleteDialog(items []DeleteItem, basePath, testConfirm string, width int) DialogInstance
+    NewRenameDialog(entry *MatchedEntry, basePath string, width int) DialogInstance
+    NewShipDialog(entry *MatchedEntry, basePath, shipPath string, width int) DialogInstance
 }
 ```
 

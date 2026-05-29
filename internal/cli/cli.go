@@ -27,7 +27,6 @@ type runOptions struct {
 	andType       string
 	andKeys       string
 	andConfirm    string
-	messages      *i18n.Messages
 }
 
 // Run 是 CLI 的主入口，返回退出码
@@ -35,7 +34,7 @@ func Run(args []string) int {
 	opts, args := parseGlobalFlags(args)
 
 	if hasFlag(args, "--help", "-h") {
-		fmt.Fprintln(os.Stderr, opts.messages.HelpText)
+		fmt.Fprintln(os.Stderr, i18n.Get().HelpText)
 		return 2
 	}
 	if hasFlag(args, "--version", "-v") {
@@ -49,7 +48,7 @@ func Run(args []string) int {
 
 	switch args[0] {
 	case "install":
-		if err := shell.Install(opts.messages); err != nil {
+		if err := shell.Install(); err != nil {
 			fmt.Fprintln(os.Stderr, err)
 			return 1
 		}
@@ -92,6 +91,7 @@ func parseGlobalFlags(args []string) (runOptions, []string) {
 	triesPath, shipPath := config.ResolvePaths(cliPath, cfg)
 	theme := config.ResolveTheme(cliTheme, cfg)
 	locale := config.ResolveLocale(cliLocale, cfg)
+	i18n.Init(locale)
 
 	return runOptions{
 		triesPath:     triesPath,
@@ -103,7 +103,6 @@ func parseGlobalFlags(args []string) (runOptions, []string) {
 		andType:       andType,
 		andKeys:       andKeys,
 		andConfirm:    andConfirm,
-		messages:      i18n.ForLocale(locale),
 	}, args
 }
 
@@ -124,7 +123,6 @@ func runSelector(opts runOptions, searchTerm string) int {
 		TestConfirm:    opts.andConfirm,
 		ColorsEnabled:  opts.colorsEnabled,
 		Theme:          opts.theme,
-		Messages:       opts.messages,
 	}
 
 	model := selector.New(cfg)
@@ -143,7 +141,7 @@ func runSelector(opts runOptions, searchTerm string) int {
 		return 1
 	}
 
-	if err := script.Execute(selected, opts.messages); err != nil {
+	if err := script.Execute(selected); err != nil {
 		fmt.Fprintln(os.Stderr, err)
 		return 1
 	}
@@ -154,15 +152,15 @@ func runSelector(opts runOptions, searchTerm string) int {
 
 type dialogFactoryImpl struct{}
 
-func (f *dialogFactoryImpl) NewDeleteDialog(items []selector.DeleteItem, basePath, testConfirm string, width int, msgs *i18n.Messages) selector.DialogInstance {
-	return dialog.NewDeleteDialog(items, basePath, testConfirm, width, msgs)
+func (f *dialogFactoryImpl) NewDeleteDialog(items []selector.DeleteItem, basePath, testConfirm string, width int) selector.DialogInstance {
+	return dialog.NewDeleteDialog(items, basePath, testConfirm, width)
 }
 
-func (f *dialogFactoryImpl) NewRenameDialog(entry *selector.MatchedEntry, basePath string, width int, msgs *i18n.Messages) selector.DialogInstance {
-	return dialog.NewRenameDialog(entry, basePath, width, msgs)
+func (f *dialogFactoryImpl) NewRenameDialog(entry *selector.MatchedEntry, basePath string, width int) selector.DialogInstance {
+	return dialog.NewRenameDialog(entry, basePath, width)
 }
 
-func (f *dialogFactoryImpl) NewShipDialog(entry *selector.MatchedEntry, basePath, shipPath string, width int, msgs *i18n.Messages) selector.DialogInstance {
-	return dialog.NewShipDialog(entry, basePath, shipPath, width, msgs)
+func (f *dialogFactoryImpl) NewShipDialog(entry *selector.MatchedEntry, basePath, shipPath string, width int) selector.DialogInstance {
+	return dialog.NewShipDialog(entry, basePath, shipPath, width)
 }
 

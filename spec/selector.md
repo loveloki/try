@@ -17,7 +17,6 @@ type Config struct {
     TestConfirm    string   // 注入确认输入
     ColorsEnabled  bool
     Theme          string   // "dark" 或 "light"
-    Messages       *i18n.Messages
 }
 
 func New(cfg Config) SelectorModel

@@ -246,6 +246,22 @@ var ZH = Messages{
 	MsgSourceHint:     "请运行 source %s 或重启终端以生效。",
 }
 
+// 进程级全局语言包，CLI 启动时通过 Init 设置一次
+var global *Messages
+
+// Init 设置全局语言包，应在 CLI 入口处调用一次
+func Init(locale string) {
+	global = ForLocale(locale)
+}
+
+// Get 返回全局语言包，未初始化时回退到英文
+func Get() *Messages {
+	if global == nil {
+		return &EN
+	}
+	return global
+}
+
 // ForLocale 根据 locale 返回对应语言包
 func ForLocale(locale string) *Messages {
 	switch locale {

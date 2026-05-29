@@ -96,9 +96,9 @@ func renderHeader(m *SelectorModel) string {
 	}
 	sep := m.styles.render(m.styles.muted, strings.Repeat("─", w))
 
-	b.WriteString(m.styles.render(m.styles.header, m.messages.Title) + "\n")
+	b.WriteString(m.styles.render(m.styles.header, msgs().Title) + "\n")
 	b.WriteString(sep + "\n")
-	b.WriteString(m.messages.SearchPrefix + m.textInput.View() + "\n")
+	b.WriteString(msgs().SearchPrefix + m.textInput.View() + "\n")
 	b.WriteString(sep + "\n")
 
 	return b.String()
@@ -111,7 +111,7 @@ func renderFooter(m *SelectorModel) string {
 	// "Create new" 行
 	if input := strings.TrimSpace(m.textInput.Value()); input != "" {
 		name := strings.ReplaceAll(input, " ", "-")
-		b.WriteString("\n" + m.messages.CreateNew + m.styles.render(m.styles.accent, name) + "\n")
+		b.WriteString("\n" + msgs().CreateNew + m.styles.render(m.styles.accent, name) + "\n")
 	}
 
 	w := m.width
@@ -126,9 +126,9 @@ func renderFooter(m *SelectorModel) string {
 	} else if m.deleteMode {
 		count := len(m.markedForDeletion)
 		b.WriteString(m.styles.render(m.styles.dangerBg,
-			fmt.Sprintf(m.messages.DeleteMode, count)))
+			fmt.Sprintf(msgs().DeleteMode, count)))
 	} else {
-		b.WriteString(m.styles.render(m.styles.muted, m.messages.HintBar))
+		b.WriteString(m.styles.render(m.styles.muted, msgs().HintBar))
 	}
 
 	return b.String()

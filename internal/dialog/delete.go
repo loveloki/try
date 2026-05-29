@@ -11,6 +11,8 @@ import (
 	"github.com/xleine/try/internal/selector"
 )
 
+func msgs() *i18n.Messages { return i18n.Get() }
+
 // DeleteDialog 删除确认对话框
 type DeleteDialog struct {
 	confirmInput textinput.Model
@@ -20,13 +22,12 @@ type DeleteDialog struct {
 	done         bool
 	result       *selector.SelectionResult
 	width        int
-	msgs         *i18n.Messages
 }
 
 // NewDeleteDialog 创建删除确认对话框
-func NewDeleteDialog(items []selector.DeleteItem, basePath, testConfirm string, width int, msgs *i18n.Messages) *DeleteDialog {
+func NewDeleteDialog(items []selector.DeleteItem, basePath, testConfirm string, width int) *DeleteDialog {
 	ti := textinput.New()
-	ti.Placeholder = msgs.DeletePlaceholder
+	ti.Placeholder = msgs().DeletePlaceholder
 	ti.CharLimit = 10
 
 	return &DeleteDialog{
@@ -35,7 +36,6 @@ func NewDeleteDialog(items []selector.DeleteItem, basePath, testConfirm string, 
 		basePath:     basePath,
 		testConfirm:  testConfirm,
 		width:        width,
-		msgs:         msgs,
 	}
 }
 
@@ -78,15 +78,16 @@ func (d *DeleteDialog) ViewContent() string {
 	var b strings.Builder
 	sep := strings.Repeat("─", d.width)
 
-	b.WriteString(fmt.Sprintf("         "+d.msgs.DeleteTitle+"\n", len(d.markedItems)))
+	m := msgs()
+	b.WriteString(fmt.Sprintf("         "+m.DeleteTitle+"\n", len(d.markedItems)))
 	b.WriteString(sep + "\n")
 	for _, item := range d.markedItems {
 		b.WriteString("🗑️ " + item.Basename + "\n")
 	}
 	b.WriteString("\n\n")
-	b.WriteString("        " + d.msgs.DeletePrompt + d.confirmInput.View() + "\n\n")
+	b.WriteString("        " + m.DeletePrompt + d.confirmInput.View() + "\n\n")
 	b.WriteString(sep + "\n")
-	b.WriteString("        " + d.msgs.DeleteFooter)
+	b.WriteString("        " + m.DeleteFooter)
 	return b.String()
 }
 

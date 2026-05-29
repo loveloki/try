@@ -8,7 +8,6 @@ import (
 
 	tea "charm.land/bubbletea/v2"
 	"charm.land/bubbles/v2/textinput"
-	"github.com/xleine/try/internal/i18n"
 	"github.com/xleine/try/internal/selector"
 )
 
@@ -27,11 +26,10 @@ type RenameDialog struct {
 	result   *selector.SelectionResult
 	errMsg   string
 	width    int
-	msgs     *i18n.Messages
 }
 
 // NewRenameDialog 创建重命名对话框，输入框初始值为当前目录名
-func NewRenameDialog(entry *selector.MatchedEntry, basePath string, width int, msgs *i18n.Messages) *RenameDialog {
+func NewRenameDialog(entry *selector.MatchedEntry, basePath string, width int) *RenameDialog {
 	ti := textinput.New()
 	ti.SetValue(entry.Entry.Basename)
 	ti.CharLimit = 256
@@ -51,7 +49,6 @@ func NewRenameDialog(entry *selector.MatchedEntry, basePath string, width int, m
 		entry:    entry,
 		basePath: basePath,
 		width:    width,
-		msgs:     msgs,
 	}
 }
 
@@ -92,15 +89,16 @@ func (d *RenameDialog) ViewContent() string {
 	var b strings.Builder
 	sep := strings.Repeat("─", d.width)
 
-	b.WriteString("          " + d.msgs.RenameTitle + "\n")
+	m := msgs()
+	b.WriteString("          " + m.RenameTitle + "\n")
 	b.WriteString(sep + "\n")
 	b.WriteString("📁 " + d.entry.Entry.Basename + "\n\n\n")
-	b.WriteString("        " + d.msgs.RenamePrompt + d.input.View() + "\n")
+	b.WriteString("        " + m.RenamePrompt + d.input.View() + "\n")
 	if d.errMsg != "" {
 		b.WriteString("        " + d.errMsg + "\n")
 	}
 	b.WriteString("\n" + sep + "\n")
-	b.WriteString("        " + d.msgs.RenameFooter)
+	b.WriteString("        " + m.RenameFooter)
 	return b.String()
 }
 
@@ -112,17 +110,18 @@ func (d *RenameDialog) confirmRename() (*selector.SelectionResult, string) {
 	newName = whitespaceRe.ReplaceAllString(newName, "-")
 	oldName := d.entry.Entry.Basename
 
+	m := msgs()
 	if newName == "" {
-		return nil, d.msgs.RenameEmpty
+		return nil, m.RenameEmpty
 	}
 	if strings.Contains(newName, "/") {
-		return nil, d.msgs.RenameSlash
+		return nil, m.RenameSlash
 	}
 	if newName == oldName {
 		return nil, ""
 	}
 	if selector.DirExists(filepath.Join(d.basePath, newName)) {
-		return nil, d.msgs.RenameExists + newName
+		return nil, m.RenameExists + newName
 	}
 
 	return &selector.SelectionResult{

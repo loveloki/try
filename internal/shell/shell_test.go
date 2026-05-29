@@ -5,8 +5,6 @@ import (
 	"path/filepath"
 	"strings"
 	"testing"
-
-	"github.com/xleine/try/internal/i18n"
 )
 
 func checkDetect(t *testing.T, shellEnv, want string) {
@@ -135,7 +133,7 @@ func TestInstallToFileNewRC(t *testing.T) {
 		InitFunc: posixInit,
 	}
 
-	if err := installToFile(cfg, &i18n.EN); err != nil {
+	if err := installToFile(cfg); err != nil {
 		t.Fatalf("installToFile failed: %v", err)
 	}
 
@@ -163,14 +161,14 @@ func TestInstallToFileIdempotent(t *testing.T) {
 	}
 
 	// 首次安装
-	if err := installToFile(cfg, &i18n.EN); err != nil {
+	if err := installToFile(cfg); err != nil {
 		t.Fatalf("first install failed: %v", err)
 	}
 
 	data1, _ := os.ReadFile(rcFile)
 
 	// 再次安装不应追加
-	if err := installToFile(cfg, &i18n.EN); err != nil {
+	if err := installToFile(cfg); err != nil {
 		t.Fatalf("second install failed: %v", err)
 	}
 
@@ -198,7 +196,7 @@ func TestInstallToFilePreservesExisting(t *testing.T) {
 		InitFunc: posixInit,
 	}
 
-	if err := installToFile(cfg, &i18n.EN); err != nil {
+	if err := installToFile(cfg); err != nil {
 		t.Fatalf("installToFile failed: %v", err)
 	}
 
@@ -223,7 +221,7 @@ func TestInstallToFileCreatesParentDir(t *testing.T) {
 		InitFunc: fishInit,
 	}
 
-	if err := installToFile(cfg, &i18n.EN); err != nil {
+	if err := installToFile(cfg); err != nil {
 		t.Fatalf("installToFile failed: %v", err)
 	}
 

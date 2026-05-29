@@ -20,7 +20,7 @@ func (m *SelectorModel) loadAllTries() []Entry {
 
 	entries, err := os.ReadDir(m.basePath)
 	if err != nil {
-		m.deleteStatus = m.messages.ErrReadDir + err.Error()
+		m.deleteStatus = msgs().ErrReadDir + err.Error()
 		return nil
 	}
 

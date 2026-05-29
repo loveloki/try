@@ -7,7 +7,6 @@ import (
 	"testing"
 
 	tea "charm.land/bubbletea/v2"
-	"github.com/xleine/try/internal/i18n"
 	"github.com/xleine/try/internal/selector"
 )
 
@@ -15,7 +14,7 @@ import (
 
 func checkDeleteConfirm(t *testing.T, input string, items []selector.DeleteItem, basePath string, wantHasResult bool) {
 	t.Helper()
-	d := NewDeleteDialog(items, basePath, "", 80, &i18n.EN)
+	d := NewDeleteDialog(items, basePath, "", 80)
 	d.confirmInput.SetValue(input)
 	result := d.confirm()
 	if wantHasResult && result == nil {
@@ -66,7 +65,7 @@ func TestDeleteConfirmPathSafety(t *testing.T) {
 func checkRenameConfirm(t *testing.T, input, oldName, basePath string, wantHasResult bool, wantErrMsg string) {
 	t.Helper()
 	entry := &selector.MatchedEntry{Entry: selector.Entry{Basename: oldName}}
-	d := NewRenameDialog(entry, basePath, 80, &i18n.EN)
+	d := NewRenameDialog(entry, basePath, 80)
 	d.input.SetValue(input)
 	result, errMsg := d.confirmRename()
 
@@ -131,7 +130,7 @@ func checkShipConfirm(t *testing.T, input, sourcePath, basePath string, wantHasR
 	entry := &selector.MatchedEntry{
 		Entry: selector.Entry{Basename: "test-2025-08-14", Path: sourcePath},
 	}
-	d := NewShipDialog(entry, basePath, "/tmp/ship", 80, &i18n.EN)
+	d := NewShipDialog(entry, basePath, "/tmp/ship", 80)
 	d.input.SetValue(input)
 	result, errMsg := d.confirmShip()
 
@@ -206,7 +205,7 @@ func TestDeleteDialogEscape(t *testing.T) {
 	os.MkdirAll(dir1, 0o755)
 	items := []selector.DeleteItem{{Path: dir1, Basename: "dir1"}}
 
-	d := NewDeleteDialog(items, tmpDir, "", 80, &i18n.EN)
+	d := NewDeleteDialog(items, tmpDir, "", 80)
 	d = driveDialog(t, d, []tea.KeyPressMsg{
 		{Code: tea.KeyEscape},
 	}).(*DeleteDialog)
@@ -225,7 +224,7 @@ func TestDeleteDialogCtrlC(t *testing.T) {
 	os.MkdirAll(dir1, 0o755)
 	items := []selector.DeleteItem{{Path: dir1, Basename: "dir1"}}
 
-	d := NewDeleteDialog(items, tmpDir, "", 80, &i18n.EN)
+	d := NewDeleteDialog(items, tmpDir, "", 80)
 	d = driveDialog(t, d, []tea.KeyPressMsg{
 		{Code: 'c', Mod: tea.ModCtrl},
 	}).(*DeleteDialog)
@@ -244,7 +243,7 @@ func TestDeleteDialogEnterWithYES(t *testing.T) {
 	os.MkdirAll(dir1, 0o755)
 	items := []selector.DeleteItem{{Path: dir1, Basename: "dir1"}}
 
-	d := NewDeleteDialog(items, tmpDir, "", 80, &i18n.EN)
+	d := NewDeleteDialog(items, tmpDir, "", 80)
 	d.confirmInput.SetValue("YES")
 	d = driveDialog(t, d, []tea.KeyPressMsg{
 		{Code: tea.KeyEnter},
@@ -264,7 +263,7 @@ func TestDeleteDialogEnterWithoutYES(t *testing.T) {
 	os.MkdirAll(dir1, 0o755)
 	items := []selector.DeleteItem{{Path: dir1, Basename: "dir1"}}
 
-	d := NewDeleteDialog(items, tmpDir, "", 80, &i18n.EN)
+	d := NewDeleteDialog(items, tmpDir, "", 80)
 	d.confirmInput.SetValue("no")
 	d = driveDialog(t, d, []tea.KeyPressMsg{
 		{Code: tea.KeyEnter},
@@ -280,7 +279,7 @@ func TestDeleteDialogEnterWithoutYES(t *testing.T) {
 
 func TestRenameDialogEscape(t *testing.T) {
 	entry := &selector.MatchedEntry{Entry: selector.Entry{Basename: "old-name"}}
-	d := NewRenameDialog(entry, t.TempDir(), 80, &i18n.EN)
+	d := NewRenameDialog(entry, t.TempDir(), 80)
 	d = driveDialog(t, d, []tea.KeyPressMsg{
 		{Code: tea.KeyEscape},
 	}).(*RenameDialog)
@@ -295,7 +294,7 @@ func TestRenameDialogEscape(t *testing.T) {
 
 func TestRenameDialogEnter(t *testing.T) {
 	entry := &selector.MatchedEntry{Entry: selector.Entry{Basename: "old-name"}}
-	d := NewRenameDialog(entry, t.TempDir(), 80, &i18n.EN)
+	d := NewRenameDialog(entry, t.TempDir(), 80)
 	d.input.SetValue("new-name")
 	d = driveDialog(t, d, []tea.KeyPressMsg{
 		{Code: tea.KeyEnter},
@@ -321,7 +320,7 @@ func TestShipDialogEscape(t *testing.T) {
 	entry := &selector.MatchedEntry{
 		Entry: selector.Entry{Basename: "test-2025-08-14", Path: filepath.Join(tmpDir, "test")},
 	}
-	d := NewShipDialog(entry, tmpDir, "/tmp/ship", 80, &i18n.EN)
+	d := NewShipDialog(entry, tmpDir, "/tmp/ship", 80)
 	d = driveDialog(t, d, []tea.KeyPressMsg{
 		{Code: tea.KeyEscape},
 	}).(*ShipDialog)
@@ -339,7 +338,7 @@ func TestShipDialogEnter(t *testing.T) {
 	entry := &selector.MatchedEntry{
 		Entry: selector.Entry{Basename: "test-2025-08-14", Path: filepath.Join(tmpDir, "test")},
 	}
-	d := NewShipDialog(entry, tmpDir, "/tmp/ship", 80, &i18n.EN)
+	d := NewShipDialog(entry, tmpDir, "/tmp/ship", 80)
 	dest := filepath.Join(tmpDir, "dest")
 	d.input.SetValue(dest)
 	d = driveDialog(t, d, []tea.KeyPressMsg{
@@ -365,7 +364,7 @@ func TestDeleteDialogViewContent(t *testing.T) {
 		{Path: "/tmp/dir1", Basename: "dir1"},
 		{Path: "/tmp/dir2", Basename: "dir2"},
 	}
-	d := NewDeleteDialog(items, "/tmp", "", 60, &i18n.EN)
+	d := NewDeleteDialog(items, "/tmp", "", 60)
 	content := d.ViewContent()
 
 	for _, want := range []string{"dir1", "dir2", "Delete", "YES", "🗑️"} {
@@ -377,7 +376,7 @@ func TestDeleteDialogViewContent(t *testing.T) {
 
 func TestRenameDialogViewContent(t *testing.T) {
 	entry := &selector.MatchedEntry{Entry: selector.Entry{Basename: "old-dir"}}
-	d := NewRenameDialog(entry, t.TempDir(), 60, &i18n.EN)
+	d := NewRenameDialog(entry, t.TempDir(), 60)
 	content := d.ViewContent()
 
 	for _, want := range []string{"old-dir", "Rename", "📁"} {
@@ -391,7 +390,7 @@ func TestShipDialogViewContent(t *testing.T) {
 	entry := &selector.MatchedEntry{
 		Entry: selector.Entry{Basename: "test-2025-08-14", Path: "/tmp/test"},
 	}
-	d := NewShipDialog(entry, "/tmp", "/tmp/ship", 60, &i18n.EN)
+	d := NewShipDialog(entry, "/tmp", "/tmp/ship", 60)
 	content := d.ViewContent()
 
 	for _, want := range []string{"test-2025-08-14", "Ship", "🚀", "/tmp/ship"} {
@@ -407,7 +406,7 @@ func TestDeleteDialogTestConfirmAutoSubmit(t *testing.T) {
 	os.MkdirAll(dir1, 0o755)
 	items := []selector.DeleteItem{{Path: dir1, Basename: "dir1"}}
 
-	d := NewDeleteDialog(items, tmpDir, "YES", 80, &i18n.EN)
+	d := NewDeleteDialog(items, tmpDir, "YES", 80)
 	cmd := d.Init()
 
 	// Init 应该设置 testConfirm 值并产生 Enter 按键

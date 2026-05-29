@@ -14,6 +14,9 @@ import (
 	"github.com/xleine/try/internal/i18n"
 )
 
+// msgs 返回全局语言包的快捷方式
+func msgs() *i18n.Messages { return i18n.Get() }
+
 const (
 	headerLines = 4
 	footerLines = 3
@@ -30,7 +33,6 @@ type Config struct {
 	TestConfirm    string
 	ColorsEnabled  bool
 	Theme          string // "dark" 或 "light"
-	Messages       *i18n.Messages
 }
 
 // SelectorModel 交互式选择器的核心状态
@@ -52,10 +54,9 @@ type SelectorModel struct {
 	testRenderOnce    bool
 	testKeys          []string
 	testConfirm       string
-	activeDialog      dialog
-	dialogFactory     DialogFactory
-	styles            *styles
-	messages          *i18n.Messages
+	activeDialog  dialog
+	dialogFactory DialogFactory
+	styles        *styles
 }
 
 type renderOnceMsg struct{}
@@ -77,11 +78,6 @@ func New(cfg Config) SelectorModel {
 	}
 
 	st := newStyles(cfg.ColorsEnabled, cfg.Theme)
-
-	msgs := cfg.Messages
-	if msgs == nil {
-		msgs = &i18n.EN
-	}
 
 	delegate := &EntryDelegate{
 		markedForDeletion: map[string]bool{},
@@ -108,7 +104,6 @@ func New(cfg Config) SelectorModel {
 		testKeys:          cfg.TestKeys,
 		testConfirm:       cfg.TestConfirm,
 		styles:            st,
-		messages:          msgs,
 	}
 }
 
@@ -267,7 +262,7 @@ func (m SelectorModel) handleEnter() (tea.Model, tea.Cmd) {
 func (m SelectorModel) handleCreateNew() (tea.Model, tea.Cmd) {
 	input := strings.TrimSpace(m.textInput.Value())
 	if input == "" {
-		m.deleteStatus = m.messages.EmptyInputHint
+		m.deleteStatus = msgs().EmptyInputHint
 		return m, nil
 	}
 
@@ -287,7 +282,7 @@ func (m SelectorModel) handleQuit() (tea.Model, tea.Cmd) {
 	if m.deleteMode {
 		m.deleteMode = false
 		m.markedForDeletion = map[string]bool{}
-		m.deleteStatus = m.messages.DeleteCancelled
+		m.deleteStatus = msgs().DeleteCancelled
 		return m, nil
 	}
 	return m, tea.Quit

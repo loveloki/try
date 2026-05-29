@@ -8,7 +8,6 @@ import (
 	"time"
 
 	tea "charm.land/bubbletea/v2"
-	"github.com/xleine/try/internal/i18n"
 )
 
 // mockDialog 用于测试对话框集成路径的最小对话框实现
@@ -31,17 +30,17 @@ type mockDialogFactory struct {
 	shipCalled   bool
 }
 
-func (f *mockDialogFactory) NewDeleteDialog(items []DeleteItem, basePath, testConfirm string, width int, msgs *i18n.Messages) DialogInstance {
+func (f *mockDialogFactory) NewDeleteDialog(items []DeleteItem, basePath, testConfirm string, width int) DialogInstance {
 	f.deleteCalled = true
 	return &mockDialog{}
 }
 
-func (f *mockDialogFactory) NewRenameDialog(entry *MatchedEntry, basePath string, width int, msgs *i18n.Messages) DialogInstance {
+func (f *mockDialogFactory) NewRenameDialog(entry *MatchedEntry, basePath string, width int) DialogInstance {
 	f.renameCalled = true
 	return &mockDialog{}
 }
 
-func (f *mockDialogFactory) NewShipDialog(entry *MatchedEntry, basePath, shipPath string, width int, msgs *i18n.Messages) DialogInstance {
+func (f *mockDialogFactory) NewShipDialog(entry *MatchedEntry, basePath, shipPath string, width int) DialogInstance {
 	f.shipCalled = true
 	return &mockDialog{}
 }

@@ -2,7 +2,6 @@ package selector
 
 import (
 	tea "charm.land/bubbletea/v2"
-	"github.com/xleine/try/internal/i18n"
 )
 
 // DialogInstance 对话框实例接口（导出供 CLI 层的工厂实现使用）
@@ -18,9 +17,9 @@ type dialog = DialogInstance
 
 // DialogFactory 对话框创建接口，由外部（CLI 层）注入，避免循环依赖
 type DialogFactory interface {
-	NewDeleteDialog(items []DeleteItem, basePath, testConfirm string, width int, msgs *i18n.Messages) DialogInstance
-	NewRenameDialog(entry *MatchedEntry, basePath string, width int, msgs *i18n.Messages) DialogInstance
-	NewShipDialog(entry *MatchedEntry, basePath, shipPath string, width int, msgs *i18n.Messages) DialogInstance
+	NewDeleteDialog(items []DeleteItem, basePath, testConfirm string, width int) DialogInstance
+	NewRenameDialog(entry *MatchedEntry, basePath string, width int) DialogInstance
+	NewShipDialog(entry *MatchedEntry, basePath, shipPath string, width int) DialogInstance
 }
 
 // SetDialogFactory 注入对话框工厂（避免 selector → dialog 循环依赖）
@@ -51,7 +50,7 @@ func (m SelectorModel) openDeleteDialog() (tea.Model, tea.Cmd) {
 		}
 	}
 	if m.dialogFactory != nil {
-		dlg := m.dialogFactory.NewDeleteDialog(items, m.basePath, m.testConfirm, m.width, m.messages)
+		dlg := m.dialogFactory.NewDeleteDialog(items, m.basePath, m.testConfirm, m.width)
 		m.activeDialog = dlg
 		return m, dlg.Init()
 	}
@@ -67,7 +66,7 @@ func (m SelectorModel) enterRenameDialog() (tea.Model, tea.Cmd) {
 	m.deleteMode = false
 	m.markedForDeletion = map[string]bool{}
 	if m.dialogFactory != nil {
-		dlg := m.dialogFactory.NewRenameDialog(entry, m.basePath, m.width, m.messages)
+		dlg := m.dialogFactory.NewRenameDialog(entry, m.basePath, m.width)
 		m.activeDialog = dlg
 		return m, dlg.Init()
 	}
@@ -83,7 +82,7 @@ func (m SelectorModel) enterShipDialog() (tea.Model, tea.Cmd) {
 	m.deleteMode = false
 	m.markedForDeletion = map[string]bool{}
 	if m.dialogFactory != nil {
-		dlg := m.dialogFactory.NewShipDialog(entry, m.basePath, m.shipPath, m.width, m.messages)
+		dlg := m.dialogFactory.NewShipDialog(entry, m.basePath, m.shipPath, m.width)
 		m.activeDialog = dlg
 		return m, dlg.Init()
 	}

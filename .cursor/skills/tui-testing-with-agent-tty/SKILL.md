@@ -36,6 +36,10 @@ disable-model-invocation: true
   agent-tty --home "$AGENT_TTY_HOME" run "$SESSION_ID" "export TRY_PATH=\"$(pwd)/test-tries\"" --json
   agent-tty --home "$AGENT_TTY_HOME" run "$SESSION_ID" "export TRY_WIDTH=80" --json
   agent-tty --home "$AGENT_TTY_HOME" run "$SESSION_ID" "export TRY_HEIGHT=24" --json
+  # 强制使 TUI 程序激活色彩系统与高级转义属性（避免因宿主环境 NO_COLOR 污染导致黑白降级）
+  agent-tty --home "$AGENT_TTY_HOME" run "$SESSION_ID" "export COLORTERM=truecolor" --json
+  agent-tty --home "$AGENT_TTY_HOME" run "$SESSION_ID" "export TERM=xterm-256color" --json
+  agent-tty --home "$AGENT_TTY_HOME" run "$SESSION_ID" "unset NO_COLOR" --json
   ```
 - **非阻塞启动 TUI**：
   在 `run` 命令中使用 `--no-wait` 选项，以便让 TUI 程序在 PTY 后台自主持续运行，而不会导致测试脚本被无限阻塞：
@@ -87,9 +91,39 @@ disable-model-invocation: true
   agent-tty --home "$AGENT_TTY_HOME" type "$SESSION_ID" --json -- "-updated"
   ```
 
+### 5. 完整功能与操作覆盖规范
+
+在编写基于 `agent-tty` 的 TUI 测试脚本时，**必须确保进行完整的功能及操作覆盖，绝对不能遗漏任何可能的用户操作路径**。一个完备的 TUI 自动化测试应覆盖以下所有原子交互和逻辑场景：
+
+1. **多维搜索与编辑覆盖**：
+   - 键入搜索关键字进行列表实时刷新和排序验证。
+   - 验证输入框的基础编辑功能（`Backspace` 逐字删除）以及 Emacs 快捷键（`Ctrl-A`/`Ctrl-E`/`Ctrl-K` 等）对搜索框的影响。
+2. **列表导航覆盖**：
+   - 包含普通方向键（`Up`/`Down`）和备用导航键（`Ctrl-P`/`Ctrl-N`）对列表焦点的双向移动控制。
+3. **创建生命周期覆盖**：
+   - 使用 `Ctrl-T` 触发一键创建。
+   - 使用搜索词不为空时的 `Enter` 触发创建。
+   - 对生成的 `name-YYYY-MM-DD` 格式文件夹进行磁盘物理存在性断言，以及对同名碰撞自动加后缀（如 `-2`）等特性的覆盖验证。
+4. **批量标记与安全删除覆盖**：
+   - 使用 `Ctrl-D` 在不同检索词下标记一个或多个不连续的实验目录。
+   - 按 `Enter` 进入删除确认对话框。
+   - 模拟在确认对话框中故意输入错误的确认词（如 `no`, `yes` 小写等），断言其被安全取消。
+   - 模拟精确输入大写 `YES`，断言物理删除成功，并在磁盘上进行非空到空的差异断言。
+5. **就地重命名覆盖**：
+   - 高亮某项，按 `Ctrl-R` 拉起重命名对话框。
+   - 模拟同名碰撞、空格替换连字符、输入为空或包含 `/` 等边界输入，断言界面提示错误，并在磁盘上验证物理目录名确实同步改变。
+6. **Ship (发布) 搬运覆盖**：
+   - 高亮某项，按 `Ctrl-G` 拉起 Ship 对话框。
+   - 验证其自动去日期后缀并推导 ship 路径的行为。
+   - 模拟搬移普通目录（`os.Rename`）和 git worktree 目录（自动调用 `git worktree move`），并在磁盘上物理断言发布成功。
+7. **取消与强制中止覆盖**：
+   - 处于删除模式或任意对话框（删除/重命名/Ship）时，按 `Escape` (或 `Ctrl-C`) 取消当前操作或退回普通主列表。
+   - 处于空标记的主界面时，按 `Escape` 直接退出的边界场景。
+
 ## ⚠️ 反模式与避坑指南
 
 1. **禁止使用纯硬编码的 `sleep`**。始终应优先使用 `agent-tty wait --screen-stable-ms <ms>` 或者是 `wait --text <text>` 进行自适应、响应式的状态监听。
 2. **禁止不带分隔符直接 `type` 以减号开头的输入**（例如 `type "$SID" "-updated"`），必须用 POSIX 标准参数分割符 `--` 对其进行封装。
 3. **测试结束时切记销毁会话**。务必在脚本的错误捕捉或最末尾调用 `destroy`。
 4. **确保在启动前强制锁定 TUI 的显示宽高**。当 TUI 对视口（Viewport）大小敏感时，在运行前先修改 `TRY_WIDTH` / `TRY_HEIGHT` 变量或调用 `agent-tty resize`，保证截图与快照结构的高保真度。
+5. **解除色彩限制，防止“黑白降级”**：由于运行环境（如 IDE、CI）可能在全局环境变量中强行设置了 `NO_COLOR=1`，会诱导 TUI 自动关闭色彩。在 PTY 初始化时，**务必在会话内部执行 `unset NO_COLOR`**，并显式宣告彩色属性（如 `export COLORTERM=truecolor`），才能保证截图能够高保真捕获彩色和特殊修饰（如删除线、闪烁）。

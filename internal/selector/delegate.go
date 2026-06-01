@@ -24,17 +24,9 @@ func (d *EntryDelegate) Update(_ tea.Msg, _ *list.Model) tea.Cmd { return nil }
 
 // rowCtx 封装单行渲染的上下文状态，避免在子函数间传递大量参数
 type rowCtx struct {
-	styles   *styles
-	bgOnly   lipgloss.Style
-	hasRowBg bool
-}
-
-// withBg 为样式附加行背景色
-func (r *rowCtx) withBg(s lipgloss.Style) lipgloss.Style {
-	if !r.hasRowBg {
-		return s
-	}
-	return s.Background(r.bgOnly.GetBackground())
+	styles     *styles
+	isSelected bool
+	isMarked   bool
 }
 
 func (d *EntryDelegate) Render(w io.Writer, m list.Model, index int, item list.Item) {
@@ -57,22 +49,16 @@ func (d *EntryDelegate) Render(w io.Writer, m list.Model, index int, item list.I
 }
 
 func (d *EntryDelegate) newRowCtx(isSelected, isMarked bool) rowCtx {
-	rc := rowCtx{styles: d.styles, hasRowBg: isMarked || isSelected}
-	rc.bgOnly = lipgloss.NewStyle()
-	if isMarked {
-		rc.bgOnly = rc.bgOnly.Background(d.styles.dangerBg.GetBackground())
-	} else if isSelected {
-		rc.bgOnly = rc.bgOnly.Background(d.styles.selectedBg.GetBackground())
+	return rowCtx{
+		styles:     d.styles,
+		isSelected: isSelected,
+		isMarked:   isMarked,
 	}
-	return rc
 }
 
 func (d *EntryDelegate) renderArrow(isSelected bool, rc *rowCtx) string {
 	if isSelected {
-		return d.styles.render(rc.withBg(d.styles.highlight), "→ ")
-	}
-	if rc.hasRowBg {
-		return d.styles.render(rc.bgOnly, "  ")
+		return d.styles.render(rc.styles.highlight, "→ ")
 	}
 	return "  "
 }
@@ -82,35 +68,31 @@ func (d *EntryDelegate) renderIcon(isMarked bool, rc *rowCtx) string {
 	if isMarked {
 		icon = "🗑️ "
 	}
-	if rc.hasRowBg {
-		return d.styles.render(rc.bgOnly, icon)
-	}
 	return icon
 }
 
 func (d *EntryDelegate) renderMeta(entry MatchedEntry, rc *rowCtx) string {
 	timeStr := FormatTimeAgo(time.Since(entry.Entry.Mtime))
 	scoreStr := fmt.Sprintf("%.1f", entry.Score)
-	return d.styles.render(rc.withBg(d.styles.muted), timeStr+", "+scoreStr)
+	metaText := timeStr + ", " + scoreStr
+
+	if rc.isMarked {
+		return d.styles.render(rc.styles.danger, metaText)
+	}
+	if rc.isSelected {
+		return d.styles.render(rc.styles.selected, metaText)
+	}
+	return d.styles.render(rc.styles.muted, metaText)
 }
 
-// assembleLine 拼接左侧内容和右侧元数据，用背景色填充中间空白
+// assembleLine 拼接左侧内容和右侧元数据，用普通空格填充中间空白
 func assembleLine(left, meta string, maxContent int, rc rowCtx) string {
 	leftWidth := lipgloss.Width(left)
 	metaWidth := lipgloss.Width(meta)
 
 	if leftWidth+metaWidth+2 <= maxContent {
 		padding := maxContent - leftWidth - metaWidth
-		if rc.hasRowBg {
-			return left + rc.styles.render(rc.bgOnly, strings.Repeat(" ", padding)) + meta
-		}
 		return left + strings.Repeat(" ", padding) + meta
-	}
-	if leftWidth < maxContent && rc.hasRowBg {
-		remaining := maxContent - leftWidth
-		if remaining > 0 {
-			return left + rc.styles.render(rc.bgOnly, strings.Repeat(" ", remaining))
-		}
 	}
 	return left
 }
@@ -119,6 +101,11 @@ func assembleLine(left, meta string, maxContent int, rc rowCtx) string {
 func (d *EntryDelegate) renderName(entry MatchedEntry, rc *rowCtx) string {
 	name := entry.Entry.Basename
 	positions := entry.HighlightPositions
+
+	// 如果被标记删除，直接扁平化渲染为红色删除线，不进行分段高亮，避免嵌套样式导致 ANSI 码解析泄露
+	if rc.isMarked {
+		return d.styles.render(rc.styles.danger, name)
+	}
 
 	posSet := make(map[int]bool, len(positions))
 	for _, p := range positions {
@@ -133,19 +120,29 @@ func (d *EntryDelegate) renderName(entry MatchedEntry, rc *rowCtx) string {
 	}
 
 	var result strings.Builder
-	d.writeHighlighted(&result, namePart, posSet, 0, rc)
+
+	// 确定基础样式
+	var baseStyle lipgloss.Style
+	if rc.isSelected {
+		baseStyle = rc.styles.selected
+	}
+
+	d.writeHighlighted(&result, namePart, posSet, 0, rc, baseStyle)
 
 	if datePart != "" {
-		var dateResult strings.Builder
-		d.writeHighlighted(&dateResult, datePart, posSet, len(namePart), rc)
-		result.WriteString(d.styles.render(rc.withBg(d.styles.muted), dateResult.String()))
+		// 日期后缀基础样式：如果是选中项，继承选中项加粗效果
+		dateBaseStyle := rc.styles.muted
+		if rc.isSelected {
+			dateBaseStyle = dateBaseStyle.Inherit(rc.styles.selected)
+		}
+		d.writeHighlighted(&result, datePart, posSet, len(namePart), rc, dateBaseStyle)
 	}
 
 	return result.String()
 }
 
-// writeHighlighted 将文本按匹配位置分段写入 builder，匹配段高亮、非匹配段附加背景
-func (d *EntryDelegate) writeHighlighted(b *strings.Builder, text string, posSet map[int]bool, offset int, rc *rowCtx) {
+// writeHighlighted 将文本按匹配位置分段写入 builder，匹配段和普通段使用扁平化的继承样式渲染，完全杜绝嵌套 Render
+func (d *EntryDelegate) writeHighlighted(b *strings.Builder, text string, posSet map[int]bool, offset int, rc *rowCtx, baseStyle lipgloss.Style) {
 	i := 0
 	for i < len(text) {
 		if posSet[offset+i] {
@@ -153,15 +150,18 @@ func (d *EntryDelegate) writeHighlighted(b *strings.Builder, text string, posSet
 			for j < len(text) && posSet[offset+j] {
 				j++
 			}
-			b.WriteString(d.styles.render(rc.withBg(d.styles.match), text[i:j]))
+			// 匹配样式继承基础样式（合并加粗或颜色）
+			matchStyle := rc.styles.match.Inherit(baseStyle)
+			b.WriteString(d.styles.render(matchStyle, text[i:j]))
 			i = j
 		} else {
 			j := i
 			for j < len(text) && !posSet[offset+j] {
 				j++
 			}
-			if rc.hasRowBg {
-				b.WriteString(d.styles.render(rc.bgOnly, text[i:j]))
+			// 普通样式：如果有前景色或特殊效果，使用 baseStyle 渲染；否则直接写入
+			if baseStyle.GetForeground() != nil || baseStyle.GetBold() {
+				b.WriteString(d.styles.render(baseStyle, text[i:j]))
 			} else {
 				b.WriteString(text[i:j])
 			}

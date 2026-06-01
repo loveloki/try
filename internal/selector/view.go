@@ -9,46 +9,43 @@ import (
 
 // styles 集中管理所有 TUI 样式
 type styles struct {
-	header     lipgloss.Style
-	highlight  lipgloss.Style
-	muted      lipgloss.Style
-	match      lipgloss.Style
-	selectedBg lipgloss.Style
-	dangerBg   lipgloss.Style
-	accent     lipgloss.Style
+	header    lipgloss.Style
+	highlight lipgloss.Style
+	muted     lipgloss.Style
+	match     lipgloss.Style
+	selected  lipgloss.Style
+	danger    lipgloss.Style
+	accent    lipgloss.Style
 }
 
 // themePalette 定义一组主题色值（256-color ANSI codes）
 type themePalette struct {
-	header     string
-	highlight  string
-	muted      string
-	match      string
-	selectedBg string
-	dangerBg   string
-	accent     string
+	header    string
+	highlight string
+	muted     string
+	match     string
+	accent    string
+	danger    string
 }
 
 // GitHub Dark 风格配色
 var darkPalette = themePalette{
-	header:     "75",  // 浅蓝 (#5fafff)
-	highlight:  "75",  // 浅蓝
-	muted:      "245", // 灰色
-	match:      "215", // 浅橙 (#ffaf5f)
-	selectedBg: "237", // 深灰背景
-	dangerBg:   "52",  // 暗红背景
-	accent:     "114", // 浅绿 (#87d787)
+	header:    "75",  // 浅蓝 (#5fafff)
+	highlight: "75",  // 浅蓝
+	muted:     "245", // 灰色
+	match:     "215", // 浅橙 (#ffaf5f)
+	accent:    "114", // 浅绿 (#87d787)
+	danger:    "196", // 鲜红 (#ff0000)
 }
 
 // GitHub Light 风格配色
 var lightPalette = themePalette{
-	header:     "26",  // 深蓝 (#005fd7)
-	highlight:  "26",  // 深蓝
-	muted:      "242", // 中灰
-	match:      "130", // 棕橙 (#af5f00)
-	selectedBg: "254", // 浅灰背景
-	dangerBg:   "217", // 浅红背景 (#ffafaf)
-	accent:     "28",  // 深绿 (#008700)
+	header:    "26",  // 深蓝 (#005fd7)
+	highlight: "26",  // 深蓝
+	muted:     "242", // 中灰
+	match:     "130", // 棕橙 (#af5f00)
+	accent:    "28",  // 深绿 (#008700)
+	danger:    "160", // 深红 (#d70000)
 }
 
 // newStyles 创建样式集。颜色降采样交由 bubbletea v2 内置渲染器处理，
@@ -56,13 +53,13 @@ var lightPalette = themePalette{
 func newStyles(colorsEnabled bool, theme string) *styles {
 	if !colorsEnabled {
 		return &styles{
-			header:     lipgloss.NewStyle(),
-			highlight:  lipgloss.NewStyle(),
-			muted:      lipgloss.NewStyle(),
-			match:      lipgloss.NewStyle(),
-			selectedBg: lipgloss.NewStyle(),
-			dangerBg:   lipgloss.NewStyle(),
-			accent:     lipgloss.NewStyle(),
+			header:    lipgloss.NewStyle(),
+			highlight: lipgloss.NewStyle(),
+			muted:     lipgloss.NewStyle(),
+			match:     lipgloss.NewStyle(),
+			selected:  lipgloss.NewStyle(),
+			danger:    lipgloss.NewStyle(),
+			accent:    lipgloss.NewStyle(),
 		}
 	}
 
@@ -72,13 +69,13 @@ func newStyles(colorsEnabled bool, theme string) *styles {
 	}
 
 	return &styles{
-		header:     lipgloss.NewStyle().Bold(true).Foreground(lipgloss.Color(p.header)),
-		highlight:  lipgloss.NewStyle().Bold(true).Foreground(lipgloss.Color(p.highlight)),
-		muted:      lipgloss.NewStyle().Foreground(lipgloss.Color(p.muted)),
-		match:      lipgloss.NewStyle().Bold(true).Foreground(lipgloss.Color(p.match)),
-		selectedBg: lipgloss.NewStyle().Background(lipgloss.Color(p.selectedBg)),
-		dangerBg:   lipgloss.NewStyle().Background(lipgloss.Color(p.dangerBg)),
-		accent:     lipgloss.NewStyle().Bold(true).Foreground(lipgloss.Color(p.accent)),
+		header:    lipgloss.NewStyle().Bold(true).Foreground(lipgloss.Color(p.header)),
+		highlight: lipgloss.NewStyle().Bold(true).Foreground(lipgloss.Color(p.highlight)),
+		muted:     lipgloss.NewStyle().Foreground(lipgloss.Color(p.muted)),
+		match:     lipgloss.NewStyle().Bold(true).Foreground(lipgloss.Color(p.match)),
+		selected:  lipgloss.NewStyle().Bold(true),
+		danger:    lipgloss.NewStyle().Foreground(lipgloss.Color(p.danger)).Strikethrough(true),
+		accent:    lipgloss.NewStyle().Bold(true).Foreground(lipgloss.Color(p.accent)),
 	}
 }
 
@@ -125,7 +122,7 @@ func renderFooter(m *SelectorModel) string {
 		b.WriteString(m.styles.render(m.styles.accent, m.deleteStatus))
 	} else if m.deleteMode {
 		count := len(m.markedForDeletion)
-		b.WriteString(m.styles.render(m.styles.dangerBg,
+		b.WriteString(m.styles.render(m.styles.danger.Strikethrough(false),
 			fmt.Sprintf(msgs().DeleteMode, count)))
 	} else {
 		b.WriteString(m.styles.render(m.styles.muted, msgs().HintBar))

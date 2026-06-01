@@ -34,9 +34,8 @@ type themePalette struct {
     highlight  string // 选中箭头/强调前景色
     muted      string // 次要文本
     match      string // 模糊搜索命中高亮
-    selectedBg string // 选中行背景
-    dangerBg   string // 删除标记背景
     accent     string // 创建新目录等操作提示
+    danger     string // 删除标记前景色
 }
 ```
 
@@ -48,9 +47,8 @@ type themePalette struct {
 | highlight | 75 | #5fafff 浅蓝 | 选中箭头 |
 | muted | 245 | #8a8a8a 灰 | 次要文本 |
 | match | 215 | #ffaf5f 浅橙 | 搜索匹配高亮 |
-| selectedBg | 237 | #3a3a3a 深灰 | 选中行背景 |
-| dangerBg | 52 | #5f0000 暗红 | 删除标记背景 |
 | accent | 114 | #87d787 浅绿 | 操作提示 |
+| danger | 196 | #ff0000 鲜红 | 删除标记前景色 |
 
 #### Light 色板（GitHub Light 风格）
 
@@ -60,9 +58,8 @@ type themePalette struct {
 | highlight | 26 | #005fd7 深蓝 | 选中箭头 |
 | muted | 242 | #6c6c6c 中灰 | 次要文本 |
 | match | 130 | #af5f00 棕橙 | 搜索匹配高亮 |
-| selectedBg | 254 | #e4e4e4 浅灰 | 选中行背景 |
-| dangerBg | 217 | #ffafaf 浅红 | 删除标记背景 |
 | accent | 28 | #008700 深绿 | 操作提示 |
+| danger | 160 | #d70000 深红 | 删除标记前景色 |
 
 ### 主题解析优先级
 
@@ -75,23 +72,26 @@ type themePalette struct {
 
 auto 检测逻辑：解析 `COLORFGBG` 环境变量（格式 `fg;bg`），背景色值 0-6 判定为浅色终端返回 "light"，其他返回 "dark"。
 
-### 选中行背景色渲染
+### 选中行与删除标记渲染
 
-选中行或删除标记行的背景色通过将背景色融入每个组件的样式中实现（而非事后包裹整行）。原因：lipgloss 渲染产生的 ANSI 重置序列会清除外层背景色。
+行样式的渲染通过扁平化的样式继承与组合来实现，避免样式嵌套导致的 ANSI 转义码解析错乱。
 
-每个组件（箭头、图标、名称、时间）分别应用 `withBg` 附加行背景色。非高亮的普通文本和 padding 空格也需要用 `bgOnly` 样式渲染，确保整行背景连续。
+- **选中行**：应用 `selected` 样式进行加粗渲染。箭头、条目名称和元数据分别继承并组合 `selected` 的加粗样式。
+- **删除标记行**：应用 `danger` 样式（带前景色与删除线）。为了确保稳定性，处于删除标记状态的行直接将其名称扁平化渲染为纯文本形式，不进行模糊匹配分段高亮。
+- **样式继承**：在匹配高亮渲染时，高亮部分样式通过 `Inherit` 继承行基础样式（如加粗），确保渲染层级扁平且样式正确复合。
+- **空白填充**：左右部分的对齐填充使用普通的空格填充，保持简单干净。
 
 ### styles 结构
 
 ```go
 type styles struct {
-    header     lipgloss.Style
-    highlight  lipgloss.Style
-    muted      lipgloss.Style
-    match      lipgloss.Style
-    selectedBg lipgloss.Style // 仅存储背景色，供 delegate 提取
-    dangerBg   lipgloss.Style // 同上
-    accent     lipgloss.Style
+    header    lipgloss.Style
+    highlight lipgloss.Style
+    muted     lipgloss.Style
+    match     lipgloss.Style
+    selected  lipgloss.Style // 仅包含加粗属性，供组件继承
+    danger    lipgloss.Style // 包含前景色及删除线属性
+    accent    lipgloss.Style
 }
 
 func (s *styles) render(style lipgloss.Style, text string) string

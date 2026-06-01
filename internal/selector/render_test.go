@@ -5,11 +5,11 @@ import (
 	"testing"
 
 	tea "charm.land/bubbletea/v2"
+	lipgloss "charm.land/lipgloss/v2"
 )
 
-// TestSelectedRowFullBackground 验证选中行的背景色覆盖整行，
-// 而非仅箭头部分。通过检查渲染输出中背景色转义序列出现次数判断。
-func TestSelectedRowFullBackground(t *testing.T) {
+// TestSelectedRowBold 验证选中行被正确加粗
+func TestSelectedRowBold(t *testing.T) {
 	tmpDir := setupTestDirs(t)
 
 	t.Setenv("TRY_WIDTH", "80")
@@ -38,14 +38,9 @@ func TestSelectedRowFullBackground(t *testing.T) {
 	sm.delegate.Render(&buf, sm.list, 0, items[0])
 	rendered := buf.String()
 
-	// 背景色 237（dark 主题 selectedBg）的 ANSI 序列应该出现多次，
-	// 因为每个样式段都需要独立设置背景。如果只出现一次，说明仅对整行做了
-	// 外层包裹（被内部 reset 打断）。
-	bgSeq := "48;5;237"
-	count := strings.Count(rendered, bgSeq)
-	if count < 2 {
-		t.Errorf("selectedBg ANSI sequence %q appears %d time(s), want >= 2 (full row bg).\nRendered: %q",
-			bgSeq, count, rendered)
+	// 验证选中行是否包含 Bold 属性的转义序列 \x1b[1m 或者是其他形式
+	if !strings.Contains(rendered, "\x1b[1m") && !strings.Contains(rendered, "\x1b[1;") {
+		t.Errorf("rendered output should contain Bold style (\\x1b[1m), got: %q", rendered)
 	}
 }
 
@@ -85,11 +80,14 @@ func TestThemeAffectsRendering(t *testing.T) {
 		t.Error("dark and light themes should produce different ANSI output")
 	}
 
-	// dark 主题使用 237 背景，light 主题使用 254 背景
-	if !strings.Contains(dark, "48;5;237") {
-		t.Error("dark theme should use bg color 237")
+	// 验证 newStyles 中的主题色属性
+	stDark := newStyles(true, "dark")
+	stLight := newStyles(true, "light")
+
+	if stDark.danger.GetForeground() != lipgloss.Color("196") {
+		t.Errorf("dark theme danger foreground = %v, want 196", stDark.danger.GetForeground())
 	}
-	if !strings.Contains(light, "48;5;254") {
-		t.Error("light theme should use bg color 254")
+	if stLight.danger.GetForeground() != lipgloss.Color("160") {
+		t.Errorf("light theme danger foreground = %v, want 160", stLight.danger.GetForeground())
 	}
 }

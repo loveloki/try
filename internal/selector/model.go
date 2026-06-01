@@ -66,6 +66,11 @@ func New(cfg Config) SelectorModel {
 	if err := os.MkdirAll(cfg.BasePath, 0o755); err != nil {
 		fmt.Fprintf(os.Stderr, "%s: %v\n", msgs().ErrMkdir, err)
 	}
+	if cfg.ShipPath != "" {
+		if err := os.MkdirAll(cfg.ShipPath, 0o755); err != nil {
+			fmt.Fprintf(os.Stderr, "%s: %v\n", msgs().ErrMkdir, err)
+		}
+	}
 
 	ti := textinput.New()
 	ti.CharLimit = 256

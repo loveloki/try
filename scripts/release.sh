@@ -87,4 +87,3 @@ fi
 
 echo ""
 echo "✓ 已推送 $next，GitHub Actions 将自动构建并创建 Release"
-echo "  查看进度: https://github.com/loveloki/try/actions"

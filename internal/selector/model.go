@@ -51,9 +51,11 @@ type SelectorModel struct {
 	testRenderOnce    bool
 	testKeys          []string
 	testConfirm       string
-	activeDialog  dialog
-	dialogFactory DialogFactory
-	styles        *styles
+	activeDialog    dialog
+	dialogFactory   DialogFactory
+	styles          *styles
+	colorsEnabled   bool
+	theme           string
 }
 
 type renderOnceMsg struct{}
@@ -101,8 +103,10 @@ func New(cfg Config) SelectorModel {
 		shipPath:          cfg.ShipPath,
 		testRenderOnce:    cfg.TestRenderOnce,
 		testKeys:          cfg.TestKeys,
-		testConfirm:       cfg.TestConfirm,
-		styles:            st,
+		testConfirm:     cfg.TestConfirm,
+		styles:          st,
+		colorsEnabled:   cfg.ColorsEnabled,
+		theme:           cfg.Theme,
 	}
 }
 
@@ -178,18 +182,26 @@ func (m SelectorModel) handleWindowSize(msg tea.WindowSizeMsg) (tea.Model, tea.C
 	return m, m.refreshList()
 }
 
-func (m SelectorModel) View() tea.View {
+func (m SelectorModel) renderMainContent() string {
 	var b strings.Builder
+	b.WriteString(renderHeader(&m))
+	b.WriteString(m.list.View())
+	b.WriteString(renderFooter(&m))
+	return b.String()
+}
 
-	if m.activeDialog != nil {
-		b.WriteString(m.activeDialog.ViewContent())
-	} else {
-		b.WriteString(renderHeader(&m))
-		b.WriteString(m.list.View())
-		b.WriteString(renderFooter(&m))
+func (m SelectorModel) View() tea.View {
+	var content string
+	switch {
+	case m.activeDialog != nil && m.activeDialog.OverlaysMainUI():
+		content = overlayModal(m.renderMainContent(), m.activeDialog.ViewContent(), m.width, m.height)
+	case m.activeDialog != nil:
+		content = m.activeDialog.ViewContent()
+	default:
+		content = m.renderMainContent()
 	}
 
-	v := tea.NewView(b.String())
+	v := tea.NewView(content)
 	v.AltScreen = true
 	return v
 }

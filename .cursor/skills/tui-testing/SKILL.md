@@ -1,9 +1,10 @@
 ---
 name: tui-testing
 description: >-
-  审查和编写 Go TUI 应用测试，遵循 matklad 测试原则。用于发现测试盲区、
-  检查值接收器/指针接收器陷阱、验证真实用户交互路径是否被覆盖。
-  当用户提到 TUI 测试、Bubbletea 测试、检查测试覆盖、或 matklad 测试原则时触发。
+  审查和编写 Go TUI 应用测试，遵循 matklad 测试原则；并实现/审查自定义 TUI 组件
+  （弹窗、叠层、对话框）。用于发现测试盲区、检查值接收器陷阱、验证真实交互路径，
+  以及避免手写拼接导致的布局错位。当用户提到 TUI 测试、Bubbletea 测试、自定义组件、
+  弹窗/模态框/overlay、检查测试覆盖、或 matklad 测试原则时触发。
 ---
 
 # TUI 测试审查与编写
@@ -14,6 +15,52 @@ description: >-
 2. **data-driven check 函数**：每个模块用 `check` 辅助函数封装被测 API，API 变更只改一处
 3. **neural network test**：即使内部实现完全替换，只要行为不变测试仍应通过
 4. **不 mock，用真实依赖**：上层测试直接调用真实的下层模块，用 temp dir 做文件操作
+
+## 自定义 TUI 组件实现（弹窗 / 叠层 / 边框）
+
+Bubbletea 与 Bubbles **不提供**现成 dialog/modal 组件；在 `internal/dialog` 等处的子 Model 属于**项目自定义组件**。实现时必须用 Lipgloss/Bubbletea 的布局与合成 API，**禁止**靠硬编码尺寸或手写字符串拼接来「凑」界面。
+
+### 禁止做法
+
+| 禁止 | 原因 |
+|------|------|
+| 用固定列数拼边框、分隔线（如写死 `64`、`strings.Repeat("─", 60)` 且与终端无关） | 终端宽度变化时框体与内容错位 |
+| 用空格/`MarginLeft(n)` 硬编码对齐弹窗 | 无法适配宽字符、emoji、ANSI 样式宽度 |
+| 逐行 `overlayLine` / `strings` 拼接把前景「插进」背景 | 破坏 Lipgloss 边框与 ANSI 序列，典型症状是右侧竖线断裂、多余 `\|`、`]` |
+| `Place` 整屏铺满空白前景再 `Compose` | 空白格会盖住背景，标题/列表消失 |
+| 在 `package selector` 测试里 `import dialog` | `dialog → selector` 已存在，会形成 import cycle；集成测试用 `package selector_test` |
+
+### 推荐做法
+
+1. **尺寸来自终端与内容**
+   - 宽度/高度用 `SelectorModel` 的 `width`/`height`（或 `tea.WindowSizeMsg`）传入子组件。
+   - 用 `lipgloss.Width` / `lipgloss.Height`、`ansi.StringWidth` 测量；长文本用 `ansi.Truncate` 或 `Style.MaxWidth`，避免撑破边框。
+
+2. **边框与内边距用 Style，不手写框线字符**
+   - 弹窗外壳：`lipgloss.NewStyle().Border(lipgloss.RoundedBorder()).Padding(...).Width(boxW).Render(content)`（见 `internal/dialog/modal.go`）。
+   - 内容区宽度用**推导**（`modalInnerWidth(termWidth)`），分隔线与截断共用同一 `innerW`。
+
+3. **叠层用 Compositor + Canvas，不手写逐行覆盖**
+   - 背景：`lipgloss.Place(width, height, lipgloss.Left, lipgloss.Top, background)` 铺满。
+   - 弹窗：`lipgloss.NewCompositor(背景层, 弹窗层.X(x).Y(y))`，再 `NewCanvas(w,h).Compose(comp).Render()`（见 `internal/selector/overlay.go`）。
+   - 居中：`x = (width - lipgloss.Width(modal)) / 2`，`y` 同理；**不要**把已居中的整屏字符串当作第二层盖上去。
+
+4. **子 Model 仍走 Bubbletea 惯例**
+   - 输入用 Bubbles `textinput`；确认逻辑在 `Update`/`confirm()`，不在 `View` 里改状态。
+   - 与主界面集成：`DialogInstance.OverlaysMainUI()` 区分全屏对话框与叠层弹窗。
+
+5. **测试**
+   - 单元测：边框字符存在（如 `╭`）、关键文案、截断行为。
+   - 跨包集成：`package selector_test` + 真实 `dialog` 工厂（`export_test.go` 导出驱动辅助函数）。
+   - 视觉/端到端：`scripts/run_all_tui_tests.sh` 或 `tui-testing-with-agent-tty` 截图走查。
+
+### 审查清单（实现自定义组件时必查）
+
+- [ ] 是否存在与 `termWidth` 无关的魔法数字宽度？
+- [ ] 叠层是否使用 `Compositor`/`Canvas`，而非字符串 splice？
+- [ ] 宽字符/emoji/ANSI 是否用 `ansi` 或 `lipgloss` 测量，而非 `len(string)`？
+- [ ] 弹窗内容是否可能超出 `innerW` 并已截断或换行？
+- [ ] 集成测试是否避免 `selector` ↔ `dialog` import cycle？
 
 ## 常见陷阱检查清单
 

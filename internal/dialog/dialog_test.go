@@ -7,21 +7,22 @@ import (
 	"testing"
 
 	tea "charm.land/bubbletea/v2"
+	"github.com/charmbracelet/x/ansi"
 	"github.com/loveloki/try/internal/selector"
 )
 
 // --- Delete 对话框测试 ---
 
-func checkDeleteConfirm(t *testing.T, input string, items []selector.DeleteItem, basePath string, wantHasResult bool) {
+func checkDeleteConfirm(t *testing.T, confirmYes bool, items []selector.DeleteItem, basePath string, wantHasResult bool) {
 	t.Helper()
-	d := NewDeleteDialog(items, basePath, "", 80)
-	d.confirmInput.SetValue(input)
+	d := NewDeleteDialog(items, basePath, "", 80, true, "dark")
+	d.confirmYes = confirmYes
 	result := d.confirm()
 	if wantHasResult && result == nil {
-		t.Errorf("confirm(%q) = nil, want non-nil result", input)
+		t.Errorf("confirmYes=%v = nil, want non-nil result", confirmYes)
 	}
 	if !wantHasResult && result != nil {
-		t.Errorf("confirm(%q) = %+v, want nil", input, result)
+		t.Errorf("confirmYes=%v = %+v, want nil", confirmYes, result)
 	}
 }
 
@@ -31,22 +32,16 @@ func TestDeleteConfirmYES(t *testing.T) {
 	os.MkdirAll(dir1, 0o755)
 
 	items := []selector.DeleteItem{{Path: dir1, Basename: "dir1"}}
-	checkDeleteConfirm(t, "YES", items, tmpDir, true)
+	checkDeleteConfirm(t, true, items, tmpDir, true)
 }
 
-func TestDeleteConfirmNotYES(t *testing.T) {
+func TestDeleteConfirmDefaultNo(t *testing.T) {
 	tmpDir := t.TempDir()
 	dir1 := filepath.Join(tmpDir, "dir1")
 	os.MkdirAll(dir1, 0o755)
 
 	items := []selector.DeleteItem{{Path: dir1, Basename: "dir1"}}
-
-	tests := []string{"yes", "Yes", "no", "", "Y"}
-	for _, input := range tests {
-		t.Run(input, func(t *testing.T) {
-			checkDeleteConfirm(t, input, items, tmpDir, false)
-		})
-	}
+	checkDeleteConfirm(t, false, items, tmpDir, false)
 }
 
 func TestDeleteConfirmPathSafety(t *testing.T) {
@@ -57,7 +52,7 @@ func TestDeleteConfirmPathSafety(t *testing.T) {
 	defer os.RemoveAll(outsidePath)
 
 	items := []selector.DeleteItem{{Path: outsidePath, Basename: "outside"}}
-	checkDeleteConfirm(t, "YES", items, tmpDir, false)
+	checkDeleteConfirm(t, true, items, tmpDir, false)
 }
 
 // --- Rename 对话框测试 ---
@@ -205,7 +200,7 @@ func TestDeleteDialogEscape(t *testing.T) {
 	os.MkdirAll(dir1, 0o755)
 	items := []selector.DeleteItem{{Path: dir1, Basename: "dir1"}}
 
-	d := NewDeleteDialog(items, tmpDir, "", 80)
+	d := NewDeleteDialog(items, tmpDir, "", 80, true, "dark")
 	d = driveDialog(t, d, []tea.KeyPressMsg{
 		{Code: tea.KeyEscape},
 	}).(*DeleteDialog)
@@ -224,7 +219,7 @@ func TestDeleteDialogCtrlC(t *testing.T) {
 	os.MkdirAll(dir1, 0o755)
 	items := []selector.DeleteItem{{Path: dir1, Basename: "dir1"}}
 
-	d := NewDeleteDialog(items, tmpDir, "", 80)
+	d := NewDeleteDialog(items, tmpDir, "", 80, true, "dark")
 	d = driveDialog(t, d, []tea.KeyPressMsg{
 		{Code: 'c', Mod: tea.ModCtrl},
 	}).(*DeleteDialog)
@@ -243,9 +238,9 @@ func TestDeleteDialogEnterWithYES(t *testing.T) {
 	os.MkdirAll(dir1, 0o755)
 	items := []selector.DeleteItem{{Path: dir1, Basename: "dir1"}}
 
-	d := NewDeleteDialog(items, tmpDir, "", 80)
-	d.confirmInput.SetValue("YES")
+	d := NewDeleteDialog(items, tmpDir, "", 80, true, "dark")
 	d = driveDialog(t, d, []tea.KeyPressMsg{
+		{Code: tea.KeyRight},
 		{Code: tea.KeyEnter},
 	}).(*DeleteDialog)
 
@@ -253,18 +248,20 @@ func TestDeleteDialogEnterWithYES(t *testing.T) {
 		t.Error("Enter should close dialog")
 	}
 	if d.Result() == nil {
-		t.Error("Enter with YES should produce non-nil result")
+		t.Error("Enter with YES selected should produce non-nil result")
 	}
 }
 
-func TestDeleteDialogEnterWithoutYES(t *testing.T) {
+func TestDeleteDialogEnterWithDefaultNo(t *testing.T) {
 	tmpDir := t.TempDir()
 	dir1 := filepath.Join(tmpDir, "dir1")
 	os.MkdirAll(dir1, 0o755)
 	items := []selector.DeleteItem{{Path: dir1, Basename: "dir1"}}
 
-	d := NewDeleteDialog(items, tmpDir, "", 80)
-	d.confirmInput.SetValue("no")
+	d := NewDeleteDialog(items, tmpDir, "", 80, true, "dark")
+	if d.confirmYes {
+		t.Fatal("default choice should be NO")
+	}
 	d = driveDialog(t, d, []tea.KeyPressMsg{
 		{Code: tea.KeyEnter},
 	}).(*DeleteDialog)
@@ -273,7 +270,7 @@ func TestDeleteDialogEnterWithoutYES(t *testing.T) {
 		t.Error("Enter should close dialog")
 	}
 	if d.Result() != nil {
-		t.Error("Enter without YES should produce nil result")
+		t.Error("Enter with default NO should produce nil result")
 	}
 }
 
@@ -364,13 +361,17 @@ func TestDeleteDialogViewContent(t *testing.T) {
 		{Path: "/tmp/dir1", Basename: "dir1"},
 		{Path: "/tmp/dir2", Basename: "dir2"},
 	}
-	d := NewDeleteDialog(items, "/tmp", "", 60)
+	d := NewDeleteDialog(items, "/tmp", "", 60, true, "dark")
 	content := d.ViewContent()
+	plain := ansi.Strip(content)
 
-	for _, want := range []string{"dir1", "dir2", "Delete", "YES", "🗑️"} {
-		if !strings.Contains(content, want) {
-			t.Errorf("ViewContent() missing %q\ngot:\n%s", want, content)
+	for _, want := range []string{"dir1", "dir2", "Delete", "NO", "YES", "╭", "╯"} {
+		if !strings.Contains(plain, want) {
+			t.Errorf("ViewContent() missing %q\ngot:\n%s", want, plain)
 		}
+	}
+	if !strings.Contains(content, "38;5;196") {
+		t.Errorf("ViewContent() should use danger color (196), got:\n%s", content)
 	}
 }
 
@@ -379,7 +380,7 @@ func TestRenameDialogViewContent(t *testing.T) {
 	d := NewRenameDialog(entry, t.TempDir(), 60)
 	content := d.ViewContent()
 
-	for _, want := range []string{"old-dir", "Rename", "📁"} {
+	for _, want := range []string{"old-dir", "Rename"} {
 		if !strings.Contains(content, want) {
 			t.Errorf("ViewContent() missing %q\ngot:\n%s", want, content)
 		}
@@ -393,7 +394,7 @@ func TestShipDialogViewContent(t *testing.T) {
 	d := NewShipDialog(entry, "/tmp", "/tmp/ship", 60)
 	content := d.ViewContent()
 
-	for _, want := range []string{"test-2025-08-14", "Ship", "🚀", "/tmp/ship"} {
+	for _, want := range []string{"test-2025-08-14", "Ship", "/tmp/ship"} {
 		if !strings.Contains(content, want) {
 			t.Errorf("ViewContent() missing %q\ngot:\n%s", want, content)
 		}
@@ -406,12 +407,12 @@ func TestDeleteDialogTestConfirmAutoSubmit(t *testing.T) {
 	os.MkdirAll(dir1, 0o755)
 	items := []selector.DeleteItem{{Path: dir1, Basename: "dir1"}}
 
-	d := NewDeleteDialog(items, tmpDir, "YES", 80)
+	d := NewDeleteDialog(items, tmpDir, "YES", 80, true, "dark")
 	cmd := d.Init()
 
-	// Init 应该设置 testConfirm 值并产生 Enter 按键
-	if d.confirmInput.Value() != "YES" {
-		t.Errorf("testConfirm should set value to YES, got %q", d.confirmInput.Value())
+	// Init 应该选中 YES 并产生 Enter 按键
+	if !d.confirmYes {
+		t.Error("testConfirm YES should select YES")
 	}
 	if cmd == nil {
 		t.Error("Init with testConfirm should return non-nil cmd")

@@ -119,10 +119,10 @@ func renderFooter(m *SelectorModel) string {
 	b.WriteString(sep + "\n")
 
 	if m.deleteStatus != "" {
-		b.WriteString(m.styles.render(m.styles.accent, m.deleteStatus))
+		b.WriteString(m.styles.render(m.styles.muted, m.deleteStatus))
 	} else if m.deleteMode {
 		count := len(m.markedForDeletion)
-		b.WriteString(m.styles.render(m.styles.danger.Strikethrough(false),
+		b.WriteString(m.styles.render(m.styles.muted,
 			fmt.Sprintf(msgs().DeleteMode, count)))
 	} else {
 		b.WriteString(m.styles.render(m.styles.muted, msgs().HintBar))

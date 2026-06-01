@@ -103,7 +103,7 @@ func (d *ShipDialog) ViewContent() string {
 	m := msgs()
 	b.WriteString(m.ShipTitle + "\n")
 	b.WriteString(sep + "\n")
-	b.WriteString("📁 " + d.entry.Entry.Basename + "\n\n")
+	b.WriteString(d.entry.Entry.Basename + "\n\n")
 	b.WriteString(m.ShipDestLabel + d.shipPath + "\n")
 	b.WriteString(m.ShipMoveLabel + d.input.View() + "\n")
 	if d.errMsg != "" {
@@ -114,6 +114,8 @@ func (d *ShipDialog) ViewContent() string {
 	b.WriteString(m.ShipFooter)
 	return dialogStyle.Render(b.String())
 }
+
+func (d *ShipDialog) OverlaysMainUI() bool { return false }
 
 func (d *ShipDialog) Result() *selector.SelectionResult { return d.result }
 func (d *ShipDialog) Done() bool                        { return d.done }

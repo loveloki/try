@@ -164,19 +164,18 @@ Init 排队以下命令：聚焦搜索框、初始加载目录列表、请求终
 
 ### Header
 
-```
-🏠 Try Directory Selection
-────────────────────────────────────
-Search: user-query█
-────────────────────────────────────
-```
+自上而下（`renderHeader`，行数计入 `headerLines`）：
+
+1. 标题行：`msgs().Title`（含 🏠），`header` 样式。
+2. muted 分隔线：宽度 `m.width`，`strings.Repeat("─", w)` + `styles.muted`。
+3. 搜索行：`Search:` 标签 + `textinput.View()`（光标由 textinput 渲染）。
+4. 第二条 muted 分隔线。
+
+实现见 `internal/selector/view.go` 的 `renderHeader`。
 
 ### 条目行
 
-```
-→ 📁 redis-server-2025-08-14                    2h ago, 3.2
-  📁 another-project-2025-08-10                  5d ago, 1.5
-```
+由 `EntryDelegate.Render` 生成。选中行前缀 `→`（`highlight`），未选中为两列空格。
 
 每行组成：选中箭头(2) + 图标(2) + 空格(1) + 名称 + 右对齐元数据（时间 + 评分）。
 

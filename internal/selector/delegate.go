@@ -64,9 +64,9 @@ func (d *EntryDelegate) renderArrow(isSelected bool, rc *rowCtx) string {
 }
 
 func (d *EntryDelegate) renderIcon(isMarked bool, rc *rowCtx) string {
-	icon := "📁 "
+	icon := "  "
 	if isMarked {
-		icon = "🗑️ "
+		icon = "* "
 	}
 	return icon
 }

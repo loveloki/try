@@ -65,7 +65,8 @@ disable-model-invocation: true
   agent-tty --home "$AGENT_TTY_HOME" snapshot "$SESSION_ID" --format text --json
   ```
 - **捕获像素级 TUI 截图**：
-  生成由真实浏览器内核（Chromium）渲染的 TUI 截图，非常适合审查弹窗动画、复杂交互样式以及提交给人类开发者或 CI 系统进行终期视觉走查：
+  生成由真实浏览器内核（Chromium）渲染的 TUI 截图，非常适合审查弹窗动画、复杂交互样式以及提交给人类开发者或 CI 系统进行终期视觉走查。
+  **自定义弹窗/叠层**若出现边框断裂、竖线错位，多为手写字符串叠层导致；实现规范见 `tui-testing` skill 中「自定义 TUI 组件实现」一节。
   ```bash
   IMG_JSON=$(agent-tty --home "$AGENT_TTY_HOME" screenshot "$SESSION_ID" --json)
   # 解析路径（在未安装 jq 的环境中使用 node.js 稳健读取）
@@ -108,7 +109,7 @@ disable-model-invocation: true
    - 使用 `Ctrl-D` 在不同检索词下标记一个或多个不连续的实验目录。
    - 按 `Enter` 进入删除确认对话框。
    - 模拟在确认对话框中故意输入错误的确认词（如 `no`, `yes` 小写等），断言其被安全取消。
-   - 模拟精确输入大写 `YES`，断言物理删除成功，并在磁盘上进行非空到空的差异断言。
+   - 默认 NO 直接 Enter 断言未删除；`Right` + Enter 选中 YES 后断言物理删除成功。
 5. **就地重命名覆盖**：
    - 高亮某项，按 `Ctrl-R` 拉起重命名对话框。
    - 模拟同名碰撞、空格替换连字符、输入为空或包含 `/` 等边界输入，断言界面提示错误，并在磁盘上验证物理目录名确实同步改变。

@@ -170,8 +170,14 @@ func runSelector(opts runOptions, searchTerm string) int {
 
 type dialogFactoryImpl struct{}
 
-func (f *dialogFactoryImpl) NewDeleteDialog(items []selector.DeleteItem, basePath, testConfirm string, width int) selector.DialogInstance {
-	return dialog.NewDeleteDialog(items, basePath, testConfirm, width)
+func (f *dialogFactoryImpl) NewDeleteDialog(
+	items []selector.DeleteItem,
+	basePath, testConfirm string,
+	width int,
+	colorsEnabled bool,
+	theme string,
+) selector.DialogInstance {
+	return dialog.NewDeleteDialog(items, basePath, testConfirm, width, colorsEnabled, theme)
 }
 
 func (f *dialogFactoryImpl) NewRenameDialog(entry *selector.MatchedEntry, basePath string, width int) selector.DialogInstance {

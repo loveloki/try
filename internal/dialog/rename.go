@@ -98,7 +98,7 @@ func (d *RenameDialog) ViewContent() string {
 	m := msgs()
 	b.WriteString(m.RenameTitle + "\n")
 	b.WriteString(sep + "\n")
-	b.WriteString("📁 " + d.entry.Entry.Basename + "\n\n\n")
+	b.WriteString(d.entry.Entry.Basename + "\n\n\n")
 	b.WriteString(m.RenamePrompt + d.input.View() + "\n")
 	if d.errMsg != "" {
 		b.WriteString(d.errMsg + "\n")
@@ -107,6 +107,8 @@ func (d *RenameDialog) ViewContent() string {
 	b.WriteString(m.RenameFooter)
 	return dialogStyle.Render(b.String())
 }
+
+func (d *RenameDialog) OverlaysMainUI() bool { return false }
 
 func (d *RenameDialog) Result() *selector.SelectionResult { return d.result }
 func (d *RenameDialog) Done() bool                        { return d.done }

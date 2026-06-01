@@ -78,6 +78,7 @@ auto 检测逻辑：解析 `COLORFGBG` 环境变量（格式 `fg;bg`），背景
 
 - **选中行**：应用 `selected` 样式进行加粗渲染。箭头、条目名称和元数据分别继承并组合 `selected` 的加粗样式。
 - **删除标记行**：应用 `danger` 样式（带前景色与删除线）。为了确保稳定性，处于删除标记状态的行直接将其名称扁平化渲染为纯文本形式，不进行模糊匹配分段高亮。
+- **删除模式底栏与删除确认弹窗**：底栏 `DELETE MODE`、取消提示、弹窗标题/列表/边框及 YES 选项均使用 `danger` 红色（`DeleteDialogStyles` / `NewDeleteDialogStyles`），与删除标记行一致。
 - **样式继承**：在匹配高亮渲染时，高亮部分样式通过 `Inherit` 继承行基础样式（如加粗），确保渲染层级扁平且样式正确复合。
 - **空白填充**：左右部分的对齐填充使用普通的空格填充，保持简单干净。
 
@@ -110,19 +111,19 @@ Screen（Bubbletea View 输出）
 
 Header 和 Footer 固定行数，Body 填充剩余空间。整帧由 Bubbletea 的渲染器在单次 flush 中输出（无闪烁）。
 
+### 规格文档图示约定
+
+- **允许**：模块树、数据流、优先级链、代码签名等 ASCII（不含模拟终端像素）。
+- **禁止**：手写 TUI 界面示意图（固定列宽 `────`、`╭│╰` 弹窗框、emoji 与英文混排的 mock 屏幕）。此类图在 Markdown 与终端中宽度不一致，易误导实现。
+- **界面行为**：用有序列表、表格或字段说明描述；实现以 `internal/selector/view.go`、`internal/dialog/` 为准。
+
 ### View 函数结构
 
 `View()` 按 Header → Body（`list.View()`） → Footer 顺序拼接，通过 `tea.NewView()` 返回并声明式启用 alt screen。完整实现见 `selector.md`。
 
 ### 行布局
 
-每行支持左对齐和右对齐内容：
-
-```
-[左侧内容]                              [右侧内容]
-```
-
-使用 `lipgloss.PlaceHorizontal` 拼接左右内容，配合 `lipgloss.Width()` 和 `lipgloss.Truncate()` 控制宽度。右侧内容在左侧过长时隐藏，保证左侧名称优先可见。
+每行左侧为条目名称（含图标），右侧为元数据（相对时间与评分）。使用 `lipgloss.PlaceHorizontal` 拼接左右内容，配合 `lipgloss.Width()` 和 `lipgloss.Truncate()` 控制宽度。右侧内容在左侧过长时隐藏，保证左侧名称优先可见。
 
 `maxContent = width - 1` 避免终端最后一列自动换行。
 

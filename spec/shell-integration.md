@@ -6,15 +6,11 @@ try 通过生成 Shell 包装函数实现 `cd` 等需要改变父进程状态的
 
 ## stdout/stderr 分离方案
 
-```
-┌─ Shell 包装函数 ─────────────────────────┐
-│  out=$(try exec "$@" 2>/dev/tty)         │
-│  eval "$out"                              │
-└───────────────────────────────────────────┘
-         │                    │
-    stdout（管道捕获）    stderr → /dev/tty
-    cd 脚本              TUI 渲染（用户可见）
-```
+数据流：
+
+1. Shell 包装函数执行 `out=$(try exec "$@" 2>/dev/tty)`，退出码为 0 时 `eval "$out"`。
+2. **stdout**：被命令替换捕获，内容为 `cd '...'` 脚本（父 Shell 侧执行）。
+3. **stderr**：重定向到 `/dev/tty`，Bubbletea TUI 直接渲染到用户终端。
 
 关键点：
 - `2>/dev/tty` 将 stderr 直接连接到终端，用户看到 TUI

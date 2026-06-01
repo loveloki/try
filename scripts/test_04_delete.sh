@@ -5,7 +5,7 @@
 
 source "$(dirname "$0")/tui_test_common.sh"
 
-log_info "【测试场景 4】测试 Ctrl+D 批量标记删除、安全确认拦截与 YES 彻底删除..."
+log_info "【测试场景 4】测试 Ctrl+D 批量标记删除、默认 NO 取消与切换 YES 删除..."
 
 # 初始化沙盒环境
 setup_test_env
@@ -53,17 +53,15 @@ assert_contains "Delete" "删除对话框标题渲染"
 assert_contains "projB-2026-05-02" "待删除列表正确高亮 projB"
 assert_contains "projC-2026-05-03" "待删除列表正确高亮 projC"
 
-# 4. 安全校验：键入错误确认词并按 Enter (应取消)
-log_info "键入错误确认词 'no' 并 Enter..."
-agent-tty --home "$AGENT_TTY_HOME" type "$SESSION_ID" --json -- "no"
-wait_stable
+# 4. 安全校验：默认 NO 直接 Enter (应取消)
+log_info "默认选中 NO，直接按 Enter..."
 agent-tty --home "$AGENT_TTY_HOME" send-keys "$SESSION_ID" Enter --json >/dev/null
 wait_stable
 
 # 验证是否返回主列表，且目录没有被物理删除
 assert_contains "🏠 Try Directory Selection" "安全退回主界面"
 if [ -d "$TEST_TRIES_DIR/projB-2026-05-02" ] && [ -d "$TEST_TRIES_DIR/projC-2026-05-03" ]; then
-    log_success "物理验证成功：键入 'no' 拦截退出，测试文件夹未被物理删除。"
+    log_success "物理验证成功：默认 NO 下 Enter 取消，测试文件夹未被物理删除。"
 else
     log_error "安全删除检验失败：文件夹在取消删除时仍被破坏！"
     exit 1
@@ -74,15 +72,15 @@ log_info "重新按 Enter 打开删除对话框..."
 agent-tty --home "$AGENT_TTY_HOME" send-keys "$SESSION_ID" Enter --json >/dev/null
 wait_stable
 
-log_info "精确键入大写 'YES' 执行彻底删除..."
-agent-tty --home "$AGENT_TTY_HOME" type "$SESSION_ID" --json -- "YES"
+log_info "按 Tab 切换到 YES 并 Enter 执行彻底删除..."
+agent-tty --home "$AGENT_TTY_HOME" send-keys "$SESSION_ID" Tab --json >/dev/null
 wait_stable
 agent-tty --home "$AGENT_TTY_HOME" send-keys "$SESSION_ID" Enter --json >/dev/null
 wait_stable
 
 # 磁盘最终物理验证
 if [ ! -d "$TEST_TRIES_DIR/projB-2026-05-02" ] && [ ! -d "$TEST_TRIES_DIR/projC-2026-05-03" ]; then
-    log_success "磁盘物理验证成功：输入 'YES' 批量物理删除文件夹"
+    log_success "磁盘物理验证成功：选中 YES 后批量物理删除文件夹"
 else
     log_error "批量物理删除执行失败：目录依然存在！"
     exit 1

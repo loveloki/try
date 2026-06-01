@@ -20,6 +20,7 @@ func (d *mockDialog) Init() tea.Cmd                           { return nil }
 func (d *mockDialog) Update(msg tea.Msg) (tea.Model, tea.Cmd) { return d, nil }
 func (d *mockDialog) View() tea.View                          { return tea.NewView("mock") }
 func (d *mockDialog) ViewContent() string                     { return "mock dialog" }
+func (d *mockDialog) OverlaysMainUI() bool                    { return false }
 func (d *mockDialog) Result() *SelectionResult                { return d.result }
 func (d *mockDialog) Done() bool                              { return d.done }
 
@@ -30,7 +31,9 @@ type mockDialogFactory struct {
 	shipCalled   bool
 }
 
-func (f *mockDialogFactory) NewDeleteDialog(items []DeleteItem, basePath, testConfirm string, width int) DialogInstance {
+func (f *mockDialogFactory) NewDeleteDialog(
+	items []DeleteItem, basePath, testConfirm string, width int, colorsEnabled bool, theme string,
+) DialogInstance {
 	f.deleteCalled = true
 	return &mockDialog{}
 }

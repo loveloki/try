@@ -148,7 +148,7 @@ func TestSelectorViewWithDialog(t *testing.T) {
 		t.Error("normal view should contain title")
 	}
 
-	// 打开对话框后，View 应渲染对话框内容
+	// 打开全屏对话框后，View 仅渲染对话框内容
 	model, _ = sm.Update(KeyToMsg("CTRL-R"))
 	sm = model.(SelectorModel)
 	if sm.activeDialog != nil {

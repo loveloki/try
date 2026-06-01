@@ -10,6 +10,8 @@ type DialogInstance interface {
 	Result() *SelectionResult
 	Done() bool
 	ViewContent() string
+	// OverlaysMainUI 为 true 时弹窗叠放在主列表之上，而非独占全屏。
+	OverlaysMainUI() bool
 }
 
 // dialog 是内部别名
@@ -17,7 +19,7 @@ type dialog = DialogInstance
 
 // DialogFactory 对话框创建接口，由外部（CLI 层）注入，避免循环依赖
 type DialogFactory interface {
-	NewDeleteDialog(items []DeleteItem, basePath, testConfirm string, width int) DialogInstance
+	NewDeleteDialog(items []DeleteItem, basePath, testConfirm string, width int, colorsEnabled bool, theme string) DialogInstance
 	NewRenameDialog(entry *MatchedEntry, basePath string, width int) DialogInstance
 	NewShipDialog(entry *MatchedEntry, basePath, shipPath string, width int) DialogInstance
 }
@@ -50,7 +52,7 @@ func (m SelectorModel) openDeleteDialog() (tea.Model, tea.Cmd) {
 		}
 	}
 	if m.dialogFactory != nil {
-		dlg := m.dialogFactory.NewDeleteDialog(items, m.basePath, m.testConfirm, m.width)
+		dlg := m.dialogFactory.NewDeleteDialog(items, m.basePath, m.testConfirm, m.width, m.colorsEnabled, m.theme)
 		m.activeDialog = dlg
 		return m, dlg.Init()
 	}

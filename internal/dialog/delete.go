@@ -7,6 +7,7 @@ import (
 
 	tea "charm.land/bubbletea/v2"
 	"charm.land/bubbles/v2/textinput"
+	lipgloss "charm.land/lipgloss/v2"
 	"github.com/loveloki/try/internal/i18n"
 	"github.com/loveloki/try/internal/selector"
 )
@@ -75,20 +76,25 @@ func (d *DeleteDialog) Update(msg tea.Msg) (tea.Model, tea.Cmd) {
 func (d *DeleteDialog) View() tea.View { return tea.NewView(d.ViewContent()) }
 
 func (d *DeleteDialog) ViewContent() string {
+	dialogStyle := lipgloss.NewStyle().MarginLeft(4)
 	var b strings.Builder
-	sep := strings.Repeat("─", d.width)
+	w := d.width - 4
+	if w < 0 {
+		w = 0
+	}
+	sep := strings.Repeat("─", w)
 
 	m := msgs()
-	b.WriteString(fmt.Sprintf("         "+m.DeleteTitle+"\n", len(d.markedItems)))
+	b.WriteString(fmt.Sprintf(m.DeleteTitle+"\n", len(d.markedItems)))
 	b.WriteString(sep + "\n")
 	for _, item := range d.markedItems {
 		b.WriteString("🗑️ " + item.Basename + "\n")
 	}
 	b.WriteString("\n\n")
-	b.WriteString("        " + m.DeletePrompt + d.confirmInput.View() + "\n\n")
+	b.WriteString(m.DeletePrompt + d.confirmInput.View() + "\n\n")
 	b.WriteString(sep + "\n")
-	b.WriteString("        " + m.DeleteFooter)
-	return b.String()
+	b.WriteString(m.DeleteFooter)
+	return dialogStyle.Render(b.String())
 }
 
 func (d *DeleteDialog) Result() *selector.SelectionResult { return d.result }

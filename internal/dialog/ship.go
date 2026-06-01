@@ -8,6 +8,7 @@ import (
 
 	tea "charm.land/bubbletea/v2"
 	"charm.land/bubbles/v2/textinput"
+	lipgloss "charm.land/lipgloss/v2"
 	"github.com/loveloki/try/internal/config"
 	"github.com/loveloki/try/internal/selector"
 )
@@ -91,22 +92,27 @@ func (d *ShipDialog) Update(msg tea.Msg) (tea.Model, tea.Cmd) {
 func (d *ShipDialog) View() tea.View { return tea.NewView(d.ViewContent()) }
 
 func (d *ShipDialog) ViewContent() string {
+	dialogStyle := lipgloss.NewStyle().MarginLeft(4)
 	var b strings.Builder
-	sep := strings.Repeat("─", d.width)
+	w := d.width - 4
+	if w < 0 {
+		w = 0
+	}
+	sep := strings.Repeat("─", w)
 
 	m := msgs()
-	b.WriteString("         " + m.ShipTitle + "\n")
+	b.WriteString(m.ShipTitle + "\n")
 	b.WriteString(sep + "\n")
 	b.WriteString("📁 " + d.entry.Entry.Basename + "\n\n")
-	b.WriteString("   " + m.ShipDestLabel + d.shipPath + "\n")
-	b.WriteString("   " + m.ShipMoveLabel + d.input.View() + "\n")
+	b.WriteString(m.ShipDestLabel + d.shipPath + "\n")
+	b.WriteString(m.ShipMoveLabel + d.input.View() + "\n")
 	if d.errMsg != "" {
-		b.WriteString("   " + d.errMsg + "\n")
+		b.WriteString(d.errMsg + "\n")
 	}
-	b.WriteString("\n   " + m.ShipHint + "\n\n")
+	b.WriteString("\n" + m.ShipHint + "\n\n")
 	b.WriteString(sep + "\n")
-	b.WriteString("        " + m.ShipFooter)
-	return b.String()
+	b.WriteString(m.ShipFooter)
+	return dialogStyle.Render(b.String())
 }
 
 func (d *ShipDialog) Result() *selector.SelectionResult { return d.result }

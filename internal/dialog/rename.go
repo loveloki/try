@@ -8,6 +8,7 @@ import (
 
 	tea "charm.land/bubbletea/v2"
 	"charm.land/bubbles/v2/textinput"
+	lipgloss "charm.land/lipgloss/v2"
 	"github.com/loveloki/try/internal/selector"
 )
 
@@ -86,20 +87,25 @@ func (d *RenameDialog) Update(msg tea.Msg) (tea.Model, tea.Cmd) {
 func (d *RenameDialog) View() tea.View { return tea.NewView(d.ViewContent()) }
 
 func (d *RenameDialog) ViewContent() string {
+	dialogStyle := lipgloss.NewStyle().MarginLeft(4)
 	var b strings.Builder
-	sep := strings.Repeat("─", d.width)
+	w := d.width - 4
+	if w < 0 {
+		w = 0
+	}
+	sep := strings.Repeat("─", w)
 
 	m := msgs()
-	b.WriteString("          " + m.RenameTitle + "\n")
+	b.WriteString(m.RenameTitle + "\n")
 	b.WriteString(sep + "\n")
 	b.WriteString("📁 " + d.entry.Entry.Basename + "\n\n\n")
-	b.WriteString("        " + m.RenamePrompt + d.input.View() + "\n")
+	b.WriteString(m.RenamePrompt + d.input.View() + "\n")
 	if d.errMsg != "" {
-		b.WriteString("        " + d.errMsg + "\n")
+		b.WriteString(d.errMsg + "\n")
 	}
 	b.WriteString("\n" + sep + "\n")
-	b.WriteString("        " + m.RenameFooter)
-	return b.String()
+	b.WriteString(m.RenameFooter)
+	return dialogStyle.Render(b.String())
 }
 
 func (d *RenameDialog) Result() *selector.SelectionResult { return d.result }

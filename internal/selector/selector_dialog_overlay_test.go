@@ -22,8 +22,8 @@ func (realDialogFactory) NewRenameDialog(entry *selector.MatchedEntry, basePath 
 	return dialog.NewRenameDialog(entry, basePath, width)
 }
 
-func (realDialogFactory) NewShipDialog(entry *selector.MatchedEntry, basePath, shipPath string, width int) selector.DialogInstance {
-	return dialog.NewShipDialog(entry, basePath, shipPath, width)
+func (realDialogFactory) NewShipDialog(entry *selector.MatchedEntry, basePath string, shipPaths []string, width int) selector.DialogInstance {
+	return dialog.NewShipDialog(entry, basePath, shipPaths, width)
 }
 
 func TestSelectorDeleteDialogOverlaysMainUI(t *testing.T) {

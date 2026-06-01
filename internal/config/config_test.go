@@ -12,8 +12,14 @@ func checkParse(t *testing.T, content string, want Config) {
 	if got.Path != want.Path {
 		t.Errorf("Path = %q, want %q", got.Path, want.Path)
 	}
-	if got.Ship != want.Ship {
-		t.Errorf("Ship = %q, want %q", got.Ship, want.Ship)
+	if len(got.Ships) != len(want.Ships) {
+		t.Errorf("Ships = %v, want %v", got.Ships, want.Ships)
+	} else {
+		for i := range got.Ships {
+			if got.Ships[i] != want.Ships[i] {
+				t.Errorf("Ships[%d] = %q, want %q", i, got.Ships[i], want.Ships[i])
+			}
+		}
 	}
 	if got.Theme != want.Theme {
 		t.Errorf("Theme = %q, want %q", got.Theme, want.Theme)
@@ -24,7 +30,7 @@ func checkParse(t *testing.T, content string, want Config) {
 }
 
 func TestParseConfigData(t *testing.T) {
-	d := Config{Path: "~/src/tries", Ship: "~/src/ship", Theme: "auto", Locale: "auto"}
+	d := Config{Path: "~/src/tries", Ships: []string{"~/src/ship", "~/src/bug"}, Theme: "auto", Locale: "auto"}
 	tests := []struct {
 		name    string
 		content string
@@ -33,18 +39,20 @@ func TestParseConfigData(t *testing.T) {
 		{"empty", "", d},
 		{"invalid json", "not json", d},
 		{"empty object", "{}", d},
-		{"full config", `{"path":"~/my/tries","ship":"~/my/ship","theme":"dark","locale":"zh"}`,
-			Config{Path: "~/my/tries", Ship: "~/my/ship", Theme: "dark", Locale: "zh"}},
+		{"full config with ships", `{"path":"~/my/tries","ships":["~/my/ship","~/my/bug"],"theme":"dark","locale":"zh"}`,
+			Config{Path: "~/my/tries", Ships: []string{"~/my/ship", "~/my/bug"}, Theme: "dark", Locale: "zh"}},
+		{"legacy ship field", `{"path":"~/my/tries","ship":"~/my/ship"}`,
+			Config{Path: "~/my/tries", Ships: []string{"~/my/ship"}, Theme: "auto", Locale: "auto"}},
 		{"only path", `{"path":"/custom"}`,
-			Config{Path: "/custom", Ship: "~/src/ship", Theme: "auto", Locale: "auto"}},
-		{"only ship", `{"ship":"/custom"}`,
-			Config{Path: "~/src/tries", Ship: "/custom", Theme: "auto", Locale: "auto"}},
+			Config{Path: "/custom", Ships: []string{"~/src/ship", "~/src/bug"}, Theme: "auto", Locale: "auto"}},
+		{"only ships", `{"ships":["/custom/a","/custom/b"]}`,
+			Config{Path: "~/src/tries", Ships: []string{"/custom/a", "/custom/b"}, Theme: "auto", Locale: "auto"}},
 		{"only theme", `{"theme":"light"}`,
-			Config{Path: "~/src/tries", Ship: "~/src/ship", Theme: "light", Locale: "auto"}},
+			Config{Path: "~/src/tries", Ships: []string{"~/src/ship", "~/src/bug"}, Theme: "light", Locale: "auto"}},
 		{"only locale", `{"locale":"en"}`,
-			Config{Path: "~/src/tries", Ship: "~/src/ship", Theme: "auto", Locale: "en"}},
-		{"unknown key ignored", `{"path":"/a","foo":"bar","ship":"/b"}`,
-			Config{Path: "/a", Ship: "/b", Theme: "auto", Locale: "auto"}},
+			Config{Path: "~/src/tries", Ships: []string{"~/src/ship", "~/src/bug"}, Theme: "auto", Locale: "en"}},
+		{"unknown key ignored", `{"path":"/a","foo":"bar","ships":["/b"]}`,
+			Config{Path: "/a", Ships: []string{"/b"}, Theme: "auto", Locale: "auto"}},
 	}
 
 	for _, tt := range tests {
@@ -55,20 +63,25 @@ func TestParseConfigData(t *testing.T) {
 }
 
 // checkResolve 封装路径解析优先级的测试逻辑
-func checkResolve(t *testing.T, cliPath string, cfg Config, envs map[string]string, wantTries, wantShip string) {
+func checkResolve(t *testing.T, cliPath string, cfg Config, envs map[string]string, wantTries string, wantShips []string) {
 	t.Helper()
 
-	// 设置环境变量并在测试结束后恢复
 	for k, v := range envs {
 		t.Setenv(k, v)
 	}
 
-	gotTries, gotShip := ResolvePaths(cliPath, cfg)
+	gotTries, gotShips := ResolvePaths(cliPath, cfg)
 	if gotTries != wantTries {
 		t.Errorf("triesPath = %q, want %q", gotTries, wantTries)
 	}
-	if gotShip != wantShip {
-		t.Errorf("shipPath = %q, want %q", gotShip, wantShip)
+	if len(gotShips) != len(wantShips) {
+		t.Errorf("shipPaths = %v, want %v", gotShips, wantShips)
+	} else {
+		for i := range gotShips {
+			if gotShips[i] != wantShips[i] {
+				t.Errorf("shipPaths[%d] = %q, want %q", i, gotShips[i], wantShips[i])
+			}
+		}
 	}
 }
 
@@ -81,46 +94,46 @@ func TestResolvePaths(t *testing.T) {
 		cfg       Config
 		envs      map[string]string
 		wantTries string
-		wantShip  string
+		wantShips []string
 	}{
 		{
 			name:      "all defaults",
-			cfg:       Config{Path: "~/src/tries", Ship: "~/src/ship"},
+			cfg:       Config{Path: "~/src/tries", Ships: []string{"~/src/ship", "~/src/bug"}},
 			wantTries: home + "/src/tries",
-			wantShip:  home + "/src/ship",
+			wantShips: []string{home + "/src/ship", home + "/src/bug"},
 		},
 		{
 			name:      "config overrides default",
-			cfg:       Config{Path: "/custom/tries", Ship: "/custom/ship"},
+			cfg:       Config{Path: "/custom/tries", Ships: []string{"/custom/ship"}},
 			wantTries: "/custom/tries",
-			wantShip:  "/custom/ship",
+			wantShips: []string{"/custom/ship"},
 		},
 		{
 			name:      "env overrides config",
-			cfg:       Config{Path: "/custom/tries", Ship: "/custom/ship"},
+			cfg:       Config{Path: "/custom/tries", Ships: []string{"/custom/ship"}},
 			envs:      map[string]string{"TRY_PATH": "/env/tries", "TRY_PROJECTS": "/env/ship"},
 			wantTries: "/env/tries",
-			wantShip:  "/env/ship",
+			wantShips: []string{"/env/ship"},
 		},
 		{
 			name:      "cli overrides env for tries",
 			cliPath:   "/cli/tries",
-			cfg:       Config{Path: "/custom/tries", Ship: "/custom/ship"},
+			cfg:       Config{Path: "/custom/tries", Ships: []string{"/custom/ship"}},
 			envs:      map[string]string{"TRY_PATH": "/env/tries"},
 			wantTries: "/cli/tries",
-			wantShip:  "/custom/ship",
+			wantShips: []string{"/custom/ship"},
 		},
 		{
 			name:      "tilde expansion in resolved paths",
-			cfg:       Config{Path: "~/my/tries", Ship: "~/my/ship"},
+			cfg:       Config{Path: "~/my/tries", Ships: []string{"~/my/ship", "~/my/bug"}},
 			wantTries: home + "/my/tries",
-			wantShip:  home + "/my/ship",
+			wantShips: []string{home + "/my/ship", home + "/my/bug"},
 		},
 	}
 
 	for _, tt := range tests {
 		t.Run(tt.name, func(t *testing.T) {
-			checkResolve(t, tt.cliPath, tt.cfg, tt.envs, tt.wantTries, tt.wantShip)
+			checkResolve(t, tt.cliPath, tt.cfg, tt.envs, tt.wantTries, tt.wantShips)
 		})
 	}
 }

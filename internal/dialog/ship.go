@@ -20,20 +20,26 @@ var (
 
 // ShipDialog 发布为正式项目的对话框
 type ShipDialog struct {
-	input    textinput.Model
-	entry    *selector.MatchedEntry
-	basePath string
-	shipPath string
-	done     bool
-	result   *selector.SelectionResult
-	errMsg   string
-	width    int
+	input       textinput.Model
+	entry       *selector.MatchedEntry
+	basePath    string
+	shipPaths   []string
+	selectedIdx int
+	done        bool
+	result      *selector.SelectionResult
+	errMsg      string
+	width       int
 }
 
-// NewShipDialog 创建 ship 对话框，输入框初始值为推导的目标路径
-func NewShipDialog(entry *selector.MatchedEntry, basePath, shipPath string, width int) *ShipDialog {
+// NewShipDialog 创建 ship 对话框，支持多个目标目录选择
+func NewShipDialog(entry *selector.MatchedEntry, basePath string, shipPaths []string, width int) *ShipDialog {
 	projectName := selector.DateSuffixRe.ReplaceAllString(entry.Entry.Basename, "")
-	defaultDest := filepath.Join(shipPath, projectName)
+
+	selectedShipPath := ""
+	if len(shipPaths) > 0 {
+		selectedShipPath = shipPaths[0]
+	}
+	defaultDest := filepath.Join(selectedShipPath, projectName)
 
 	ti := textinput.New()
 	ti.SetValue(defaultDest)
@@ -50,11 +56,11 @@ func NewShipDialog(entry *selector.MatchedEntry, basePath, shipPath string, widt
 	}
 
 	return &ShipDialog{
-		input:    ti,
-		entry:    entry,
-		basePath: basePath,
-		shipPath: shipPath,
-		width:    width,
+		input:     ti,
+		entry:     entry,
+		basePath:  basePath,
+		shipPaths: shipPaths,
+		width:     width,
 	}
 }
 
@@ -77,6 +83,17 @@ func (d *ShipDialog) Update(msg tea.Msg) (tea.Model, tea.Cmd) {
 		case tea.KeyEscape:
 			d.done = true
 			return d, nil
+		case tea.KeyTab:
+			if len(d.shipPaths) > 1 {
+				d.switchShipPath(1)
+				return d, nil
+			}
+		}
+		if keyMsg.Mod == tea.ModShift && keyMsg.Code == tea.KeyTab {
+			if len(d.shipPaths) > 1 {
+				d.switchShipPath(-1)
+				return d, nil
+			}
 		}
 		if keyMsg.Mod == tea.ModCtrl && keyMsg.Code == 'c' {
 			d.done = true
@@ -87,6 +104,23 @@ func (d *ShipDialog) Update(msg tea.Msg) (tea.Model, tea.Cmd) {
 	var cmd tea.Cmd
 	d.input, cmd = d.input.Update(msg)
 	return d, cmd
+}
+
+// switchShipPath 切换选中的 ship 目录并更新输入框
+func (d *ShipDialog) switchShipPath(delta int) {
+	oldPath := d.shipPaths[d.selectedIdx]
+	d.selectedIdx = (d.selectedIdx + delta + len(d.shipPaths)) % len(d.shipPaths)
+	newPath := d.shipPaths[d.selectedIdx]
+
+	current := d.input.Value()
+	if strings.HasPrefix(current, oldPath+"/") {
+		suffix := current[len(oldPath):]
+		d.input.SetValue(newPath + suffix)
+	} else {
+		projectName := selector.DateSuffixRe.ReplaceAllString(d.entry.Entry.Basename, "")
+		d.input.SetValue(filepath.Join(newPath, projectName))
+	}
+	d.errMsg = ""
 }
 
 func (d *ShipDialog) View() tea.View { return tea.NewView(d.ViewContent()) }
@@ -104,7 +138,17 @@ func (d *ShipDialog) ViewContent() string {
 	b.WriteString(m.ShipTitle + "\n")
 	b.WriteString(sep + "\n")
 	b.WriteString(d.entry.Entry.Basename + "\n\n")
-	b.WriteString(m.ShipDestLabel + d.shipPath + "\n")
+
+	// 显示目标目录选项（每个独占一行）
+	for i, sp := range d.shipPaths {
+		if i == d.selectedIdx {
+			b.WriteString("  ▸ " + filepath.Base(sp) + "  ← " + sp + "\n")
+		} else {
+			b.WriteString("    " + filepath.Base(sp) + "\n")
+		}
+	}
+	b.WriteString("\n")
+
 	b.WriteString(m.ShipMoveLabel + d.input.View() + "\n")
 	if d.errMsg != "" {
 		b.WriteString(d.errMsg + "\n")

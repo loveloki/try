@@ -12,6 +12,7 @@ type keyMap struct {
 	CtrlT key.Binding
 	CtrlR key.Binding
 	CtrlG key.Binding
+	Tab   key.Binding
 	Quit  key.Binding
 }
 
@@ -24,6 +25,7 @@ func newKeyMap() keyMap {
 		CtrlT: key.NewBinding(key.WithKeys("ctrl+t")),
 		CtrlR: key.NewBinding(key.WithKeys("ctrl+r")),
 		CtrlG: key.NewBinding(key.WithKeys("ctrl+g")),
+		Tab:   key.NewBinding(key.WithKeys("tab")),
 		Quit:  key.NewBinding(key.WithKeys("esc", "ctrl+c")),
 	}
 }

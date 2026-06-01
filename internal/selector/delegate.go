@@ -74,7 +74,13 @@ func (d *EntryDelegate) renderIcon(isMarked bool, rc *rowCtx) string {
 func (d *EntryDelegate) renderMeta(entry MatchedEntry, rc *rowCtx) string {
 	timeStr := FormatTimeAgo(time.Since(entry.Entry.Mtime))
 	scoreStr := fmt.Sprintf("%.1f", entry.Score)
-	metaText := timeStr + ", " + scoreStr
+
+	var metaText string
+	if entry.Entry.Source != "" && entry.Entry.Source != "tries" {
+		metaText = "[" + entry.Entry.Source + "] " + timeStr + ", " + scoreStr
+	} else {
+		metaText = timeStr + ", " + scoreStr
+	}
 
 	if rc.isMarked {
 		return d.styles.render(rc.styles.danger, metaText)

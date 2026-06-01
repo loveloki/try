@@ -12,19 +12,34 @@ import (
 	"github.com/loveloki/try/internal/fuzzy"
 )
 
-// loadAllTries 从 basePath 读取所有子目录，计算时间权重基础分
+// loadAllTries 从 basePath 和 shipPaths 读取所有子目录，计算时间权重基础分
 func (m *SelectorModel) loadAllTries() []Entry {
 	if m.allTries != nil {
 		return m.allTries
 	}
 
-	entries, err := os.ReadDir(m.basePath)
+	now := time.Now()
+	var result []Entry
+
+	// 扫描 tries 目录
+	result = append(result, scanDir(m.basePath, "tries", now)...)
+
+	// 扫描所有 ship 目录
+	for _, sp := range m.shipPaths {
+		source := filepath.Base(sp)
+		result = append(result, scanDir(sp, source, now)...)
+	}
+
+	m.allTries = result
+	return result
+}
+
+func scanDir(dir, source string, now time.Time) []Entry {
+	entries, err := os.ReadDir(dir)
 	if err != nil {
-		m.deleteStatus = msgs().ErrReadDir + err.Error()
 		return nil
 	}
 
-	now := time.Now()
 	var result []Entry
 	for _, entry := range entries {
 		if strings.HasPrefix(entry.Name(), ".") {
@@ -48,32 +63,57 @@ func (m *SelectorModel) loadAllTries() []Entry {
 
 		result = append(result, Entry{
 			Basename:  entry.Name(),
-			Path:      filepath.Join(m.basePath, entry.Name()),
+			Path:      filepath.Join(dir, entry.Name()),
 			Mtime:     mtime,
 			BaseScore: baseScore,
+			Source:    source,
 		})
 	}
-
-	m.allTries = result
 	return result
 }
 
-// refreshList 根据当前搜索词重新匹配并更新列表
+// refreshList 根据当前搜索词和来源过滤重新匹配并更新列表
 func (m *SelectorModel) refreshList() tea.Cmd {
 	query := m.textInput.Value()
-	if query == m.lastQuery && m.cachedResults != nil {
+	filterKey := query + "\x00" + m.sourceFilter
+	if filterKey == m.lastQuery && m.cachedResults != nil {
 		return nil
 	}
 
-	allTries := m.loadAllTries()
+	filtered := m.filteredEntries()
 	maxResults := m.height - 6
 	if maxResults < 3 {
 		maxResults = 3
 	}
 
-	// selector.Entry → fuzzy.Entry 转换
-	fuzzyEntries := make([]fuzzy.Entry, len(allTries))
-	for i, e := range allTries {
+	matched := m.matchEntries(filtered, query, maxResults)
+	m.cachedResults = matched
+	m.lastQuery = filterKey
+
+	items := make([]list.Item, len(matched))
+	for i, me := range matched {
+		items[i] = me
+	}
+	return m.list.SetItems(items)
+}
+
+func (m *SelectorModel) filteredEntries() []Entry {
+	allTries := m.loadAllTries()
+	if m.sourceFilter == "" {
+		return allTries
+	}
+	var filtered []Entry
+	for _, e := range allTries {
+		if e.Source == m.sourceFilter {
+			filtered = append(filtered, e)
+		}
+	}
+	return filtered
+}
+
+func (m *SelectorModel) matchEntries(entries []Entry, query string, maxResults int) []MatchedEntry {
+	fuzzyEntries := make([]fuzzy.Entry, len(entries))
+	for i, e := range entries {
 		fuzzyEntries[i] = fuzzy.Entry{
 			Text:      e.Basename,
 			BaseScore: e.BaseScore,
@@ -82,7 +122,6 @@ func (m *SelectorModel) refreshList() tea.Cmd {
 	}
 
 	results := fuzzy.Match(fuzzyEntries, query, maxResults)
-
 	matched := make([]MatchedEntry, len(results))
 	for i, r := range results {
 		matched[i] = MatchedEntry{
@@ -91,12 +130,5 @@ func (m *SelectorModel) refreshList() tea.Cmd {
 			HighlightPositions: r.Positions,
 		}
 	}
-	m.cachedResults = matched
-	m.lastQuery = query
-
-	items := make([]list.Item, len(matched))
-	for i, me := range matched {
-		items[i] = me
-	}
-	return m.list.SetItems(items)
+	return matched
 }

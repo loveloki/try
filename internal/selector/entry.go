@@ -28,6 +28,7 @@ type Entry struct {
 	Path      string
 	Mtime     time.Time
 	BaseScore float64
+	Source    string // "tries" 或 ship 目录的 basename（如 "ship"、"bug"）
 }
 
 // MatchedEntry 匹配后的条目（包含评分和高亮信息），实现 list.Item 接口

@@ -3,6 +3,7 @@ package selector
 import (
 	"fmt"
 	"os"
+	"path/filepath"
 	"strings"
 
 	tea "charm.land/bubbletea/v2"
@@ -23,7 +24,7 @@ const (
 type Config struct {
 	SearchTerm     string
 	BasePath       string
-	ShipPath       string
+	ShipPaths      []string
 	InitialInput   string
 	TestRenderOnce bool
 	TestKeys       []string
@@ -47,7 +48,9 @@ type SelectorModel struct {
 	selected          *SelectionResult
 	width, height     int
 	basePath          string
-	shipPath          string
+	shipPaths         []string
+	sourceFilter      string // "" 表示全部，"tries" 或 ship 目录 basename
+	sourceOptions     []string
 	testRenderOnce    bool
 	testKeys          []string
 	testConfirm       string
@@ -63,20 +66,12 @@ type testKeyMsg struct{}
 
 // New 创建选择器实例
 func New(cfg Config) SelectorModel {
-	if err := os.MkdirAll(cfg.BasePath, 0o755); err != nil {
-		fmt.Fprintf(os.Stderr, "%s: %v\n", msgs().ErrMkdir, err)
-	}
-	if cfg.ShipPath != "" {
-		if err := os.MkdirAll(cfg.ShipPath, 0o755); err != nil {
-			fmt.Fprintf(os.Stderr, "%s: %v\n", msgs().ErrMkdir, err)
-		}
-	}
+	ensureDirs(cfg)
 
 	ti := textinput.New()
 	ti.CharLimit = 256
 	ti.Focus()
 
-	// InitialInput 优先于 SearchTerm
 	if cfg.InitialInput != "" {
 		ti.SetValue(cfg.InitialInput)
 	} else if cfg.SearchTerm != "" {
@@ -84,19 +79,13 @@ func New(cfg Config) SelectorModel {
 	}
 
 	st := newStyles(cfg.ColorsEnabled, cfg.Theme)
-
 	delegate := &EntryDelegate{
 		markedForDeletion: map[string]bool{},
 		styles:            st,
 	}
-	l := list.New([]list.Item{}, delegate, 0, 0)
-	l.SetShowTitle(false)
-	l.SetShowStatusBar(false)
-	l.SetShowHelp(false)
-	l.SetShowPagination(false)
-	l.SetShowFilter(false)
-	l.SetFilteringEnabled(false)
-	l.DisableQuitKeybindings()
+
+	l := newList(delegate)
+	sourceOpts := buildSourceOptions(cfg.ShipPaths)
 
 	return SelectorModel{
 		textInput:         ti,
@@ -105,7 +94,8 @@ func New(cfg Config) SelectorModel {
 		keys:              newKeyMap(),
 		markedForDeletion: map[string]bool{},
 		basePath:          cfg.BasePath,
-		shipPath:          cfg.ShipPath,
+		shipPaths:         cfg.ShipPaths,
+		sourceOptions:     sourceOpts,
 		testRenderOnce:    cfg.TestRenderOnce,
 		testKeys:          cfg.TestKeys,
 		testConfirm:     cfg.TestConfirm,
@@ -113,6 +103,37 @@ func New(cfg Config) SelectorModel {
 		colorsEnabled:   cfg.ColorsEnabled,
 		theme:           cfg.Theme,
 	}
+}
+
+func ensureDirs(cfg Config) {
+	if err := os.MkdirAll(cfg.BasePath, 0o755); err != nil {
+		fmt.Fprintf(os.Stderr, "%s: %v\n", msgs().ErrMkdir, err)
+	}
+	for _, sp := range cfg.ShipPaths {
+		if err := os.MkdirAll(sp, 0o755); err != nil {
+			fmt.Fprintf(os.Stderr, "%s: %v\n", msgs().ErrMkdir, err)
+		}
+	}
+}
+
+func newList(delegate *EntryDelegate) list.Model {
+	l := list.New([]list.Item{}, delegate, 0, 0)
+	l.SetShowTitle(false)
+	l.SetShowStatusBar(false)
+	l.SetShowHelp(false)
+	l.SetShowPagination(false)
+	l.SetShowFilter(false)
+	l.SetFilteringEnabled(false)
+	l.DisableQuitKeybindings()
+	return l
+}
+
+func buildSourceOptions(shipPaths []string) []string {
+	opts := []string{"", "tries"}
+	for _, sp := range shipPaths {
+		opts = append(opts, filepath.Base(sp))
+	}
+	return opts
 }
 
 func (m SelectorModel) Init() tea.Cmd {

@@ -68,6 +68,7 @@ try --help             # 查看完整帮助
 | `Ctrl-D` | 标记/取消删除 |
 | `Ctrl-R` | 重命名 |
 | `Ctrl-G` | Ship（发布为正式项目） |
+| `Tab` | 切换来源过滤（all / tries / ship / bug） |
 | `Ctrl-P` / `Ctrl-N` | 上下移动 |
 | `Esc` | 退出 / 取消 |
 
@@ -78,7 +79,7 @@ try --help             # 查看完整帮助
 ```json
 {
   "path": "~/src/tries",
-  "ship": "~/src/ship",
+  "ships": ["~/src/ship", "~/src/bug"],
   "theme": "auto",
   "locale": "auto"
 }
@@ -89,7 +90,7 @@ try --help             # 查看完整帮助
 | 配置项 | 环境变量 | 命令行参数 | 默认值 | 说明 |
 |--------|----------|-----------|--------|------|
 | `path` | `TRY_PATH` | `--path` | `~/src/tries` | tries 根目录 |
-| `ship` | `TRY_PROJECTS` | — | `~/src/ship` | ship 目标目录 |
+| `ships` | `TRY_PROJECTS` | — | `["~/src/ship", "~/src/bug"]` | ship 目标目录列表 |
 | `theme` | `TRY_THEME` | `--theme` | `auto` | 配色主题（`dark` / `light` / `auto`） |
 | `locale` | `TRY_LOCALE` | `--locale` | `auto` | 界面语言（`en` / `zh` / `auto`） |
 

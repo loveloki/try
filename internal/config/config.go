@@ -10,15 +10,18 @@ import (
 
 // Config 配置结构体，JSON 字段名为小写
 type Config struct {
-	Path   string `json:"path"`   // tries 根目录
-	Ship   string `json:"ship"`   // ship 目标目录
-	Theme  string `json:"theme"`  // 主题：dark / light / auto
-	Locale string `json:"locale"` // 语言：en / zh / auto
+	Path   string   `json:"path"`   // tries 根目录
+	Ships  []string `json:"ships"`  // ship 目标目录列表
+	Ship   string   `json:"ship"`   // 兼容旧配置的单一 ship 目录
+	Theme  string   `json:"theme"`  // 主题：dark / light / auto
+	Locale string   `json:"locale"` // 语言：en / zh / auto
 }
+
+var defaultShips = []string{"~/src/ship", "~/src/bug"}
 
 var defaultConfig = Config{
 	Path:   "~/src/tries",
-	Ship:   "~/src/ship",
+	Ships:  defaultShips,
 	Theme:  "auto",
 	Locale: "auto",
 }
@@ -40,20 +43,51 @@ func LoadConfig() Config {
 // parseConfigData 解析 JSON 格式的配置内容，未设置的字段保留默认值。
 // 空内容视为无配置（不告警），JSON 语法错误时输出 warning。
 func parseConfigData(data []byte) Config {
-	cfg := defaultConfig
 	if len(data) == 0 {
-		return cfg
+		return defaultConfig
 	}
-	if err := json.Unmarshal(data, &cfg); err != nil {
+
+	// 先解析到一个 Ships 为 nil 的结构，以区分"未设置"和"设置为空"
+	var raw struct {
+		Path   string   `json:"path"`
+		Ships  []string `json:"ships"`
+		Ship   string   `json:"ship"`
+		Theme  string   `json:"theme"`
+		Locale string   `json:"locale"`
+	}
+	if err := json.Unmarshal(data, &raw); err != nil {
 		fmt.Fprintf(os.Stderr, "try: failed to parse config, using defaults: %v\n", err)
+		return defaultConfig
 	}
+
+	cfg := defaultConfig
+	if raw.Path != "" {
+		cfg.Path = raw.Path
+	}
+	if raw.Theme != "" {
+		cfg.Theme = raw.Theme
+	}
+	if raw.Locale != "" {
+		cfg.Locale = raw.Locale
+	}
+	if raw.Ship != "" {
+		cfg.Ship = raw.Ship
+	}
+
+	// ships 字段优先；其次兼容旧 ship 字段
+	if len(raw.Ships) > 0 {
+		cfg.Ships = raw.Ships
+	} else if raw.Ship != "" {
+		cfg.Ships = []string{raw.Ship}
+	}
+
 	return cfg
 }
 
 // ResolvePaths 按优先级解析 tries 和 ship 路径。
 // tries: --path > TRY_PATH > config > default
-// ship:  TRY_PROJECTS > config > default
-func ResolvePaths(cliPath string, cfg Config) (triesPath, shipPath string) {
+// ships: TRY_PROJECTS > config > default
+func ResolvePaths(cliPath string, cfg Config) (triesPath string, shipPaths []string) {
 	triesPath = cfg.Path
 	if env := os.Getenv("TRY_PATH"); env != "" {
 		triesPath = env
@@ -62,13 +96,15 @@ func ResolvePaths(cliPath string, cfg Config) (triesPath, shipPath string) {
 		triesPath = cliPath
 	}
 
-	shipPath = cfg.Ship
+	shipPaths = cfg.Ships
 	if env := os.Getenv("TRY_PROJECTS"); env != "" {
-		shipPath = env
+		shipPaths = []string{env}
 	}
 
 	triesPath = ExpandPath(triesPath)
-	shipPath = ExpandPath(shipPath)
+	for i, p := range shipPaths {
+		shipPaths[i] = ExpandPath(p)
+	}
 	return
 }
 

@@ -23,7 +23,7 @@ type DialogInstance interface {
 type DialogFactory interface {
     NewDeleteDialog(items []DeleteItem, basePath, testConfirm string, width int, colorsEnabled bool, theme string) DialogInstance
     NewRenameDialog(entry *MatchedEntry, basePath string, width int) DialogInstance
-    NewShipDialog(entry *MatchedEntry, basePath, shipPath string, width int) DialogInstance
+    NewShipDialog(entry *MatchedEntry, basePath string, shipPaths []string, width int) DialogInstance
 }
 ```
 
@@ -121,13 +121,15 @@ Ctrl-G，将临时实验发布为正式项目。
 
 ### 目标目录
 
-自动推导：去掉日期后缀得到项目名，拼接 `shipPath`。
+配置文件中的 `ships` 数组定义多个目标目录（默认 `~/src/ship` 和 `~/src/bug`）。对话框中通过 Tab 键在目标目录之间切换。
+
+自动推导项目名：去掉日期后缀，拼接当前选中的 ship 目录。
 
 例如 `~/src/tries/redis-experiment-2025-08-14` → `~/src/ship/redis-experiment`。
 
 ### 对话框界面
 
-全屏独占（`OverlaysMainUI() == false`）。内容包括：标题、源目录名、`Destination:` 标签与默认 `shipPath`、`Move to:` 可编辑目标路径（`textinput`，初始值为去掉日期后缀后的推导路径）、提示文案、底栏按键说明。用户可编辑完整目标路径。
+全屏独占（`OverlaysMainUI() == false`）。内容包括：标题、源目录名、目标目录选项列表（`●` 标记当前选中项，`○` 标记未选中项）、`Move to:` 可编辑目标路径（`textinput`，初始值为去掉日期后缀后的推导路径）、提示文案、底栏按键说明（Tab: Switch  Enter: Confirm  Esc: Cancel）。用户可用 Tab/Shift-Tab 切换目标目录，编辑完整目标路径。
 
 实现见 `internal/dialog/ship.go`。勿在 spec 用手写框线 ASCII 示意界面。
 

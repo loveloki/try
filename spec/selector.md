@@ -10,7 +10,7 @@
 type Config struct {
     SearchTerm     string
     BasePath       string
-    ShipPath       string
+    ShipPaths      []string
     InitialInput   string   // --and-type 注入的搜索文本
     TestRenderOnce bool     // --and-exit 模式
     TestKeys       []string // 注入按键序列
@@ -22,7 +22,7 @@ type Config struct {
 func New(cfg Config) SelectorModel
 ```
 
-初始化时自动创建 `BasePath` 目录（若不存在）。`InitialInput` 非空时优先于 `SearchTerm` 设置 `textInput` 的初始值。
+初始化时自动创建 `BasePath` 和所有 `ShipPaths` 目录（若不存在）。`InitialInput` 非空时优先于 `SearchTerm` 设置 `textInput` 的初始值。
 
 ### list 组件配置
 
@@ -130,6 +130,7 @@ Init 排队以下命令：聚焦搜索框、初始加载目录列表、请求终
 | Ctrl-T | 创建新目录 |
 | Ctrl-R | 进入重命名对话框 |
 | Ctrl-G | 进入 ship 对话框 |
+| Tab | 切换来源过滤（all → tries → ship → bug → all） |
 | Ctrl-C / ESC | 取消（删除模式下仅退出删除模式） |
 
 ### handleCreateNew 行为

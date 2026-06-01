@@ -23,7 +23,7 @@ var version = "dev"
 // runOptions 聚合运行所需的全部参数，避免跨函数传递过多散参
 type runOptions struct {
 	triesPath     string
-	shipPath      string
+	shipPaths     []string
 	colorsEnabled bool
 	theme         string
 	locale        string
@@ -92,14 +92,14 @@ func parseGlobalFlags(args []string) (runOptions, []string) {
 	andConfirm, args := extractValueFlag(args, "--and-confirm")
 
 	cfg := config.LoadConfig()
-	triesPath, shipPath := config.ResolvePaths(cliPath, cfg)
+	triesPath, shipPaths := config.ResolvePaths(cliPath, cfg)
 	theme := config.ResolveTheme(cliTheme, cfg)
 	locale := config.ResolveLocale(cliLocale, cfg)
 	i18n.Init(locale)
 
 	return runOptions{
 		triesPath:     triesPath,
-		shipPath:      shipPath,
+		shipPaths:     shipPaths,
 		colorsEnabled: colorsEnabled,
 		theme:         theme,
 		locale:        locale,
@@ -128,7 +128,7 @@ func runSelector(opts runOptions, searchTerm string) int {
 	cfg := selector.Config{
 		SearchTerm:     searchTerm,
 		BasePath:       opts.triesPath,
-		ShipPath:       opts.shipPath,
+		ShipPaths:      opts.shipPaths,
 		InitialInput:   opts.andType,
 		TestRenderOnce: opts.andExit,
 		TestKeys:       testKeys,
@@ -184,7 +184,7 @@ func (f *dialogFactoryImpl) NewRenameDialog(entry *selector.MatchedEntry, basePa
 	return dialog.NewRenameDialog(entry, basePath, width)
 }
 
-func (f *dialogFactoryImpl) NewShipDialog(entry *selector.MatchedEntry, basePath, shipPath string, width int) selector.DialogInstance {
-	return dialog.NewShipDialog(entry, basePath, shipPath, width)
+func (f *dialogFactoryImpl) NewShipDialog(entry *selector.MatchedEntry, basePath string, shipPaths []string, width int) selector.DialogInstance {
+	return dialog.NewShipDialog(entry, basePath, shipPaths, width)
 }
 

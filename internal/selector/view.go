@@ -84,7 +84,7 @@ func (s *styles) render(style lipgloss.Style, text string) string {
 	return style.Render(text)
 }
 
-// renderHeader 渲染标题 + 分隔线 + 搜索栏 + 分隔线
+// renderHeader 渲染标题 + 分隔线 + 搜索栏 + 来源过滤 + 分隔线
 func renderHeader(m *SelectorModel) string {
 	var b strings.Builder
 	w := m.width
@@ -95,10 +95,40 @@ func renderHeader(m *SelectorModel) string {
 
 	b.WriteString(m.styles.render(m.styles.header, msgs().Title) + "\n")
 	b.WriteString(sep + "\n")
-	b.WriteString(msgs().SearchPrefix + m.textInput.View() + "\n")
+	b.WriteString(msgs().SearchPrefix + m.textInput.View())
+
+	// 在搜索栏右侧显示来源过滤标签
+	if len(m.sourceOptions) > 1 {
+		filterLabel := renderSourceTabs(m)
+		searchWidth := lipgloss.Width(msgs().SearchPrefix + m.textInput.View())
+		padding := w - searchWidth - lipgloss.Width(filterLabel)
+		if padding > 0 {
+			b.WriteString(strings.Repeat(" ", padding))
+		} else {
+			b.WriteString("  ")
+		}
+		b.WriteString(filterLabel)
+	}
+	b.WriteString("\n")
 	b.WriteString(sep + "\n")
 
 	return b.String()
+}
+
+func renderSourceTabs(m *SelectorModel) string {
+	var parts []string
+	for _, opt := range m.sourceOptions {
+		label := opt
+		if label == "" {
+			label = msgs().FilterAll
+		}
+		if opt == m.sourceFilter {
+			parts = append(parts, m.styles.render(m.styles.accent, "["+label+"]"))
+		} else {
+			parts = append(parts, m.styles.render(m.styles.muted, label))
+		}
+	}
+	return strings.Join(parts, " ")
 }
 
 // renderFooter 渲染底部状态栏/快捷键提示

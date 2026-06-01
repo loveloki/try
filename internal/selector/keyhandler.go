@@ -31,6 +31,8 @@ func (m SelectorModel) handleKey(msg tea.KeyPressMsg) (tea.Model, tea.Cmd) {
 		return m.enterRenameDialog()
 	case key.Matches(msg, m.keys.CtrlG):
 		return m.enterShipDialog()
+	case key.Matches(msg, m.keys.Tab):
+		return m.cycleSourceFilter()
 	case key.Matches(msg, m.keys.Quit):
 		return m.handleQuit()
 	}
@@ -124,4 +126,22 @@ func (m SelectorModel) selectedEntry() *MatchedEntry {
 	}
 	entry := item.(MatchedEntry)
 	return &entry
+}
+
+func (m SelectorModel) cycleSourceFilter() (tea.Model, tea.Cmd) {
+	if len(m.sourceOptions) <= 1 {
+		return m, nil
+	}
+	currentIdx := 0
+	for i, opt := range m.sourceOptions {
+		if opt == m.sourceFilter {
+			currentIdx = i
+			break
+		}
+	}
+	m.sourceFilter = m.sourceOptions[(currentIdx+1)%len(m.sourceOptions)]
+	m.lastQuery = ""
+	m.cachedResults = nil
+	m.list.Select(0)
+	return m, m.refreshList()
 }

@@ -125,7 +125,7 @@ func checkShipConfirm(t *testing.T, input, sourcePath, basePath string, wantHasR
 	entry := &selector.MatchedEntry{
 		Entry: selector.Entry{Basename: "test-2025-08-14", Path: sourcePath},
 	}
-	d := NewShipDialog(entry, basePath, "/tmp/ship", 80)
+	d := NewShipDialog(entry, basePath, []string{"/tmp/ship"}, 80)
 	d.input.SetValue(input)
 	result, errMsg := d.confirmShip()
 
@@ -317,7 +317,7 @@ func TestShipDialogEscape(t *testing.T) {
 	entry := &selector.MatchedEntry{
 		Entry: selector.Entry{Basename: "test-2025-08-14", Path: filepath.Join(tmpDir, "test")},
 	}
-	d := NewShipDialog(entry, tmpDir, "/tmp/ship", 80)
+	d := NewShipDialog(entry, tmpDir, []string{"/tmp/ship"}, 80)
 	d = driveDialog(t, d, []tea.KeyPressMsg{
 		{Code: tea.KeyEscape},
 	}).(*ShipDialog)
@@ -335,7 +335,7 @@ func TestShipDialogEnter(t *testing.T) {
 	entry := &selector.MatchedEntry{
 		Entry: selector.Entry{Basename: "test-2025-08-14", Path: filepath.Join(tmpDir, "test")},
 	}
-	d := NewShipDialog(entry, tmpDir, "/tmp/ship", 80)
+	d := NewShipDialog(entry, tmpDir, []string{"/tmp/ship"}, 80)
 	dest := filepath.Join(tmpDir, "dest")
 	d.input.SetValue(dest)
 	d = driveDialog(t, d, []tea.KeyPressMsg{
@@ -391,10 +391,10 @@ func TestShipDialogViewContent(t *testing.T) {
 	entry := &selector.MatchedEntry{
 		Entry: selector.Entry{Basename: "test-2025-08-14", Path: "/tmp/test"},
 	}
-	d := NewShipDialog(entry, "/tmp", "/tmp/ship", 60)
+	d := NewShipDialog(entry, "/tmp", []string{"/tmp/ship", "/tmp/bug"}, 60)
 	content := d.ViewContent()
 
-	for _, want := range []string{"test-2025-08-14", "Ship", "/tmp/ship"} {
+	for _, want := range []string{"test-2025-08-14", "Ship", "ship", "bug"} {
 		if !strings.Contains(content, want) {
 			t.Errorf("ViewContent() missing %q\ngot:\n%s", want, content)
 		}

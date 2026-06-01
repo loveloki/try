@@ -43,7 +43,7 @@ func (f *mockDialogFactory) NewRenameDialog(entry *MatchedEntry, basePath string
 	return &mockDialog{}
 }
 
-func (f *mockDialogFactory) NewShipDialog(entry *MatchedEntry, basePath, shipPath string, width int) DialogInstance {
+func (f *mockDialogFactory) NewShipDialog(entry *MatchedEntry, basePath string, shipPaths []string, width int) DialogInstance {
 	f.shipCalled = true
 	return &mockDialog{}
 }

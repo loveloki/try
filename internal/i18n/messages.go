@@ -10,6 +10,7 @@ type Messages struct {
 	HintBar         string
 	EmptyInputHint  string
 	DeleteCancelled string
+	FilterAll       string // 来源过滤标签："all" / "全部"
 
 	// === 删除对话框 ===
 	DeleteTitle         string // 含 %d 占位符
@@ -28,7 +29,6 @@ type Messages struct {
 
 	// === Ship 对话框 ===
 	ShipTitle       string
-	ShipDestLabel   string
 	ShipMoveLabel   string
 	ShipHint        string
 	ShipEmptyErr    string
@@ -86,9 +86,10 @@ var EN = Messages{
 	SearchPrefix:    "Search: ",
 	CreateNew:       "Create new: ",
 	DeleteMode:      " DELETE MODE  %d marked  |  Ctrl-D: Toggle  Enter: Confirm  Esc: Cancel",
-	HintBar:         "Ctrl-T: New  Ctrl-D: Delete  Ctrl-R: Rename  Ctrl-G: Ship  Esc: Quit",
+	HintBar:         "Ctrl-T: New  Ctrl-D: Delete  Ctrl-R: Rename  Ctrl-G: Ship  Tab: Filter  Esc: Quit",
 	EmptyInputHint:  "Please enter a directory name first",
 	DeleteCancelled: "Delete cancelled",
+	FilterAll:       "all",
 
 	DeleteTitle:         "Delete %d directories?",
 	DeleteConfirmPrompt: "Confirm: ",
@@ -104,13 +105,12 @@ var EN = Messages{
 	RenameFooter: "Enter: Confirm  Esc: Cancel",
 
 	ShipTitle:       "Ship try to project",
-	ShipDestLabel:   "Destination: ",
 	ShipMoveLabel:   "Move to: ",
 	ShipHint:        "The directory will be moved to the destination",
 	ShipEmptyErr:    "Destination cannot be empty",
 	ShipExistsErr:   "Destination already exists: ",
 	ShipNoParentErr: "Parent directory does not exist: ",
-	ShipFooter:      "Enter: Confirm  Esc: Cancel",
+	ShipFooter:      "Tab: Switch  Enter: Confirm  Esc: Cancel",
 
 	HelpText: `try - temporary experiment directory manager
 
@@ -181,9 +181,10 @@ var ZH = Messages{
 	SearchPrefix:    "搜索：",
 	CreateNew:       "新建：",
 	DeleteMode:      " 删除模式  已标记 %d 个  |  Ctrl-D: 切换  Enter: 确认  Esc: 取消",
-	HintBar:         "Ctrl-T: 新建  Ctrl-D: 删除  Ctrl-R: 重命名  Ctrl-G: 发布  Esc: 退出",
+	HintBar:         "Ctrl-T: 新建  Ctrl-D: 删除  Ctrl-R: 重命名  Ctrl-G: 发布  Tab: 过滤  Esc: 退出",
 	EmptyInputHint:  "请先输入目录名称",
 	DeleteCancelled: "已取消删除",
+	FilterAll:       "all",
 
 	DeleteTitle:         "确认删除 %d 个目录？",
 	DeleteConfirmPrompt: "确认：",
@@ -199,13 +200,12 @@ var ZH = Messages{
 	RenameFooter: "Enter: 确认  Esc: 取消",
 
 	ShipTitle:       "发布为正式项目",
-	ShipDestLabel:   "目标目录：",
 	ShipMoveLabel:   "移动到：",
 	ShipHint:        "目录将被移动到目标位置",
 	ShipEmptyErr:    "目标路径不能为空",
 	ShipExistsErr:   "目标已存在：",
 	ShipNoParentErr: "父目录不存在：",
-	ShipFooter:      "Enter: 确认  Esc: 取消",
+	ShipFooter:      "Tab: 切换  Enter: 确认  Esc: 取消",
 
 	HelpText: `try - 临时实验目录管理工具
 

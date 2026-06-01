@@ -60,7 +60,7 @@ func TestSelectorCtrlGOpensShipDialog(t *testing.T) {
 
 	sm := driveModelWithFactory(t, Config{
 		BasePath:      tmpDir,
-		ShipPath:      t.TempDir(),
+		ShipPaths:     []string{t.TempDir()},
 		TestKeys:      []string{"CTRL-G"},
 		ColorsEnabled: false,
 	}, factory)
@@ -94,7 +94,7 @@ func TestSelectorCtrlGOnEmptyListDoesNothing(t *testing.T) {
 
 	driveModelWithFactory(t, Config{
 		BasePath:      tmpDir,
-		ShipPath:      t.TempDir(),
+		ShipPaths:     []string{t.TempDir()},
 		TestKeys:      []string{"CTRL-G"},
 		ColorsEnabled: false,
 	}, factory)

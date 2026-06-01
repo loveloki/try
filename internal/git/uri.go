@@ -17,8 +17,9 @@ type GitURIInfo struct {
 }
 
 var (
-	httpsRe = regexp.MustCompile(`^https?://([^/]+)/([^/]+)/([^/]+)`)
-	sshRe   = regexp.MustCompile(`^git@([^:]+):([^/]+)/([^/]+)`)
+	httpsRe    = regexp.MustCompile(`^https?://([^/]+)/([^/]+)/([^/]+)`)
+	sshRe      = regexp.MustCompile(`^git@([^:]+):([^/]+)/([^/]+)`)
+	sshProtoRe = regexp.MustCompile(`^ssh://(?:[^@]+@)?([^/:]+)(?::\d+)?/([^/]+)/([^/]+)`)
 )
 
 // ParseGitURI 解析 Git URL（HTTPS 和 SSH 格式），返回 nil 表示无法解析
@@ -31,6 +32,9 @@ func ParseGitURI(uri string) *GitURIInfo {
 	if m := sshRe.FindStringSubmatch(uri); m != nil {
 		return &GitURIInfo{Host: m[1], User: m[2], Repo: m[3]}
 	}
+	if m := sshProtoRe.FindStringSubmatch(uri); m != nil {
+		return &GitURIInfo{Host: m[1], User: m[2], Repo: m[3]}
+	}
 	return nil
 }
 
@@ -41,6 +45,7 @@ func IsGitURI(arg string) bool {
 	}
 	return strings.HasPrefix(arg, "https://") ||
 		strings.HasPrefix(arg, "http://") ||
+		strings.HasPrefix(arg, "ssh://") ||
 		strings.HasPrefix(arg, "git@") ||
 		strings.Contains(arg, "github.com") ||
 		strings.Contains(arg, "gitlab.com") ||

@@ -30,15 +30,18 @@ func TestParseGitURI(t *testing.T) {
 		uri                          string
 		wantUser, wantRepo, wantHost string
 	}{
-		{"https github", "https://github.com/tobi/try", "tobi", "try", "github.com"},
-		{"https github .git", "https://github.com/tobi/try.git", "tobi", "try", "github.com"},
-		{"https gitlab", "https://gitlab.com/team/project", "team", "project", "gitlab.com"},
-		{"https self-hosted", "https://git.company.com/org/repo", "org", "repo", "git.company.com"},
-		{"http", "http://github.com/user/repo", "user", "repo", "github.com"},
-		{"ssh github", "git@github.com:tobi/try", "tobi", "try", "github.com"},
-		{"ssh github .git", "git@github.com:tobi/try.git", "tobi", "try", "github.com"},
-		{"ssh gitlab", "git@gitlab.com:team/project", "team", "project", "gitlab.com"},
-		{"ssh self-hosted", "git@git.company.com:org/repo", "org", "repo", "git.company.com"},
+		{"https example", "https://example.com/user/repo", "user", "repo", "example.com"},
+		{"https example .git", "https://example.com/user/repo.git", "user", "repo", "example.com"},
+		{"https example2", "https://example.org/team/project", "team", "project", "example.org"},
+		{"https self-hosted", "https://git.example.com/org/repo", "org", "repo", "git.example.com"},
+		{"http", "http://example.com/user/repo", "user", "repo", "example.com"},
+		{"ssh example", "git@example.com:user/repo", "user", "repo", "example.com"},
+		{"ssh example .git", "git@example.com:user/repo.git", "user", "repo", "example.com"},
+		{"ssh example2", "git@example.org:team/project", "team", "project", "example.org"},
+		{"ssh self-hosted", "git@git.example.com:org/repo", "org", "repo", "git.example.com"},
+		{"ssh:// scheme standard", "ssh://git@example.com:2222/org/repo.git", "org", "repo", "example.com"},
+		{"ssh:// scheme no port", "ssh://git@example.com/user/repo.git", "user", "repo", "example.com"},
+		{"ssh:// scheme no user", "ssh://example.com/user/repo.git", "user", "repo", "example.com"},
 		{"invalid url", "not-a-url", "", "", ""},
 		{"empty", "", "", "", ""},
 		{"bare path", "/tmp/repo", "", "", ""},
@@ -64,9 +67,10 @@ func TestIsGitURI(t *testing.T) {
 		arg  string
 		want bool
 	}{
-		{"https://github.com/user/repo", true},
-		{"http://github.com/user/repo", true},
-		{"git@github.com:user/repo", true},
+		{"https://example.com/user/repo", true},
+		{"http://example.com/user/repo", true},
+		{"ssh://git@example.com:2222/org/repo", true},
+		{"git@example.com:user/repo", true},
 		{"something.github.com/path", true},
 		{"gitlab.com/team/project", true},
 		{"repo.git", true},
@@ -98,9 +102,10 @@ func TestGenerateCloneDirName(t *testing.T) {
 		customName string
 		want       string
 	}{
-		{"auto naming", "https://github.com/tobi/try.git", "", "tobi-try-" + date},
-		{"custom name", "https://github.com/tobi/try.git", "my-fork", "my-fork"},
-		{"ssh auto naming", "git@github.com:user/repo", "", "user-repo-" + date},
+		{"auto naming", "https://example.com/user/repo.git", "", "user-repo-" + date},
+		{"custom name", "https://example.com/user/repo.git", "my-fork", "my-fork"},
+		{"ssh auto naming", "git@example.com:user/repo", "", "user-repo-" + date},
+		{"ssh:// auto naming", "ssh://git@example.com:2222/org/repo.git", "", "org-repo-" + date},
 		{"invalid uri no custom", "not-a-url", "", ""},
 		{"invalid uri with custom", "not-a-url", "name", "name"},
 	}

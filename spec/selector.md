@@ -16,7 +16,6 @@ type Config struct {
     TestKeys       []string // 注入按键序列
     TestConfirm    string   // 注入确认输入
     ColorsEnabled  bool
-    Theme          string   // "dark" 或 "light"
 }
 
 func New(cfg Config) SelectorModel

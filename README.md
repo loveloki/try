@@ -11,7 +11,7 @@
 - **重命名** — 就地重命名目录
 - **Ship** — 将成熟的实验项目移动到正式项目目录
 - **Shell 集成** — 通过 `eval` 机制实现跨 Shell 的 cd 操作
-- **主题支持** — dark / light 配色主题，支持自动检测终端亮暗
+- **主题自适应** — 自动检测终端亮暗，适配 dark / light 配色
 - **中英文界面** — 自动检测系统语言，可通过配置切换
 
 ## 安装
@@ -80,7 +80,6 @@ try --help             # 查看完整帮助
 {
   "path": "~/src/tries",
   "ships": ["~/src/ship", "~/src/bug"],
-  "theme": "auto",
   "locale": "auto"
 }
 ```
@@ -91,7 +90,6 @@ try --help             # 查看完整帮助
 |--------|----------|-----------|--------|------|
 | `path` | `TRY_PATH` | `--path` | `~/src/tries` | tries 根目录 |
 | `ships` | `TRY_PROJECTS` | — | `["~/src/ship", "~/src/bug"]` | ship 目标目录列表 |
-| `theme` | `TRY_THEME` | `--theme` | `auto` | 配色主题（`dark` / `light` / `auto`） |
 | `locale` | `TRY_LOCALE` | `--locale` | `auto` | 界面语言（`en` / `zh` / `auto`） |
 
 ## 项目结构

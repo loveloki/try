@@ -5,6 +5,7 @@ import (
 	"strings"
 
 	lipgloss "charm.land/lipgloss/v2"
+	"github.com/loveloki/try/internal/config"
 )
 
 // styles 集中管理所有 TUI 样式
@@ -48,9 +49,9 @@ var lightPalette = themePalette{
 	danger:    "160", // 深红 (#d70000)
 }
 
-// newStyles 创建样式集。颜色降采样交由 bubbletea v2 内置渲染器处理，
-// 此处不做额外 colorprofile 降采样以避免双重转换导致背景色丢失。
-func newStyles(colorsEnabled bool, theme string) *styles {
+// newStyles 创建样式集，主题通过终端环境自动检测。
+// 颜色降采样交由 bubbletea v2 内置渲染器处理。
+func newStyles(colorsEnabled bool) *styles {
 	if !colorsEnabled {
 		return &styles{
 			header:    lipgloss.NewStyle(),
@@ -64,7 +65,7 @@ func newStyles(colorsEnabled bool, theme string) *styles {
 	}
 
 	p := darkPalette
-	if theme == "light" {
+	if config.DetectTheme() == "light" {
 		p = lightPalette
 	}
 

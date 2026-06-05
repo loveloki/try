@@ -30,7 +30,6 @@ type Config struct {
 	TestKeys       []string
 	TestConfirm    string
 	ColorsEnabled  bool
-	Theme          string // "dark" 或 "light"
 }
 
 // SelectorModel 交互式选择器的核心状态
@@ -58,7 +57,6 @@ type SelectorModel struct {
 	dialogFactory   DialogFactory
 	styles          *styles
 	colorsEnabled   bool
-	theme           string
 }
 
 type renderOnceMsg struct{}
@@ -78,7 +76,7 @@ func New(cfg Config) SelectorModel {
 		ti.SetValue(cfg.SearchTerm)
 	}
 
-	st := newStyles(cfg.ColorsEnabled, cfg.Theme)
+	st := newStyles(cfg.ColorsEnabled)
 	delegate := &EntryDelegate{
 		markedForDeletion: map[string]bool{},
 		styles:            st,
@@ -101,7 +99,6 @@ func New(cfg Config) SelectorModel {
 		testConfirm:     cfg.TestConfirm,
 		styles:          st,
 		colorsEnabled:   cfg.ColorsEnabled,
-		theme:           cfg.Theme,
 	}
 }
 

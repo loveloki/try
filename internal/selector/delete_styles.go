@@ -14,8 +14,8 @@ type DeleteDialogStyles struct {
 }
 
 // NewDeleteDialogStyles 构建删除弹窗样式
-func NewDeleteDialogStyles(colorsEnabled bool, theme string) DeleteDialogStyles {
-	st := newStyles(colorsEnabled, theme)
+func NewDeleteDialogStyles(colorsEnabled bool) DeleteDialogStyles {
+	st := newStyles(colorsEnabled)
 	if !colorsEnabled {
 		plain := lipgloss.NewStyle()
 		return DeleteDialogStyles{

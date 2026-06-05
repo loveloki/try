@@ -359,11 +359,8 @@ func TestParseGlobalFlagsNO_COLOR(t *testing.T) {
 	}
 }
 
-func TestParseGlobalFlagsThemeLocale(t *testing.T) {
-	opts, remaining := parseGlobalFlags([]string{"--theme", "light", "--locale", "zh", "exec"})
-	if opts.theme != "light" {
-		t.Errorf("theme = %q, want %q", opts.theme, "light")
-	}
+func TestParseGlobalFlagsLocale(t *testing.T) {
+	opts, remaining := parseGlobalFlags([]string{"--locale", "zh", "exec"})
 	if opts.locale != "zh" {
 		t.Errorf("locale = %q, want %q", opts.locale, "zh")
 	}

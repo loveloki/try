@@ -32,7 +32,7 @@ type mockDialogFactory struct {
 }
 
 func (f *mockDialogFactory) NewDeleteDialog(
-	items []DeleteItem, basePath, testConfirm string, width int, colorsEnabled bool, theme string,
+	items []DeleteItem, basePath, testConfirm string, width int, colorsEnabled bool,
 ) DialogInstance {
 	f.deleteCalled = true
 	return &mockDialog{}

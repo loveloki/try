@@ -19,7 +19,7 @@ type dialog = DialogInstance
 
 // DialogFactory 对话框创建接口，由外部（CLI 层）注入，避免循环依赖
 type DialogFactory interface {
-	NewDeleteDialog(items []DeleteItem, basePath, testConfirm string, width int, colorsEnabled bool, theme string) DialogInstance
+	NewDeleteDialog(items []DeleteItem, basePath, testConfirm string, width int, colorsEnabled bool) DialogInstance
 	NewRenameDialog(entry *MatchedEntry, basePath string, width int) DialogInstance
 	NewShipDialog(entry *MatchedEntry, basePath string, shipPaths []string, width int) DialogInstance
 }
@@ -52,7 +52,7 @@ func (m SelectorModel) openDeleteDialog() (tea.Model, tea.Cmd) {
 		}
 	}
 	if m.dialogFactory != nil {
-		dlg := m.dialogFactory.NewDeleteDialog(items, m.basePath, m.testConfirm, m.width, m.colorsEnabled, m.theme)
+		dlg := m.dialogFactory.NewDeleteDialog(items, m.basePath, m.testConfirm, m.width, m.colorsEnabled)
 		m.activeDialog = dlg
 		return m, dlg.Init()
 	}

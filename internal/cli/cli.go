@@ -25,7 +25,6 @@ type runOptions struct {
 	triesPath     string
 	shipPaths     []string
 	colorsEnabled bool
-	theme         string
 	locale        string
 	andExit       bool
 	andType       string
@@ -83,7 +82,6 @@ func parseGlobalFlags(args []string) (runOptions, []string) {
 	}
 
 	cliPath, args := extractPath(args)
-	cliTheme, args := extractValueFlag(args, "--theme")
 	cliLocale, args := extractValueFlag(args, "--locale")
 
 	andExit, args := extractBoolFlag(args, "--and-exit")
@@ -93,7 +91,6 @@ func parseGlobalFlags(args []string) (runOptions, []string) {
 
 	cfg := config.LoadConfig()
 	triesPath, shipPaths := config.ResolvePaths(cliPath, cfg)
-	theme := config.ResolveTheme(cliTheme, cfg)
 	locale := config.ResolveLocale(cliLocale, cfg)
 	i18n.Init(locale)
 
@@ -101,7 +98,6 @@ func parseGlobalFlags(args []string) (runOptions, []string) {
 		triesPath:     triesPath,
 		shipPaths:     shipPaths,
 		colorsEnabled: colorsEnabled,
-		theme:         theme,
 		locale:        locale,
 		andExit:       andExit,
 		andType:       andType,
@@ -134,7 +130,6 @@ func runSelector(opts runOptions, searchTerm string) int {
 		TestKeys:       testKeys,
 		TestConfirm:    opts.andConfirm,
 		ColorsEnabled:  opts.colorsEnabled,
-		Theme:          opts.theme,
 	}
 
 	model := selector.New(cfg)
@@ -175,9 +170,8 @@ func (f *dialogFactoryImpl) NewDeleteDialog(
 	basePath, testConfirm string,
 	width int,
 	colorsEnabled bool,
-	theme string,
 ) selector.DialogInstance {
-	return dialog.NewDeleteDialog(items, basePath, testConfirm, width, colorsEnabled, theme)
+	return dialog.NewDeleteDialog(items, basePath, testConfirm, width, colorsEnabled)
 }
 
 func (f *dialogFactoryImpl) NewRenameDialog(entry *selector.MatchedEntry, basePath string, width int) selector.DialogInstance {

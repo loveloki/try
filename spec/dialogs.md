@@ -21,7 +21,7 @@ type DialogInstance interface {
 }
 
 type DialogFactory interface {
-    NewDeleteDialog(items []DeleteItem, basePath, testConfirm string, width int, colorsEnabled bool, theme string) DialogInstance
+    NewDeleteDialog(items []DeleteItem, basePath, testConfirm string, width int, colorsEnabled bool) DialogInstance
     NewRenameDialog(entry *MatchedEntry, basePath string, width int) DialogInstance
     NewShipDialog(entry *MatchedEntry, basePath string, shipPaths []string, width int) DialogInstance
 }

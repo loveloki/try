@@ -10,10 +10,10 @@
 1. parseGlobalFlags：
    a. 提取颜色标志：--no-colors / --no-expand-tokens + NO_COLOR 环境变量
    b. 提取 --path VALUE
-   c. 提取 --theme VALUE 和 --locale VALUE
+   c. 提取 --locale VALUE
    d. 提取测试参数：--and-exit、--and-type、--and-keys、--and-confirm
    e. LoadConfig 加载配置文件
-   f. ResolvePaths / ResolveTheme / ResolveLocale 合并优先级
+   f. ResolvePaths / ResolveLocale 合并优先级
 2. 检查 --help / -h → 输出帮助并退出
 3. 检查 --version / -v → 输出版本并退出
 4. shift 出第一个非选项参数作为 command
@@ -29,12 +29,10 @@
 | `--no-colors` | 禁用 ANSI 颜色（Lipgloss 不渲染样式） |
 | `--no-expand-tokens` | 与 `--no-colors` 等效（别名，保持向后兼容） |
 | `--path PATH` | 覆盖 tries 根目录（支持 `--path=VALUE` 和 `--path VALUE` 两种形式） |
-| `--theme dark\|light` | 配色主题（覆盖配置文件和环境变量） |
 | `--locale en\|zh` | 界面语言（覆盖配置文件和环境变量） |
 
 环境变量：
 - `NO_COLOR`（非空时）等效于 `--no-colors`，遵循 [no-color.org](https://no-color.org/) 标准
-- `TRY_THEME`：设置配色主题（`dark` / `light`），优先级低于 `--theme`
 
 ## --path 提取逻辑
 
@@ -150,7 +148,6 @@ CLI 解析完成后，构造 `selector.Config` 并启动 Bubbletea Program。关
 | `TestKeys` | `--and-keys`（已通过 `parseTestKeys` 解析） |
 | `TestConfirm` | `--and-confirm` |
 | `ColorsEnabled` | `--no-colors` / `NO_COLOR` 取反 |
-| `Theme` | 已解析优先级 |
 | `Messages` | `i18n.ForLocale(opts.locale)` |
 
 创建 model 后通过 `SetDialogFactory` 注入对话框工厂，以 `tea.WithOutput(os.Stderr)` 启动 Program。

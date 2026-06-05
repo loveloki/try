@@ -21,16 +21,13 @@ func checkParse(t *testing.T, content string, want Config) {
 			}
 		}
 	}
-	if got.Theme != want.Theme {
-		t.Errorf("Theme = %q, want %q", got.Theme, want.Theme)
-	}
 	if got.Locale != want.Locale {
 		t.Errorf("Locale = %q, want %q", got.Locale, want.Locale)
 	}
 }
 
 func TestParseConfigData(t *testing.T) {
-	d := Config{Path: "~/src/tries", Ships: []string{"~/src/ship", "~/src/bug"}, Theme: "auto", Locale: "auto"}
+	d := Config{Path: "~/src/tries", Ships: []string{"~/src/ship", "~/src/bug"}, Locale: "auto"}
 	tests := []struct {
 		name    string
 		content string
@@ -39,20 +36,18 @@ func TestParseConfigData(t *testing.T) {
 		{"empty", "", d},
 		{"invalid json", "not json", d},
 		{"empty object", "{}", d},
-		{"full config with ships", `{"path":"~/my/tries","ships":["~/my/ship","~/my/bug"],"theme":"dark","locale":"zh"}`,
-			Config{Path: "~/my/tries", Ships: []string{"~/my/ship", "~/my/bug"}, Theme: "dark", Locale: "zh"}},
+		{"full config with ships", `{"path":"~/my/tries","ships":["~/my/ship","~/my/bug"],"locale":"zh"}`,
+			Config{Path: "~/my/tries", Ships: []string{"~/my/ship", "~/my/bug"}, Locale: "zh"}},
 		{"legacy ship field", `{"path":"~/my/tries","ship":"~/my/ship"}`,
-			Config{Path: "~/my/tries", Ships: []string{"~/my/ship"}, Theme: "auto", Locale: "auto"}},
+			Config{Path: "~/my/tries", Ships: []string{"~/my/ship"}, Locale: "auto"}},
 		{"only path", `{"path":"/custom"}`,
-			Config{Path: "/custom", Ships: []string{"~/src/ship", "~/src/bug"}, Theme: "auto", Locale: "auto"}},
+			Config{Path: "/custom", Ships: []string{"~/src/ship", "~/src/bug"}, Locale: "auto"}},
 		{"only ships", `{"ships":["/custom/a","/custom/b"]}`,
-			Config{Path: "~/src/tries", Ships: []string{"/custom/a", "/custom/b"}, Theme: "auto", Locale: "auto"}},
-		{"only theme", `{"theme":"light"}`,
-			Config{Path: "~/src/tries", Ships: []string{"~/src/ship", "~/src/bug"}, Theme: "light", Locale: "auto"}},
+			Config{Path: "~/src/tries", Ships: []string{"/custom/a", "/custom/b"}, Locale: "auto"}},
 		{"only locale", `{"locale":"en"}`,
-			Config{Path: "~/src/tries", Ships: []string{"~/src/ship", "~/src/bug"}, Theme: "auto", Locale: "en"}},
+			Config{Path: "~/src/tries", Ships: []string{"~/src/ship", "~/src/bug"}, Locale: "en"}},
 		{"unknown key ignored", `{"path":"/a","foo":"bar","ships":["/b"]}`,
-			Config{Path: "/a", Ships: []string{"/b"}, Theme: "auto", Locale: "auto"}},
+			Config{Path: "/a", Ships: []string{"/b"}, Locale: "auto"}},
 	}
 
 	for _, tt := range tests {
@@ -138,51 +133,23 @@ func TestResolvePaths(t *testing.T) {
 	}
 }
 
-func TestResolveTheme(t *testing.T) {
+func TestDetectTheme(t *testing.T) {
 	tests := []struct {
-		name     string
-		cliTheme string
-		cfg      Config
-		envs     map[string]string
-		want     string
+		name string
+		envs map[string]string
+		want string
 	}{
 		{
-			name: "default auto resolves to dark",
-			cfg:  Config{Theme: "auto"},
+			name: "default dark",
 			want: "dark",
 		},
 		{
-			name: "config dark",
-			cfg:  Config{Theme: "dark"},
-			want: "dark",
-		},
-		{
-			name: "config light",
-			cfg:  Config{Theme: "light"},
-			want: "light",
-		},
-		{
-			name: "env overrides config",
-			cfg:  Config{Theme: "dark"},
-			envs: map[string]string{"TRY_THEME": "light"},
-			want: "light",
-		},
-		{
-			name:     "cli overrides env",
-			cliTheme: "dark",
-			cfg:      Config{Theme: "light"},
-			envs:     map[string]string{"TRY_THEME": "light"},
-			want:     "dark",
-		},
-		{
-			name: "COLORFGBG light background detected",
-			cfg:  Config{Theme: "auto"},
+			name: "COLORFGBG light background",
 			envs: map[string]string{"COLORFGBG": "15;0"},
 			want: "light",
 		},
 		{
-			name: "COLORFGBG dark background detected",
-			cfg:  Config{Theme: "auto"},
+			name: "COLORFGBG dark background",
 			envs: map[string]string{"COLORFGBG": "0;15"},
 			want: "dark",
 		},
@@ -190,12 +157,13 @@ func TestResolveTheme(t *testing.T) {
 
 	for _, tt := range tests {
 		t.Run(tt.name, func(t *testing.T) {
+			t.Setenv("COLORFGBG", "")
 			for k, v := range tt.envs {
 				t.Setenv(k, v)
 			}
-			got := ResolveTheme(tt.cliTheme, tt.cfg)
+			got := DetectTheme()
 			if got != tt.want {
-				t.Errorf("ResolveTheme(%q, %+v) = %q, want %q", tt.cliTheme, tt.cfg, got, tt.want)
+				t.Errorf("DetectTheme() = %q, want %q", got, tt.want)
 			}
 		})
 	}

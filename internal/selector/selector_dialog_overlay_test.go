@@ -13,9 +13,9 @@ import (
 type realDialogFactory struct{}
 
 func (realDialogFactory) NewDeleteDialog(
-	items []selector.DeleteItem, basePath, testConfirm string, width int, colorsEnabled bool, theme string,
+	items []selector.DeleteItem, basePath, testConfirm string, width int, colorsEnabled bool,
 ) selector.DialogInstance {
-	return dialog.NewDeleteDialog(items, basePath, testConfirm, width, colorsEnabled, theme)
+	return dialog.NewDeleteDialog(items, basePath, testConfirm, width, colorsEnabled)
 }
 
 func (realDialogFactory) NewRenameDialog(entry *selector.MatchedEntry, basePath string, width int) selector.DialogInstance {
@@ -33,7 +33,6 @@ func TestSelectorDeleteDialogOverlaysMainUI(t *testing.T) {
 		BasePath:      tmpDir,
 		TestKeys:      []string{"CTRL-D", "ENTER"},
 		ColorsEnabled: true,
-		Theme:         "dark",
 	}, realDialogFactory{})
 
 	view := sm.View().Content

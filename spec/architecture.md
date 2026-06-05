@@ -27,7 +27,7 @@ internal/
     commands.go        # cmdExec、cmdClone、cmdWorktree、handleDot、worktreePath
     flags.go           # 参数提取工具函数（hasFlag、extractPath、extractValueFlag 等）
   config/              # 配置文件加载（~/.config/try/config.json）
-    config.go          # Config 结构、LoadConfig、ResolvePaths、ResolveTheme、ResolveLocale
+    config.go          # Config 结构、LoadConfig、ResolvePaths、DetectTheme、ResolveLocale
   selector/            # 交互式选择器（Bubbletea Model + Bubbles list）
     model.go           # SelectorModel：结构体定义、New、Init、Update、View
     keyhandler.go      # 按键处理函数（handleKey、handleEnter、toggleDelete 等）
@@ -168,7 +168,6 @@ SelectorModel 维护以下状态：
 |-----|------|--------|
 | `path` | tries 根目录 | `~/src/tries` |
 | `ship` | ship 目标目录 | `~/src/ship` |
-| `theme` | 配色主题 | `auto` |
 | `locale` | 界面语言 | `auto` |
 
 ## 环境变量
@@ -177,7 +176,6 @@ SelectorModel 维护以下状态：
 |------|------|--------|
 | `TRY_PATH` | tries 根目录（优先于配置文件） | `~/src/tries` |
 | `TRY_PROJECTS` | ship 目标目录（优先于配置文件） | `~/src/ship` |
-| `TRY_THEME` | 配色主题（`dark` / `light`，优先于配置文件） | `auto` |
 | `TRY_LOCALE` | 界面语言（`en` / `zh`，优先于配置文件） | `auto` |
 | `NO_COLOR` | 非空时禁用颜色 | — |
 | `TRY_WIDTH` | 覆盖终端宽度（测试用） | — |

@@ -32,14 +32,13 @@ func NewDeleteDialog(
 	basePath, testConfirm string,
 	width int,
 	colorsEnabled bool,
-	theme string,
 ) *DeleteDialog {
 	d := &DeleteDialog{
 		markedItems: items,
 		basePath:    basePath,
 		testConfirm: testConfirm,
 		width:       width,
-		styles:      selector.NewDeleteDialogStyles(colorsEnabled, theme),
+		styles:      selector.NewDeleteDialogStyles(colorsEnabled),
 	}
 	if testConfirm == "YES" {
 		d.confirmYes = true

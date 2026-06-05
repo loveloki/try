@@ -19,7 +19,6 @@ func TestSelectedRowBold(t *testing.T) {
 	m := New(Config{
 		BasePath:      tmpDir,
 		ColorsEnabled: true,
-		Theme:         "dark",
 	})
 
 	var model tea.Model = m
@@ -44,19 +43,18 @@ func TestSelectedRowBold(t *testing.T) {
 	}
 }
 
-// TestThemeAffectsRendering 验证不同主题产生不同的颜色输出
-func TestThemeAffectsRendering(t *testing.T) {
-	tmpDir := setupTestDirs(t)
-
+// TestThemeAutoDetectsFromEnv 验证主题通过 COLORFGBG 自动检测
+func TestThemeAutoDetectsFromEnv(t *testing.T) {
 	t.Setenv("TRY_WIDTH", "80")
 	t.Setenv("TRY_HEIGHT", "24")
 	t.Setenv("COLORTERM", "truecolor")
 
-	renderWithTheme := func(theme string) string {
+	renderWithEnv := func(colorfgbg string) string {
+		t.Setenv("COLORFGBG", colorfgbg)
+		tmpDir := setupTestDirs(t)
 		m := New(Config{
 			BasePath:      tmpDir,
 			ColorsEnabled: true,
-			Theme:         theme,
 		})
 		var model tea.Model = m
 		model, _ = model.Update(tea.WindowSizeMsg{Width: 80, Height: 24})
@@ -73,20 +71,22 @@ func TestThemeAffectsRendering(t *testing.T) {
 		return buf.String()
 	}
 
-	dark := renderWithTheme("dark")
-	light := renderWithTheme("light")
+	dark := renderWithEnv("0;15")
+	light := renderWithEnv("15;0")
 
 	if dark == light {
-		t.Error("dark and light themes should produce different ANSI output")
+		t.Error("dark and light env should produce different ANSI output")
 	}
 
 	// 验证 newStyles 中的主题色属性
-	stDark := newStyles(true, "dark")
-	stLight := newStyles(true, "light")
-
+	t.Setenv("COLORFGBG", "")
+	stDark := newStyles(true)
 	if stDark.danger.GetForeground() != lipgloss.Color("196") {
 		t.Errorf("dark theme danger foreground = %v, want 196", stDark.danger.GetForeground())
 	}
+
+	t.Setenv("COLORFGBG", "15;0")
+	stLight := newStyles(true)
 	if stLight.danger.GetForeground() != lipgloss.Color("160") {
 		t.Errorf("light theme danger foreground = %v, want 160", stLight.danger.GetForeground())
 	}

@@ -19,14 +19,14 @@ charm.land/lipgloss/v2     # 样式
 `--no-colors` / `NO_COLOR` 环境变量禁用所有样式。
 
 ```go
-func newStyles(colorsEnabled bool, theme string) *styles
+func newStyles(colorsEnabled bool) *styles
 ```
 
 `colorsEnabled` 为 false 时所有样式设为空（无颜色、无加粗）。颜色降采样交由 bubbletea v2 内置渲染器处理，`newStyles` 不做额外 colorprofile 降采样以避免双重转换导致背景色丢失。
 
 ### 主题系统
 
-支持 `dark` 和 `light` 两套配色，使用 GitHub 风格 256-color ANSI 码。通过 `themePalette` 结构定义色值，`newStyles` 根据 theme 参数选择色板。
+支持 `dark` 和 `light` 两套配色，使用 GitHub 风格 256-color ANSI 码。通过 `themePalette` 结构定义色值，`newStyles` 通过 `config.DetectTheme()` 自动检测终端亮暗来选择色板。
 
 ```go
 type themePalette struct {
@@ -61,14 +61,9 @@ type themePalette struct {
 | accent | 28 | #008700 深绿 | 操作提示 |
 | danger | 160 | #d70000 深红 | 删除标记前景色 |
 
-### 主题解析优先级
+### 主题检测
 
-```
-1. --theme 命令行参数（最高优先）
-2. TRY_THEME 环境变量
-3. ~/.config/try/config.json 中的 theme
-4. auto（通过 COLORFGBG 环境变量推断，无法推断时默认 dark）
-```
+通过 `COLORFGBG` 环境变量推断终端亮暗（背景色值 0-6 判定为 light），无法推断时默认 dark。
 
 auto 检测逻辑：解析 `COLORFGBG` 环境变量（格式 `fg;bg`），背景色值 0-6 判定为浅色终端返回 "light"，其他返回 "dark"。
 

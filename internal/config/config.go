@@ -13,7 +13,6 @@ type Config struct {
 	Path   string   `json:"path"`   // tries 根目录
 	Ships  []string `json:"ships"`  // ship 目标目录列表
 	Ship   string   `json:"ship"`   // 兼容旧配置的单一 ship 目录
-	Theme  string   `json:"theme"`  // 主题：dark / light / auto
 	Locale string   `json:"locale"` // 语言：en / zh / auto
 }
 
@@ -22,7 +21,6 @@ var defaultShips = []string{"~/src/ship", "~/src/bug"}
 var defaultConfig = Config{
 	Path:   "~/src/tries",
 	Ships:  defaultShips,
-	Theme:  "auto",
 	Locale: "auto",
 }
 
@@ -52,7 +50,6 @@ func parseConfigData(data []byte) Config {
 		Path   string   `json:"path"`
 		Ships  []string `json:"ships"`
 		Ship   string   `json:"ship"`
-		Theme  string   `json:"theme"`
 		Locale string   `json:"locale"`
 	}
 	if err := json.Unmarshal(data, &raw); err != nil {
@@ -63,9 +60,6 @@ func parseConfigData(data []byte) Config {
 	cfg := defaultConfig
 	if raw.Path != "" {
 		cfg.Path = raw.Path
-	}
-	if raw.Theme != "" {
-		cfg.Theme = raw.Theme
 	}
 	if raw.Locale != "" {
 		cfg.Locale = raw.Locale
@@ -108,25 +102,8 @@ func ResolvePaths(cliPath string, cfg Config) (triesPath string, shipPaths []str
 	return
 }
 
-// ResolveTheme 按优先级解析主题：--theme > TRY_THEME > config > auto
-func ResolveTheme(cliTheme string, cfg Config) string {
-	theme := cfg.Theme
-	if env := os.Getenv("TRY_THEME"); env != "" {
-		theme = env
-	}
-	if cliTheme != "" {
-		theme = cliTheme
-	}
-	switch theme {
-	case "light", "dark":
-		return theme
-	default:
-		return detectTheme()
-	}
-}
-
-// detectTheme 通过 COLORFGBG 环境变量推断终端亮暗模式
-func detectTheme() string {
+// DetectTheme 通过 COLORFGBG 环境变量推断终端亮暗模式
+func DetectTheme() string {
 	if val := os.Getenv("COLORFGBG"); val != "" {
 		parts := strings.Split(val, ";")
 		if len(parts) >= 2 {

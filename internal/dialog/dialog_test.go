@@ -15,7 +15,7 @@ import (
 
 func checkDeleteConfirm(t *testing.T, confirmYes bool, items []selector.DeleteItem, basePath string, wantHasResult bool) {
 	t.Helper()
-	d := NewDeleteDialog(items, basePath, "", 80, true, "dark")
+	d := NewDeleteDialog(items, basePath, "", 80, true)
 	d.confirmYes = confirmYes
 	result := d.confirm()
 	if wantHasResult && result == nil {
@@ -200,7 +200,7 @@ func TestDeleteDialogEscape(t *testing.T) {
 	os.MkdirAll(dir1, 0o755)
 	items := []selector.DeleteItem{{Path: dir1, Basename: "dir1"}}
 
-	d := NewDeleteDialog(items, tmpDir, "", 80, true, "dark")
+	d := NewDeleteDialog(items, tmpDir, "", 80, true)
 	d = driveDialog(t, d, []tea.KeyPressMsg{
 		{Code: tea.KeyEscape},
 	}).(*DeleteDialog)
@@ -219,7 +219,7 @@ func TestDeleteDialogCtrlC(t *testing.T) {
 	os.MkdirAll(dir1, 0o755)
 	items := []selector.DeleteItem{{Path: dir1, Basename: "dir1"}}
 
-	d := NewDeleteDialog(items, tmpDir, "", 80, true, "dark")
+	d := NewDeleteDialog(items, tmpDir, "", 80, true)
 	d = driveDialog(t, d, []tea.KeyPressMsg{
 		{Code: 'c', Mod: tea.ModCtrl},
 	}).(*DeleteDialog)
@@ -238,7 +238,7 @@ func TestDeleteDialogEnterWithYES(t *testing.T) {
 	os.MkdirAll(dir1, 0o755)
 	items := []selector.DeleteItem{{Path: dir1, Basename: "dir1"}}
 
-	d := NewDeleteDialog(items, tmpDir, "", 80, true, "dark")
+	d := NewDeleteDialog(items, tmpDir, "", 80, true)
 	d = driveDialog(t, d, []tea.KeyPressMsg{
 		{Code: tea.KeyRight},
 		{Code: tea.KeyEnter},
@@ -258,7 +258,7 @@ func TestDeleteDialogEnterWithDefaultNo(t *testing.T) {
 	os.MkdirAll(dir1, 0o755)
 	items := []selector.DeleteItem{{Path: dir1, Basename: "dir1"}}
 
-	d := NewDeleteDialog(items, tmpDir, "", 80, true, "dark")
+	d := NewDeleteDialog(items, tmpDir, "", 80, true)
 	if d.confirmYes {
 		t.Fatal("default choice should be NO")
 	}
@@ -361,7 +361,7 @@ func TestDeleteDialogViewContent(t *testing.T) {
 		{Path: "/tmp/dir1", Basename: "dir1"},
 		{Path: "/tmp/dir2", Basename: "dir2"},
 	}
-	d := NewDeleteDialog(items, "/tmp", "", 60, true, "dark")
+	d := NewDeleteDialog(items, "/tmp", "", 60, true)
 	content := d.ViewContent()
 	plain := ansi.Strip(content)
 
@@ -407,7 +407,7 @@ func TestDeleteDialogTestConfirmAutoSubmit(t *testing.T) {
 	os.MkdirAll(dir1, 0o755)
 	items := []selector.DeleteItem{{Path: dir1, Basename: "dir1"}}
 
-	d := NewDeleteDialog(items, tmpDir, "YES", 80, true, "dark")
+	d := NewDeleteDialog(items, tmpDir, "YES", 80, true)
 	cmd := d.Init()
 
 	// Init 应该选中 YES 并产生 Enter 按键

@@ -125,7 +125,6 @@ Options:
   --help, -h           Show help
   --version, -v        Show version
   --path PATH          Set tries root directory
-  --theme dark|light   Color theme (default: auto detect)
   --locale en|zh       UI language (default: auto detect)
   --no-colors          Disable colors
 
@@ -220,7 +219,6 @@ var ZH = Messages{
   --help, -h           显示帮助
   --version, -v        显示版本
   --path PATH          指定 tries 根目录
-  --theme dark|light   配色主题（默认 auto 自动检测）
   --locale en|zh       界面语言（默认 auto 自动检测）
   --no-colors          禁用颜色
 

@@ -114,8 +114,12 @@ func (m *SelectorModel) filteredEntries() []Entry {
 func (m *SelectorModel) matchEntries(entries []Entry, query string, maxResults int) []MatchedEntry {
 	fuzzyEntries := make([]fuzzy.Entry, len(entries))
 	for i, e := range entries {
+		name := e.Basename
+		if loc := DateSuffixRe.FindStringIndex(name); loc != nil {
+			name = name[:loc[0]]
+		}
 		fuzzyEntries[i] = fuzzy.Entry{
-			Text:      e.Basename,
+			Text:      name,
 			BaseScore: e.BaseScore,
 			Data:      e,
 		}

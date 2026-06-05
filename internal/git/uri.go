@@ -17,25 +17,36 @@ type GitURIInfo struct {
 }
 
 var (
-	httpsRe    = regexp.MustCompile(`^https?://([^/]+)/([^/]+)/([^/]+)`)
-	sshRe      = regexp.MustCompile(`^git@([^:]+):([^/]+)/([^/]+)`)
-	sshProtoRe = regexp.MustCompile(`^ssh://(?:[^@]+@)?([^/:]+)(?::\d+)?/([^/]+)/([^/]+)`)
+	httpsRe    = regexp.MustCompile(`^https?://([^/]+)/(.+)$`)
+	sshRe      = regexp.MustCompile(`^git@([^:]+):(.+)$`)
+	sshProtoRe = regexp.MustCompile(`^ssh://(?:[^@]+@)?([^/:]+)(?::\d+)?/(.+)$`)
 )
 
-// ParseGitURI 解析 Git URL（HTTPS 和 SSH 格式），返回 nil 表示无法解析
+// ParseGitURI 解析 Git URL（HTTPS 和 SSH 格式），返回 nil 表示无法解析。
+// 支持任意深度路径，取最后两段作为 User 和 Repo。
 func ParseGitURI(uri string) *GitURIInfo {
 	uri = strings.TrimSuffix(uri, ".git")
 
+	var host, path string
 	if m := httpsRe.FindStringSubmatch(uri); m != nil {
-		return &GitURIInfo{Host: m[1], User: m[2], Repo: m[3]}
+		host, path = m[1], m[2]
+	} else if m := sshRe.FindStringSubmatch(uri); m != nil {
+		host, path = m[1], m[2]
+	} else if m := sshProtoRe.FindStringSubmatch(uri); m != nil {
+		host, path = m[1], m[2]
+	} else {
+		return nil
 	}
-	if m := sshRe.FindStringSubmatch(uri); m != nil {
-		return &GitURIInfo{Host: m[1], User: m[2], Repo: m[3]}
+
+	segments := strings.Split(strings.Trim(path, "/"), "/")
+	if len(segments) < 2 {
+		return nil
 	}
-	if m := sshProtoRe.FindStringSubmatch(uri); m != nil {
-		return &GitURIInfo{Host: m[1], User: m[2], Repo: m[3]}
+	return &GitURIInfo{
+		Host: host,
+		User: segments[len(segments)-2],
+		Repo: segments[len(segments)-1],
 	}
-	return nil
 }
 
 // IsGitURI 快速判断参数是否看起来像 Git URL（不做完整解析）
@@ -53,7 +64,7 @@ func IsGitURI(arg string) bool {
 }
 
 // GenerateCloneDirName 生成 clone 目录名。
-// 自定义名称优先；自动命名格式：user-repo-YYYY-MM-DD。
+// 自定义名称优先；自动命名格式：repo-YYYY-MM-DD。
 func GenerateCloneDirName(gitURI, customName string) string {
 	return generateCloneDirNameWithDate(gitURI, customName, time.Now().Format("2006-01-02"))
 }
@@ -67,7 +78,7 @@ func generateCloneDirNameWithDate(gitURI, customName, dateSuffix string) string 
 	if parsed == nil {
 		return ""
 	}
-	return parsed.User + "-" + parsed.Repo + "-" + dateSuffix
+	return parsed.Repo + "-" + dateSuffix
 }
 
 // ResolveUniqueName 处理同名目录冲突，返回不含日期后缀的 base 名称。

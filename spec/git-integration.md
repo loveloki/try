@@ -23,14 +23,15 @@ func ResolveUniqueName(triesPath, base, dateSuffix string) string
 
 ### ParseGitURI
 
-两组通用正则覆盖所有 Git 托管平台（GitHub、GitLab、自建等）：
+三组正则提取 host 和完整路径，然后取路径最后两段作为 User 和 Repo，支持任意深度嵌套路径（如 GitLab 子分组）：
 
 | 格式 | 正则 | 匹配示例 |
 |------|------|---------|
-| HTTPS | `^https?://([^/]+)/([^/]+)/([^/]+)` | `https://github.com/user/repo`、`https://gitlab.company.com/team/project` |
-| SSH | `^git@([^:]+):([^/]+)/([^/]+)` | `git@github.com:user/repo`、`git@gitlab.company.com:team/project` |
+| HTTPS | `^https?://([^/]+)/(.+)$` | `https://github.com/user/repo`、`https://gitlab.com/group/sub/project` |
+| SSH (git@) | `^git@([^:]+):(.+)$` | `git@github.com:user/repo` |
+| SSH (ssh://) | `^ssh://(?:[^@]+@)?([^/:]+)(?:\d+)?/(.+)$` | `ssh://git@host:port/org/repo` |
 
-解析前先去掉 `.git` 后缀（`strings.TrimSuffix`）。无匹配返回 nil。
+解析前先去掉 `.git` 后缀，然后从路径中取最后两段：倒数第二段为 User，最后一段为 Repo。路径少于两段时返回 nil。
 
 ### IsGitURI
 
@@ -57,13 +58,14 @@ try exec clone <url> [name] # 包装函数内部调用
 
 `GenerateCloneDirName` 逻辑：
 - `customName` 非空 → 直接返回
-- 否则通过 `ParseGitURI` 解析，格式为 `user-repo-YYYY-MM-DD`
+- 否则通过 `ParseGitURI` 解析，格式为 `repo-YYYY-MM-DD`
 
 名称在前，提高模糊匹配命中效率。
 
 示例：
-- `try clone https://github.com/tobi/try.git` → `tobi-try-2025-08-17`
+- `try clone https://github.com/tobi/try.git` → `try-2025-08-17`
 - `try clone https://github.com/tobi/try.git my-fork` → `my-fork`
+- `try clone ssh://git@host:2222/group/sub/docs/my-tool.git` → `my-tool-2025-08-17`
 
 ### 执行流程
 

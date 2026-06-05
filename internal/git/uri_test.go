@@ -42,6 +42,9 @@ func TestParseGitURI(t *testing.T) {
 		{"ssh:// scheme standard", "ssh://git@example.com:2222/org/repo.git", "org", "repo", "example.com"},
 		{"ssh:// scheme no port", "ssh://git@example.com/user/repo.git", "user", "repo", "example.com"},
 		{"ssh:// scheme no user", "ssh://example.com/user/repo.git", "user", "repo", "example.com"},
+		{"ssh:// deep nested path", "ssh://git@code.example.com:52222/group/sub/docs/my-tool.git", "docs", "my-tool", "code.example.com"},
+		{"https deep nested path", "https://gitlab.example.com/group/subgroup/project.git", "subgroup", "project", "gitlab.example.com"},
+		{"ssh deep nested path", "git@example.com:a/b/c/repo", "c", "repo", "example.com"},
 		{"invalid url", "not-a-url", "", "", ""},
 		{"empty", "", "", "", ""},
 		{"bare path", "/tmp/repo", "", "", ""},
@@ -102,10 +105,11 @@ func TestGenerateCloneDirName(t *testing.T) {
 		customName string
 		want       string
 	}{
-		{"auto naming", "https://example.com/user/repo.git", "", "user-repo-" + date},
+		{"auto naming", "https://example.com/user/repo.git", "", "repo-" + date},
 		{"custom name", "https://example.com/user/repo.git", "my-fork", "my-fork"},
-		{"ssh auto naming", "git@example.com:user/repo", "", "user-repo-" + date},
-		{"ssh:// auto naming", "ssh://git@example.com:2222/org/repo.git", "", "org-repo-" + date},
+		{"ssh auto naming", "git@example.com:user/repo", "", "repo-" + date},
+		{"ssh:// auto naming", "ssh://git@example.com:2222/org/repo.git", "", "repo-" + date},
+		{"ssh:// deep path", "ssh://git@code.example.com:52222/a/b/c/my-tool.git", "", "my-tool-" + date},
 		{"invalid uri no custom", "not-a-url", "", ""},
 		{"invalid uri with custom", "not-a-url", "name", "name"},
 	}

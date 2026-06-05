@@ -179,13 +179,20 @@ func (m SelectorModel) Update(msg tea.Msg) (tea.Model, tea.Cmd) {
 		return m.handleKey(msg)
 	}
 
-	// 非按键消息转发给子组件
+	// 非按键消息转发给子组件（粘贴等操作可能改变输入值）
+	prevValue := m.textInput.Value()
 	var cmds []tea.Cmd
 	var cmd tea.Cmd
 	m.textInput, cmd = m.textInput.Update(msg)
 	cmds = append(cmds, cmd)
 	m.list, cmd = m.list.Update(msg)
 	cmds = append(cmds, cmd)
+
+	if m.textInput.Value() != prevValue {
+		m.list.Select(0)
+		cmds = append(cmds, m.refreshList())
+	}
+
 	return m, tea.Batch(cmds...)
 }
 

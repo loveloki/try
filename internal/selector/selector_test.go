@@ -375,6 +375,52 @@ func TestSelectorBackspace(t *testing.T) {
 	}
 }
 
+// TestSelectorPasteUpdatesFilter 验证粘贴文本后过滤结果同步更新。
+func TestSelectorPasteUpdatesFilter(t *testing.T) {
+	tmpDir := setupTestDirs(t)
+	t.Setenv("TRY_WIDTH", "80")
+	t.Setenv("TRY_HEIGHT", "24")
+
+	m := New(Config{
+		BasePath:      tmpDir,
+		ColorsEnabled: false,
+	})
+
+	var model tea.Model = m
+	model, _ = model.Update(tea.WindowSizeMsg{Width: 80, Height: 24})
+	sm := model.(SelectorModel)
+	sm.loadAllTries()
+	sm.refreshList()
+
+	totalBefore := len(sm.list.Items())
+	if totalBefore < 2 {
+		t.Fatalf("need at least 2 dirs for test, got %d", totalBefore)
+	}
+
+	// 模拟括号粘贴模式：发送 PasteMsg
+	model, _ = sm.Update(tea.PasteMsg{Content: "alpha"})
+	sm = model.(SelectorModel)
+
+	if sm.textInput.Value() != "alpha" {
+		t.Fatalf("textInput value after paste = %q, want %q", sm.textInput.Value(), "alpha")
+	}
+
+	// 粘贴后列表应仅包含匹配 "alpha" 的条目
+	if len(sm.list.Items()) >= totalBefore {
+		t.Errorf("paste should filter list: got %d items (was %d)", len(sm.list.Items()), totalBefore)
+	}
+
+	// 首项应包含 alpha
+	if item := sm.list.Items()[0]; !strings.Contains(item.(MatchedEntry).Entry.Basename, "alpha") {
+		t.Errorf("first item after paste should contain 'alpha', got %q", item.(MatchedEntry).Entry.Basename)
+	}
+
+	// 光标应重置到首项
+	if sm.list.Index() != 0 {
+		t.Errorf("cursor should reset to 0 after paste, got %d", sm.list.Index())
+	}
+}
+
 func TestParseTestKeys(t *testing.T) {
 	tests := []struct {
 		name string

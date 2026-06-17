@@ -150,7 +150,7 @@ func (m SelectorModel) Init() tea.Cmd {
 		}
 	}
 
-	return tea.Batch(cmds...)
+	return tea.Sequence(cmds...)
 }
 
 func (m SelectorModel) Update(msg tea.Msg) (tea.Model, tea.Cmd) {

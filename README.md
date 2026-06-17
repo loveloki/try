@@ -22,7 +22,7 @@
 curl -fsSL https://raw.githubusercontent.com/loveloki/try/main/install.sh | sh
 ```
 
-自动检测 OS 和架构，下载对应预编译二进制。自定义安装路径：
+自定义安装路径：
 
 ```bash
 TRY_INSTALL_DIR=~/.local/bin curl -fsSL https://raw.githubusercontent.com/loveloki/try/main/install.sh | sh
@@ -35,6 +35,8 @@ go install github.com/loveloki/try/cmd/try@latest
 ```
 
 ### Shell 集成
+
+> 一键安装脚本已自动执行 `try install`，无需手动操作。
 
 安装后运行一次 `try install` 设置 Shell 包装函数，然后重启终端。支持 Bash、Zsh、Fish。
 

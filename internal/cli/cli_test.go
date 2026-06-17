@@ -2,6 +2,7 @@ package cli
 
 import (
 	"os"
+	"path/filepath"
 	"strings"
 	"testing"
 )
@@ -14,6 +15,21 @@ func init() {
 		andConfirm, args := extractValueFlag(args, "--and-confirm")
 		return andExit, andType, andKeys, andConfirm, args
 	}
+}
+
+// setupTestConfig 创建临时 HOME 目录并写入最小配置文件，避免 LoadConfig 报错。
+func setupTestConfig(t *testing.T) string {
+	t.Helper()
+	tmpDir := t.TempDir()
+	t.Setenv("HOME", tmpDir)
+	configDir := filepath.Join(tmpDir, ".config", "try")
+	if err := os.MkdirAll(configDir, 0o755); err != nil {
+		t.Fatal(err)
+	}
+	if err := os.WriteFile(filepath.Join(configDir, "config.json"), []byte("{}\n"), 0o644); err != nil {
+		t.Fatal(err)
+	}
+	return tmpDir
 }
 
 // --- 参数解析测试 ---
@@ -92,6 +108,7 @@ func TestRunVersion(t *testing.T) {
 }
 
 func TestRunNoArgs(t *testing.T) {
+	setupTestConfig(t)
 	// 用临时空目录隔离，避免依赖用户实际的 tries 目录
 	t.Setenv("TRY_PATH", t.TempDir())
 	t.Setenv("TRY_PROJECTS", t.TempDir())
@@ -114,6 +131,7 @@ func TestRunNoArgs(t *testing.T) {
 
 // TestRunAndExit 通过 --and-exit 执行完整的 bubbletea 路径（渲染一帧后退出）
 func TestRunAndExit(t *testing.T) {
+	setupTestConfig(t)
 	t.Setenv("TRY_PATH", t.TempDir())
 	t.Setenv("TRY_PROJECTS", t.TempDir())
 
@@ -125,6 +143,7 @@ func TestRunAndExit(t *testing.T) {
 
 // TestRunAndKeysEsc 通过 --and-keys 模拟按 ESC 退出，验证 bubbletea 完整路径
 func TestRunAndKeysEsc(t *testing.T) {
+	setupTestConfig(t)
 	t.Setenv("TRY_PATH", t.TempDir())
 	t.Setenv("TRY_PROJECTS", t.TempDir())
 
@@ -136,8 +155,9 @@ func TestRunAndKeysEsc(t *testing.T) {
 
 // TestRunAndKeysCreate 完整 bubbletea 路径：输入名称 → Ctrl-T 创建目录
 func TestRunAndKeysCreate(t *testing.T) {
-	tmpDir := t.TempDir()
-	t.Setenv("TRY_PATH", tmpDir)
+	setupTestConfig(t)
+	triesDir := t.TempDir()
+	t.Setenv("TRY_PATH", triesDir)
 	t.Setenv("TRY_PROJECTS", t.TempDir())
 
 	code := Run([]string{"--and-keys", "TYPE=hello,CTRL-T"})
@@ -145,7 +165,7 @@ func TestRunAndKeysCreate(t *testing.T) {
 		t.Errorf("Run(--and-keys TYPE=hello,CTRL-T) = %d, want 0", code)
 	}
 
-	entries, _ := os.ReadDir(tmpDir)
+	entries, _ := os.ReadDir(triesDir)
 	if len(entries) == 0 {
 		t.Error("expected a directory to be created in TRY_PATH")
 	}
@@ -153,12 +173,13 @@ func TestRunAndKeysCreate(t *testing.T) {
 
 // TestRunAndKeysSelectCD 完整 bubbletea 路径：已有目录 → ENTER 选择
 func TestRunAndKeysSelectCD(t *testing.T) {
-	tmpDir := t.TempDir()
-	t.Setenv("TRY_PATH", tmpDir)
+	setupTestConfig(t)
+	triesDir := t.TempDir()
+	t.Setenv("TRY_PATH", triesDir)
 	t.Setenv("TRY_PROJECTS", t.TempDir())
 
 	// 预创建一个目录
-	os.MkdirAll(tmpDir+"/my-project", 0o755)
+	os.MkdirAll(triesDir+"/my-project", 0o755)
 
 	code := Run([]string{"--and-keys", "ENTER"})
 	if code != 0 {
@@ -168,12 +189,13 @@ func TestRunAndKeysSelectCD(t *testing.T) {
 
 // TestRunSearchTermAndSelect 带搜索词启动 → default 路由 → bubbletea
 func TestRunSearchTermAndSelect(t *testing.T) {
-	tmpDir := t.TempDir()
-	t.Setenv("TRY_PATH", tmpDir)
+	setupTestConfig(t)
+	triesDir := t.TempDir()
+	t.Setenv("TRY_PATH", triesDir)
 	t.Setenv("TRY_PROJECTS", t.TempDir())
 
-	os.MkdirAll(tmpDir+"/alpha-project", 0o755)
-	os.MkdirAll(tmpDir+"/beta-project", 0o755)
+	os.MkdirAll(triesDir+"/alpha-project", 0o755)
+	os.MkdirAll(triesDir+"/beta-project", 0o755)
 
 	// "alpha" 作为搜索词，应过滤出 alpha-project 并选中
 	code := Run([]string{"--and-keys", "ENTER", "alpha"})
@@ -185,8 +207,9 @@ func TestRunSearchTermAndSelect(t *testing.T) {
 // TestRunFullWorkflow 模拟完整用户流程：创建 → 选择 → 删除
 // 每个操作都经过完整 bubbletea 路径
 func TestRunFullWorkflow(t *testing.T) {
-	tmpDir := t.TempDir()
-	t.Setenv("TRY_PATH", tmpDir)
+	setupTestConfig(t)
+	triesDir := t.TempDir()
+	t.Setenv("TRY_PATH", triesDir)
 	t.Setenv("TRY_PROJECTS", t.TempDir())
 
 	// 1. 创建目录
@@ -194,7 +217,7 @@ func TestRunFullWorkflow(t *testing.T) {
 	if code != 0 {
 		t.Fatalf("create: exit %d, want 0", code)
 	}
-	entries, _ := os.ReadDir(tmpDir)
+	entries, _ := os.ReadDir(triesDir)
 	if len(entries) != 1 {
 		t.Fatalf("create: expected 1 dir, got %d", len(entries))
 	}
@@ -214,13 +237,16 @@ func TestRunFullWorkflow(t *testing.T) {
 	if code != 0 {
 		t.Errorf("delete: exit %d, want 0", code)
 	}
-	entries, _ = os.ReadDir(tmpDir)
+	entries, _ = os.ReadDir(triesDir)
 	if len(entries) != 0 {
 		t.Errorf("delete: expected 0 dirs after delete, got %d", len(entries))
 	}
 }
 
 func TestRunCloneNoURL(t *testing.T) {
+	setupTestConfig(t)
+	t.Setenv("TRY_PATH", t.TempDir())
+	t.Setenv("TRY_PROJECTS", t.TempDir())
 	code := Run([]string{"clone"})
 	if code != 1 {
 		t.Errorf("Run(clone) = %d, want 1", code)
@@ -312,14 +338,22 @@ func TestWorktreePath(t *testing.T) {
 // --- parseGlobalFlags 测试 ---
 
 func TestParseGlobalFlagsAndExit(t *testing.T) {
-	opts, _ := parseGlobalFlags([]string{"--and-exit", "exec"})
+	setupTestConfig(t)
+	opts, _, err := parseGlobalFlags([]string{"--and-exit", "exec"})
+	if err != nil {
+		t.Fatalf("parseGlobalFlags() returned error: %v", err)
+	}
 	if !opts.andExit {
 		t.Error("--and-exit should be true")
 	}
 }
 
 func TestParseGlobalFlagsAndType(t *testing.T) {
-	opts, _ := parseGlobalFlags([]string{"--and-type", "hello", "exec"})
+	setupTestConfig(t)
+	opts, _, err := parseGlobalFlags([]string{"--and-type", "hello", "exec"})
+	if err != nil {
+		t.Fatalf("parseGlobalFlags() returned error: %v", err)
+	}
 	if opts.andType != "hello" {
 		t.Errorf("andType = %q, want %q", opts.andType, "hello")
 	}

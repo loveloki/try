@@ -38,7 +38,7 @@ go install github.com/loveloki/try/cmd/try@latest
 
 > 一键安装脚本已自动执行 `try install`，无需手动操作。
 
-安装后运行一次 `try install` 设置 Shell 包装函数，然后重启终端。支持 Bash、Zsh、Fish。
+安装后运行一次 `try install` 设置 Shell 包装函数并自动创建默认配置文件，然后重启终端。支持 Bash、Zsh、Fish。
 
 ### 支持的平台
 
@@ -78,7 +78,7 @@ try --version          # 查看版本号
 
 ## 配置
 
-配置文件位于 `~/.config/try/config.json`，JSON 格式：
+配置文件位于 `~/.config/try/config.json`，运行 `try install` 时自动生成，JSON 格式：
 
 ```json
 {
@@ -89,6 +89,8 @@ try --version          # 查看版本号
 ```
 
 所有字段均可省略，未设置时使用默认值。各配置项的优先级均为：环境变量 > 配置文件 > 默认值。
+
+配置文件解析失败 `try` 会报错退出。
 
 | 配置项 | 环境变量 | 默认值 | 说明 |
 |--------|----------|--------|------|

@@ -5,10 +5,13 @@ import (
 	"testing"
 )
 
-// checkParse 封装配置解析的测试逻辑，API 变更时只改这一处
-func checkParse(t *testing.T, content string, want Config) {
+// checkParseOK 封装成功路径的配置解析测试逻辑
+func checkParseOK(t *testing.T, content string, want Config) {
 	t.Helper()
-	got := parseConfigData([]byte(content))
+	got, err := parseConfigData([]byte(content))
+	if err != nil {
+		t.Fatalf("parseConfigData(%q) returned error: %v", content, err)
+	}
 	if got.Path != want.Path {
 		t.Errorf("Path = %q, want %q", got.Path, want.Path)
 	}
@@ -27,14 +30,28 @@ func checkParse(t *testing.T, content string, want Config) {
 }
 
 func TestParseConfigData(t *testing.T) {
+	// 解析失败的用例
+	t.Run("empty", func(t *testing.T) {
+		_, err := parseConfigData([]byte(""))
+		if err == nil {
+			t.Error("parseConfigData('') should return error")
+		}
+	})
+
+	t.Run("invalid json", func(t *testing.T) {
+		_, err := parseConfigData([]byte("not json"))
+		if err == nil {
+			t.Error("parseConfigData('not json') should return error")
+		}
+	})
+
+	// 解析成功的用例
 	d := Config{Path: "~/src/tries", Ships: []string{"~/src/ship", "~/src/bug"}, Locale: "auto"}
-	tests := []struct {
+	successCases := []struct {
 		name    string
 		content string
 		want    Config
 	}{
-		{"empty", "", d},
-		{"invalid json", "not json", d},
 		{"empty object", "{}", d},
 		{"full config with ships", `{"path":"~/my/tries","ships":["~/my/ship","~/my/bug"],"locale":"zh"}`,
 			Config{Path: "~/my/tries", Ships: []string{"~/my/ship", "~/my/bug"}, Locale: "zh"}},
@@ -48,9 +65,9 @@ func TestParseConfigData(t *testing.T) {
 			Config{Path: "/a", Ships: []string{"/b"}, Locale: "auto"}},
 	}
 
-	for _, tt := range tests {
+	for _, tt := range successCases {
 		t.Run(tt.name, func(t *testing.T) {
-			checkParse(t, tt.content, tt.want)
+			checkParseOK(t, tt.content, tt.want)
 		})
 	}
 }
@@ -241,6 +258,87 @@ func TestResolveLocale(t *testing.T) {
 			}
 		})
 	}
+}
+
+func TestInitConfigFile(t *testing.T) {
+	t.Run("creates default config when file does not exist", func(t *testing.T) {
+		tmpDir := t.TempDir()
+		t.Setenv("HOME", tmpDir)
+
+		created, err := InitConfigFile()
+		if err != nil {
+			t.Fatalf("InitConfigFile() returned error: %v", err)
+		}
+		if !created {
+			t.Error("InitConfigFile() should return true when creating a new config")
+		}
+
+		content, err := os.ReadFile(tmpDir + "/.config/try/config.json")
+		if err != nil {
+			t.Fatalf("config file was not created: %v", err)
+		}
+
+		cfg, err := parseConfigData(content)
+		if err != nil {
+			t.Fatalf("config file content is invalid: %v", err)
+		}
+		if cfg.Path != "~/src/tries" {
+			t.Errorf("Path = %q, want %q", cfg.Path, "~/src/tries")
+		}
+		if len(cfg.Ships) != 2 || cfg.Ships[0] != "~/src/ship" || cfg.Ships[1] != "~/src/bug" {
+			t.Errorf("Ships = %v, want %v", cfg.Ships, []string{"~/src/ship", "~/src/bug"})
+		}
+		if cfg.Locale != "auto" {
+			t.Errorf("Locale = %q, want %q", cfg.Locale, "auto")
+		}
+	})
+
+	t.Run("does not overwrite existing config", func(t *testing.T) {
+		tmpDir := t.TempDir()
+		t.Setenv("HOME", tmpDir)
+
+		configDir := tmpDir + "/.config/try"
+		if err := os.MkdirAll(configDir, 0o755); err != nil {
+			t.Fatal(err)
+		}
+		customContent := []byte(`{"path":"/custom/path"}` + "\n")
+		if err := os.WriteFile(configDir+"/config.json", customContent, 0o644); err != nil {
+			t.Fatal(err)
+		}
+
+		created, err := InitConfigFile()
+		if err != nil {
+			t.Fatalf("InitConfigFile() returned error: %v", err)
+		}
+		if created {
+			t.Error("InitConfigFile() should return false when config already exists")
+		}
+
+		content, err := os.ReadFile(configDir + "/config.json")
+		if err != nil {
+			t.Fatal(err)
+		}
+		if string(content) != string(customContent) {
+			t.Errorf("existing config was overwritten\ngot:  %q\nwant: %q", string(content), string(customContent))
+		}
+	})
+
+	t.Run("error when home dir is invalid", func(t *testing.T) {
+		// HOME is set to empty to cause os.UserHomeDir() to still work,
+		// so we instead test by making the path unwritable via chmod.
+		tmpDir := t.TempDir()
+		t.Setenv("HOME", tmpDir)
+
+		// Make the directory read-only so MkdirAll fails
+		if err := os.Chmod(tmpDir, 0o444); err != nil {
+			t.Fatal(err)
+		}
+		t.Cleanup(func() { os.Chmod(tmpDir, 0o755) })
+
+		if _, err := InitConfigFile(); err == nil {
+			t.Error("InitConfigFile() should return error when config dir cannot be created")
+		}
+	})
 }
 
 func TestExpandPath(t *testing.T) {

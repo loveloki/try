@@ -34,8 +34,7 @@ type runOptions struct {
 
 // Run 是 CLI 的主入口，返回退出码
 func Run(args []string) int {
-	opts, args := parseGlobalFlags(args)
-
+	// --help 和 --version 不需要配置文件
 	if hasFlag(args, "--help", "-h") {
 		fmt.Fprintln(os.Stderr, i18n.Get().HelpText)
 		return 2
@@ -45,25 +44,38 @@ func Run(args []string) int {
 		return 0
 	}
 
-	if len(args) == 0 {
-		return runSelector(opts, "")
-	}
-
-	switch args[0] {
-	case "install":
+	// install 命令不需要已有配置文件，它会创建默认配置
+	if len(args) > 0 && args[0] == "install" {
+		if _, err := config.InitConfigFile(); err != nil {
+			fmt.Fprintln(os.Stderr, err)
+			return 1
+		}
 		if err := shell.Install(); err != nil {
 			fmt.Fprintln(os.Stderr, err)
 			return 1
 		}
 		return 0
+	}
+
+	opts, remaining, err := parseGlobalFlags(args)
+	if err != nil {
+		fmt.Fprintln(os.Stderr, err)
+		return 1
+	}
+
+	if len(remaining) == 0 {
+		return runSelector(opts, "")
+	}
+
+	switch remaining[0] {
 	case "clone":
-		return cmdClone(opts, args[1:])
+		return cmdClone(opts, remaining[1:])
 	case "worktree":
-		return cmdWorktree(opts, args[1:])
+		return cmdWorktree(opts, remaining[1:])
 	case "exec":
-		return cmdExec(opts, args[1:])
+		return cmdExec(opts, remaining[1:])
 	default:
-		return runSelector(opts, strings.Join(args, "-"))
+		return runSelector(opts, strings.Join(remaining, "-"))
 	}
 }
 
@@ -72,13 +84,17 @@ var extractTestFlags = func(args []string) (andExit bool, andType, andKeys, andC
 	return false, "", "", "", args
 }
 
-// parseGlobalFlags 从参数中提取全局选项，返回运行配置和剩余参数
-func parseGlobalFlags(args []string) (runOptions, []string) {
+// parseGlobalFlags 从参数中提取全局选项，返回运行配置和剩余参数。
+// 配置文件不存在时返回 error。
+func parseGlobalFlags(args []string) (runOptions, []string, error) {
 	colorsEnabled := true
 
 	andExit, andType, andKeys, andConfirm, args := extractTestFlags(args)
 
-	cfg := config.LoadConfig()
+	cfg, err := config.LoadConfig()
+	if err != nil {
+		return runOptions{}, args, fmt.Errorf("try: %w\n\tRun 'try install' to create a default config", err)
+	}
 	triesPath, shipPaths := config.ResolvePaths("", cfg)
 	locale := config.ResolveLocale("", cfg)
 	i18n.Init(locale)
@@ -92,7 +108,7 @@ func parseGlobalFlags(args []string) (runOptions, []string) {
 		andType:       andType,
 		andKeys:       andKeys,
 		andConfirm:    andConfirm,
-	}, args
+	}, args, nil
 }
 
 // runSelector 启动交互式选择器

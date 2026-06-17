@@ -23,25 +23,25 @@ var defaultConfig = Config{
 	Locale: "auto",
 }
 
-// LoadConfig 从 ~/.config/try/config.json 读取配置，合并默认值。
-// 配置文件不存在不报错，静默使用默认值。
-func LoadConfig() Config {
+// LoadConfig 从 ~/.config/try/config.json 读取配置。
+// 文件不存在、空文件或 JSON 语法错误时返回 error。
+func LoadConfig() (Config, error) {
 	home, err := os.UserHomeDir()
 	if err != nil {
-		return defaultConfig
+		return Config{}, fmt.Errorf("failed to get home directory: %w", err)
 	}
 	data, err := os.ReadFile(filepath.Join(home, ".config", "try", "config.json"))
 	if err != nil {
-		return defaultConfig
+		return Config{}, fmt.Errorf("cannot read config ~/.config/try/config.json: %w", err)
 	}
 	return parseConfigData(data)
 }
 
 // parseConfigData 解析 JSON 格式的配置内容，未设置的字段保留默认值。
-// 空内容视为无配置（不告警），JSON 语法错误时输出 warning。
-func parseConfigData(data []byte) Config {
+// 空文件或 JSON 语法错误时返回 error。
+func parseConfigData(data []byte) (Config, error) {
 	if len(data) == 0 {
-		return defaultConfig
+		return Config{}, fmt.Errorf("config file is empty")
 	}
 
 	// 先解析到一个 Ships 为 nil 的结构，以区分"未设置"和"设置为空"
@@ -51,8 +51,7 @@ func parseConfigData(data []byte) Config {
 		Locale string   `json:"locale"`
 	}
 	if err := json.Unmarshal(data, &raw); err != nil {
-		fmt.Fprintf(os.Stderr, "try: failed to parse config, using defaults: %v\n", err)
-		return defaultConfig
+		return Config{}, fmt.Errorf("failed to parse config: %w", err)
 	}
 
 	cfg := defaultConfig
@@ -66,7 +65,7 @@ func parseConfigData(data []byte) Config {
 		cfg.Ships = raw.Ships
 	}
 
-	return cfg
+	return cfg, nil
 }
 
 // ResolvePaths 按优先级解析 tries 和 ship 路径。
@@ -136,6 +135,38 @@ func DetectLocale() string {
 		}
 	}
 	return "en"
+}
+
+// InitConfigFile 在 ~/.config/try/config.json 创建默认配置文件（如果不存在）。
+// 文件已存在时返回 (false, nil)，新创建时返回 (true, nil)。
+func InitConfigFile() (bool, error) {
+	home, err := os.UserHomeDir()
+	if err != nil {
+		return false, err
+	}
+	path := filepath.Join(home, ".config", "try", "config.json")
+
+	// 文件已存在，不做任何事
+	if _, err := os.Stat(path); err == nil {
+		return false, nil
+	}
+
+	// 创建目录
+	if err := os.MkdirAll(filepath.Dir(path), 0o755); err != nil {
+		return false, fmt.Errorf("failed to create config directory: %w", err)
+	}
+
+	// 写入默认配置
+	data, err := json.MarshalIndent(defaultConfig, "", "  ")
+	if err != nil {
+		return false, fmt.Errorf("failed to marshal default config: %w", err)
+	}
+	data = append(data, '\n')
+
+	if err := os.WriteFile(path, data, 0o644); err != nil {
+		return false, fmt.Errorf("failed to write config file: %w", err)
+	}
+	return true, nil
 }
 
 // ExpandPath 展开 ~ 为用户 home 目录

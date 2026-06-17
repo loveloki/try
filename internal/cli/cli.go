@@ -70,19 +70,6 @@ func Run(args []string) int {
 // parseGlobalFlags 从参数中提取全局选项，返回运行配置和剩余参数
 func parseGlobalFlags(args []string) (runOptions, []string) {
 	colorsEnabled := true
-	args = filterFlags(args, func(flag string) bool {
-		if flag == "--no-colors" || flag == "--no-expand-tokens" {
-			colorsEnabled = false
-			return true
-		}
-		return false
-	})
-	if os.Getenv("NO_COLOR") != "" {
-		colorsEnabled = false
-	}
-
-	cliPath, args := extractPath(args)
-	cliLocale, args := extractValueFlag(args, "--locale")
 
 	andExit, args := extractBoolFlag(args, "--and-exit")
 	andType, args := extractValueFlag(args, "--and-type")
@@ -90,8 +77,8 @@ func parseGlobalFlags(args []string) (runOptions, []string) {
 	andConfirm, args := extractValueFlag(args, "--and-confirm")
 
 	cfg := config.LoadConfig()
-	triesPath, shipPaths := config.ResolvePaths(cliPath, cfg)
-	locale := config.ResolveLocale(cliLocale, cfg)
+	triesPath, shipPaths := config.ResolvePaths("", cfg)
+	locale := config.ResolveLocale("", cfg)
 	i18n.Init(locale)
 
 	return runOptions{

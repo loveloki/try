@@ -16,13 +16,7 @@ charm.land/lipgloss/v2     # 样式
 
 ### 全局开关
 
-`--no-colors` / `NO_COLOR` 环境变量禁用所有样式。
-
-```go
-func newStyles(colorsEnabled bool) *styles
-```
-
-`colorsEnabled` 为 false 时所有样式设为空（无颜色、无加粗）。颜色降采样交由 bubbletea v2 内置渲染器处理，`newStyles` 不做额外 colorprofile 降采样以避免双重转换导致背景色丢失。
+颜色始终启用。`newStyles` 始终返回带完整样式的配置。颜色降采样交由 bubbletea v2 内置渲染器处理，`newStyles` 不做额外 colorprofile 降采样以避免双重转换导致背景色丢失。
 
 ### 主题系统
 

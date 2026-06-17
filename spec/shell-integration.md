@@ -83,7 +83,7 @@ end
 
 - `binaryPath`：try 二进制的绝对路径（`os.Executable()` 解析符号链接后的路径），用 `quote()` 包裹
 
-包装函数不嵌入 `--path`。路径解析由 try 内部按优先级处理：`--path` 参数 > 环境变量 > `~/.config/try/config.json` > 默认值（详见 `config.md`）。
+包装函数不嵌入路径。路径解析由 try 内部按优先级处理：环境变量 > `~/.config/try/config.json` > 默认值（详见 `config.md`）。
 
 ## try install
 

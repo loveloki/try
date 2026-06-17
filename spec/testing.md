@@ -42,7 +42,7 @@ go test -race -cover ./... # 完整检查
 - 用途：验证显示内容（排序、格式、条目列表）
 
 ```bash
-output=$(try_run --path="$TEST_TRIES" --and-exit exec 2>&1)
+output=$(TRY_PATH="$TEST_TRIES" try_run --and-exit exec 2>&1)
 echo "$output" | grep -q "expected text"
 ```
 
@@ -65,7 +65,7 @@ echo "$output" | grep -q "expected text"
 注入初始搜索文本（不需要逐字符输入）。
 
 ```bash
-output=$(try_run --path="$TEST_TRIES" --and-type="beta" --and-exit exec 2>&1)
+output=$(TRY_PATH="$TEST_TRIES" try_run --and-type="beta" --and-exit exec 2>&1)
 ```
 
 ### --and-confirm
@@ -73,7 +73,7 @@ output=$(try_run --path="$TEST_TRIES" --and-type="beta" --and-exit exec 2>&1)
 注入删除确认文本。
 
 ```bash
-output=$(try_run --path="$TEST_TRIES" --and-keys='CTRL-D,ENTER' --and-confirm='YES' exec 2>/dev/null)
+output=$(TRY_PATH="$TEST_TRIES" try_run --and-keys='CTRL-D,ENTER' --and-confirm='YES' exec 2>/dev/null)
 ```
 
 ## 测试覆盖范围
@@ -97,7 +97,7 @@ output=$(try_run --path="$TEST_TRIES" --and-keys='CTRL-D,ENTER' --and-confirm='Y
 ### 模式 1：验证 TUI 渲染内容
 
 ```bash
-output=$(try_run --path="$TEST_TRIES" --and-exit exec 2>&1)
+output=$(TRY_PATH="$TEST_TRIES" try_run --and-exit exec 2>&1)
 if echo "$output" | grep -q "expected text"; then
     pass
 else
@@ -110,7 +110,7 @@ fi
 ### 模式 2：验证选择后的脚本输出
 
 ```bash
-output=$(try_run --path="$TEST_TRIES" --and-keys="query"$'\r' exec 2>/dev/null)
+output=$(TRY_PATH="$TEST_TRIES" try_run --and-keys="query"$'\r' exec 2>/dev/null)
 if echo "$output" | grep -q "cd '"; then
     pass
 fi
@@ -121,7 +121,7 @@ fi
 ### 模式 3：验证退出码
 
 ```bash
-try_run --path="$TEST_TRIES" --and-keys=$'\x1b' exec >/dev/null 2>&1
+TRY_PATH="$TEST_TRIES" try_run --and-keys=$'\x1b' exec >/dev/null 2>&1
 if [ $? -eq 1 ]; then pass; fi
 ```
 

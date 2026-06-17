@@ -8,12 +8,9 @@
 
 ```
 1. parseGlobalFlags：
-   a. 提取颜色标志：--no-colors / --no-expand-tokens + NO_COLOR 环境变量
-   b. 提取 --path VALUE
-   c. 提取 --locale VALUE
-   d. 提取测试参数：--and-exit、--and-type、--and-keys、--and-confirm
-   e. LoadConfig 加载配置文件
-   f. ResolvePaths / ResolveLocale 合并优先级
+   a. 提取测试参数：--and-exit、--and-type、--and-keys、--and-confirm
+   b. LoadConfig 加载配置文件
+   c. ResolvePaths / ResolveLocale 合并优先级
 2. 检查 --help / -h → 输出帮助并退出
 3. 检查 --version / -v → 输出版本并退出
 4. shift 出第一个非选项参数作为 command
@@ -26,29 +23,13 @@
 |------|------|
 | `--help` / `-h` | 输出帮助到 stderr 并退出 |
 | `--version` / `-v` | 输出版本到 stderr 并退出 |
-| `--no-colors` | 禁用 ANSI 颜色（Lipgloss 不渲染样式） |
-| `--no-expand-tokens` | 与 `--no-colors` 等效（别名，保持向后兼容） |
-| `--path PATH` | 覆盖 tries 根目录（支持 `--path=VALUE` 和 `--path VALUE` 两种形式） |
-| `--locale en\|zh` | 界面语言（覆盖配置文件和环境变量） |
-
-环境变量：
-- `NO_COLOR`（非空时）等效于 `--no-colors`，遵循 [no-color.org](https://no-color.org/) 标准
-
-## --path 提取逻辑
-
-从 args 切片中查找最后一个 `--path` 或 `--path=VALUE` 参数：
-
-- 使用反向搜索（最后一个生效）
-- 支持 `--path VALUE`（两个参数）和 `--path=VALUE`（单参数）两种形式
-- 提取后从 args 中删除，不影响后续解析
 
 ## tries 路径解析优先级
 
 ```
-1. --path 参数（显式指定）
-2. TRY_PATH 环境变量
-3. ~/.config/try/config.json 中的 path
-4. 默认值 ~/src/tries
+1. TRY_PATH 环境变量
+2. ~/.config/try/config.json 中的 path
+3. 默认值 ~/src/tries
 ```
 
 最终结果展开为绝对路径。详见 `config.md`。
@@ -147,7 +128,7 @@ CLI 解析完成后，构造 `selector.Config` 并启动 Bubbletea Program。关
 | `TestRenderOnce` | `--and-exit` |
 | `TestKeys` | `--and-keys`（已通过 `parseTestKeys` 解析） |
 | `TestConfirm` | `--and-confirm` |
-| `ColorsEnabled` | `--no-colors` / `NO_COLOR` 取反 |
+| `ColorsEnabled` | 始终为 `true` |
 | `Messages` | `i18n.ForLocale(opts.locale)` |
 
 创建 model 后通过 `SetDialogFactory` 注入对话框工厂，以 `tea.WithOutput(os.Stderr)` 启动 Program。

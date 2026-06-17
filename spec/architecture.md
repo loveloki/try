@@ -177,7 +177,6 @@ SelectorModel 维护以下状态：
 | `TRY_PATH` | tries 根目录（优先于配置文件） | `~/src/tries` |
 | `TRY_PROJECTS` | ship 目标目录（优先于配置文件） | `~/src/ship` |
 | `TRY_LOCALE` | 界面语言（`en` / `zh`，优先于配置文件） | `auto` |
-| `NO_COLOR` | 非空时禁用颜色 | — |
 | `TRY_WIDTH` | 覆盖终端宽度（测试用） | — |
 | `TRY_HEIGHT` | 覆盖终端高度（测试用） | — |
 

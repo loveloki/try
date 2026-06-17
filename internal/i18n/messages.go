@@ -124,9 +124,6 @@ Usage:
 Options:
   --help, -h           Show help
   --version, -v        Show version
-  --path PATH          Set tries root directory
-  --locale en|zh       UI language (default: auto detect)
-  --no-colors          Disable colors
 
 Shortcuts:
   Enter    Select/Confirm
@@ -218,9 +215,6 @@ var ZH = Messages{
 选项:
   --help, -h           显示帮助
   --version, -v        显示版本
-  --path PATH          指定 tries 根目录
-  --locale en|zh       界面语言（默认 auto 自动检测）
-  --no-colors          禁用颜色
 
 快捷键:
   Enter    选择/确认

@@ -86,14 +86,13 @@ try --version          # 查看版本号
 }
 ```
 
-所有字段均可省略，未设置时使用默认值。各配置项的优先级均为：命令行参数 > 环境变量 > 配置文件 > 默认值。
+所有字段均可省略，未设置时使用默认值。各配置项的优先级均为：环境变量 > 配置文件 > 默认值。
 
-| 配置项 | 环境变量 | 命令行参数 | 默认值 | 说明 |
-|--------|----------|-----------|--------|------|
-| `path` | `TRY_PATH` | `--path` | `~/src/tries` | tries 根目录 |
-| `ships` | `TRY_PROJECTS` | — | `["~/src/ship", "~/src/bug"]` | ship 目标目录列表 |
-| `locale` | `TRY_LOCALE` | `--locale` | `auto` | 界面语言（`en` / `zh` / `auto`） |
-| — | `NO_COLOR` | `--no-colors`, `--no-expand-tokens` | — | 禁用 ANSI 颜色 |
+| 配置项 | 环境变量 | 默认值 | 说明 |
+|--------|----------|--------|------|
+| `path` | `TRY_PATH` | `~/src/tries` | tries 根目录 |
+| `ships` | `TRY_PROJECTS` | `["~/src/ship", "~/src/bug"]` | ship 目标目录列表 |
+| `locale` | `TRY_LOCALE` | `auto` | 界面语言（`en` / `zh` / `auto`） |
 
 ## 项目结构
 

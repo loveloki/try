@@ -8,37 +8,6 @@ import (
 
 // --- 参数解析测试 ---
 
-func checkExtractPath(t *testing.T, args []string, wantPath string, wantRemainingLen int) {
-	t.Helper()
-	path, remaining := extractPath(args)
-	if path != wantPath {
-		t.Errorf("extractPath(%v) path = %q, want %q", args, path, wantPath)
-	}
-	if len(remaining) != wantRemainingLen {
-		t.Errorf("extractPath(%v) remaining len = %d, want %d", args, len(remaining), wantRemainingLen)
-	}
-}
-
-func TestExtractPath(t *testing.T) {
-	tests := []struct {
-		name             string
-		args             []string
-		wantPath         string
-		wantRemainingLen int
-	}{
-		{"no path", []string{"exec", "query"}, "", 2},
-		{"--path value", []string{"--path", "/custom", "exec"}, "/custom", 1},
-		{"--path=value", []string{"--path=/custom", "exec"}, "/custom", 1},
-		{"last wins", []string{"--path", "/a", "--path", "/b", "exec"}, "/b", 1},
-	}
-
-	for _, tt := range tests {
-		t.Run(tt.name, func(t *testing.T) {
-			checkExtractPath(t, tt.args, tt.wantPath, tt.wantRemainingLen)
-		})
-	}
-}
-
 func TestExtractBoolFlag(t *testing.T) {
 	found, remaining := extractBoolFlag([]string{"--and-exit", "exec"}, "--and-exit")
 	if !found {
@@ -92,15 +61,6 @@ func TestHasFlag(t *testing.T) {
 	}
 	if hasFlag([]string{"exec"}, "--help", "-h") {
 		t.Error("should not find help flag")
-	}
-}
-
-func TestFilterFlags(t *testing.T) {
-	result := filterFlags([]string{"--no-colors", "exec", "query"}, func(f string) bool {
-		return f == "--no-colors"
-	})
-	if len(result) != 2 || result[0] != "exec" {
-		t.Errorf("result = %v, want [exec query]", result)
 	}
 }
 
@@ -340,34 +300,6 @@ func TestWorktreePath(t *testing.T) {
 }
 
 // --- parseGlobalFlags 测试 ---
-
-func TestParseGlobalFlagsNoColor(t *testing.T) {
-	opts, remaining := parseGlobalFlags([]string{"--no-colors", "exec", "query"})
-	if opts.colorsEnabled {
-		t.Error("--no-colors should disable colors")
-	}
-	if len(remaining) != 2 || remaining[0] != "exec" {
-		t.Errorf("remaining = %v, want [exec query]", remaining)
-	}
-}
-
-func TestParseGlobalFlagsNO_COLOR(t *testing.T) {
-	t.Setenv("NO_COLOR", "1")
-	opts, _ := parseGlobalFlags([]string{"exec"})
-	if opts.colorsEnabled {
-		t.Error("NO_COLOR env should disable colors")
-	}
-}
-
-func TestParseGlobalFlagsLocale(t *testing.T) {
-	opts, remaining := parseGlobalFlags([]string{"--locale", "zh", "exec"})
-	if opts.locale != "zh" {
-		t.Errorf("locale = %q, want %q", opts.locale, "zh")
-	}
-	if len(remaining) != 1 || remaining[0] != "exec" {
-		t.Errorf("remaining = %v, want [exec]", remaining)
-	}
-}
 
 func TestParseGlobalFlagsAndExit(t *testing.T) {
 	opts, _ := parseGlobalFlags([]string{"--and-exit", "exec"})

@@ -53,10 +53,12 @@ try                    # 打开选择器
 try redis              # 模糊搜索 "redis"
 try clone <url>        # 克隆 Git 仓库到 tries 目录
 try clone <url> name   # 克隆并指定目录名
-try worktree . name    # 从当前仓库创建 worktree
-try . name             # 创建 worktree 或目录（简写）
+try <git-url>          # 自动识别 Git URL 并 clone
+try worktree <dir> name # 从指定仓库创建 worktree
+try . name             # 创建 worktree（有 .git）或普通目录
 try install            # 安装 Shell 集成
 try --help             # 查看完整帮助
+try --version          # 查看版本号
 ```
 
 ## 快捷键
@@ -91,21 +93,41 @@ try --help             # 查看完整帮助
 | `path` | `TRY_PATH` | `--path` | `~/src/tries` | tries 根目录 |
 | `ships` | `TRY_PROJECTS` | — | `["~/src/ship", "~/src/bug"]` | ship 目标目录列表 |
 | `locale` | `TRY_LOCALE` | `--locale` | `auto` | 界面语言（`en` / `zh` / `auto`） |
+| — | `NO_COLOR` | `--no-colors`, `--no-expand-tokens` | — | 禁用 ANSI 颜色 |
 
 ## 项目结构
 
 ```
-cmd/try/main.go          # 入口
+cmd/try/main.go              # 入口
 internal/
-  cli/                   # CLI 参数解析与命令分派
-  config/                # 配置文件解析（JSON）
-  selector/              # 交互式选择器（Bubbletea TUI）
-  dialog/                # 对话框（删除/重命名/Ship）
-  fuzzy/                 # 模糊匹配引擎
-  i18n/                  # 国际化（中英文界面文本）
-  script/                # 脚本生成与文件操作
-  shell/                 # Shell 检测与集成安装
-  git/                   # Git URI 解析与目录命名
+  cli/                       # CLI 参数解析与命令分派
+    cli.go                     # 主入口（Run）、全局标志解析
+    commands.go                # 子命令实现（clone/worktree/exec/dot）
+    flags.go                   # 标志提取工具
+  config/                    # 配置文件解析（JSON）、主题/语言检测
+  selector/                  # 交互式选择器（Bubbletea TUI）
+    model.go                   # 核心状态与生命周期
+    view.go                    # 渲染（标题/搜索/来源标签/状态栏）
+    delegate.go                # 列表条目自定义渲染
+    keyhandler.go              # 按键分派
+    keys.go                    # 按键绑定定义
+    entry.go                   # 条目类型与选择结果
+    dialogs.go                 # 对话框实例接口与工厂模式
+    overlay.go                 # 模态弹窗合成
+    loader.go                  # 目录扫描、模糊匹配与列表刷新
+  dialog/                    # 对话框实现（删除/重命名/Ship）
+    dialog.go                    # Dialog 接口定义
+    delete.go / delete_styles.go # 删除确认弹窗
+    rename.go                    # 重命名输入弹窗
+    ship.go                      # Ship 目标选择弹窗
+    modal.go                     # 弹窗盒子渲染工具
+  fuzzy/                     # 模糊匹配引擎（时间权重 + 子序列评分）
+  i18n/                      # 国际化（中英文界面文本，10 组 62 个字段）
+  script/                    # 脚本生成（cd 指令）与操作执行
+    script.go                    # EmitCd / Quote
+    exec.go                      # Execute（cd/mkdir/clone/worktree/delete/rename/ship）
+  shell/                     # Shell 检测与集成安装（bash/zsh/fish）
+  git/                       # Git URI 解析与目录命名
 ```
 
 ## 技术栈

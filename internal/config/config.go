@@ -12,7 +12,6 @@ import (
 type Config struct {
 	Path   string   `json:"path"`   // tries 根目录
 	Ships  []string `json:"ships"`  // ship 目标目录列表
-	Ship   string   `json:"ship"`   // 兼容旧配置的单一 ship 目录
 	Locale string   `json:"locale"` // 语言：en / zh / auto
 }
 
@@ -49,7 +48,6 @@ func parseConfigData(data []byte) Config {
 	var raw struct {
 		Path   string   `json:"path"`
 		Ships  []string `json:"ships"`
-		Ship   string   `json:"ship"`
 		Locale string   `json:"locale"`
 	}
 	if err := json.Unmarshal(data, &raw); err != nil {
@@ -64,15 +62,8 @@ func parseConfigData(data []byte) Config {
 	if raw.Locale != "" {
 		cfg.Locale = raw.Locale
 	}
-	if raw.Ship != "" {
-		cfg.Ship = raw.Ship
-	}
-
-	// ships 字段优先；其次兼容旧 ship 字段
 	if len(raw.Ships) > 0 {
 		cfg.Ships = raw.Ships
-	} else if raw.Ship != "" {
-		cfg.Ships = []string{raw.Ship}
 	}
 
 	return cfg

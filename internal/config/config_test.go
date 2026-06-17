@@ -38,8 +38,6 @@ func TestParseConfigData(t *testing.T) {
 		{"empty object", "{}", d},
 		{"full config with ships", `{"path":"~/my/tries","ships":["~/my/ship","~/my/bug"],"locale":"zh"}`,
 			Config{Path: "~/my/tries", Ships: []string{"~/my/ship", "~/my/bug"}, Locale: "zh"}},
-		{"legacy ship field", `{"path":"~/my/tries","ship":"~/my/ship"}`,
-			Config{Path: "~/my/tries", Ships: []string{"~/my/ship"}, Locale: "auto"}},
 		{"only path", `{"path":"/custom"}`,
 			Config{Path: "/custom", Ships: []string{"~/src/ship", "~/src/bug"}, Locale: "auto"}},
 		{"only ships", `{"ships":["/custom/a","/custom/b"]}`,

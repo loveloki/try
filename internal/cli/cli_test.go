@@ -6,6 +6,16 @@ import (
 	"testing"
 )
 
+func init() {
+	extractTestFlags = func(args []string) (bool, string, string, string, []string) {
+		andExit, args := extractBoolFlag(args, "--and-exit")
+		andType, args := extractValueFlag(args, "--and-type")
+		andKeys, args := extractValueFlag(args, "--and-keys")
+		andConfirm, args := extractValueFlag(args, "--and-confirm")
+		return andExit, andType, andKeys, andConfirm, args
+	}
+}
+
 // --- 参数解析测试 ---
 
 func TestExtractBoolFlag(t *testing.T) {

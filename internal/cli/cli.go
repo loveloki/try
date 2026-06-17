@@ -67,14 +67,16 @@ func Run(args []string) int {
 	}
 }
 
+// extractTestFlags 在测试文件中被替换为真实实现，生产版本始终返回空值。
+var extractTestFlags = func(args []string) (andExit bool, andType, andKeys, andConfirm string, remaining []string) {
+	return false, "", "", "", args
+}
+
 // parseGlobalFlags 从参数中提取全局选项，返回运行配置和剩余参数
 func parseGlobalFlags(args []string) (runOptions, []string) {
 	colorsEnabled := true
 
-	andExit, args := extractBoolFlag(args, "--and-exit")
-	andType, args := extractValueFlag(args, "--and-type")
-	andKeys, args := extractValueFlag(args, "--and-keys")
-	andConfirm, args := extractValueFlag(args, "--and-confirm")
+	andExit, andType, andKeys, andConfirm, args := extractTestFlags(args)
 
 	cfg := config.LoadConfig()
 	triesPath, shipPaths := config.ResolvePaths("", cfg)

@@ -4,7 +4,6 @@ import (
 	"fmt"
 	"os"
 	"path/filepath"
-	"strings"
 
 	tea "charm.land/bubbletea/v2"
 	"charm.land/bubbles/v2/list"
@@ -14,11 +13,6 @@ import (
 
 // msgs 返回全局语言包的快捷方式
 func msgs() *i18n.Messages { return i18n.Get() }
-
-const (
-	headerLines = 4
-	footerLines = 3
-)
 
 // Config 选择器初始化配置
 type Config struct {
@@ -50,12 +44,13 @@ type SelectorModel struct {
 	shipPaths         []string
 	sourceFilter      string // "" 表示全部，"tries" 或 ship 目录 basename
 	sourceOptions     []string
+	sourceCounts      map[string]int
 	testRenderOnce    bool
 	testKeys          []string
 	testConfirm       string
 	activeDialog    dialog
 	dialogFactory   DialogFactory
-	styles          *styles
+	styles          *Styles
 	colorsEnabled   bool
 }
 
@@ -76,7 +71,7 @@ func New(cfg Config) SelectorModel {
 		ti.SetValue(cfg.SearchTerm)
 	}
 
-	st := newStyles(cfg.ColorsEnabled)
+	st := NewStyles(cfg.ColorsEnabled)
 	delegate := &EntryDelegate{
 		markedForDeletion: map[string]bool{},
 		styles:            st,
@@ -94,6 +89,7 @@ func New(cfg Config) SelectorModel {
 		basePath:          cfg.BasePath,
 		shipPaths:         cfg.ShipPaths,
 		sourceOptions:     sourceOpts,
+		sourceCounts:      map[string]int{},
 		testRenderOnce:    cfg.TestRenderOnce,
 		testKeys:          cfg.TestKeys,
 		testConfirm:     cfg.TestConfirm,
@@ -202,38 +198,10 @@ func (m SelectorModel) handleWindowSize(msg tea.WindowSizeMsg) (tea.Model, tea.C
 	if h := EnvInt("TRY_HEIGHT"); h > 0 {
 		m.height = h
 	}
-	bodyHeight := m.height - headerLines - footerLines
-	if bodyHeight < 1 {
-		bodyHeight = 1
-	}
-	m.list.SetSize(m.width, bodyHeight)
+	m.list.SetSize(m.width, bodyHeight(&m))
 	m.delegate.width = m.width
 	m.cachedResults = nil
 	return m, m.refreshList()
-}
-
-func (m SelectorModel) renderMainContent() string {
-	var b strings.Builder
-	b.WriteString(renderHeader(&m))
-	b.WriteString(m.list.View())
-	b.WriteString(renderFooter(&m))
-	return b.String()
-}
-
-func (m SelectorModel) View() tea.View {
-	var content string
-	switch {
-	case m.activeDialog != nil && m.activeDialog.OverlaysMainUI():
-		content = overlayModal(m.renderMainContent(), m.activeDialog.ViewContent(), m.width, m.height)
-	case m.activeDialog != nil:
-		content = m.activeDialog.ViewContent()
-	default:
-		content = m.renderMainContent()
-	}
-
-	v := tea.NewView(content)
-	v.AltScreen = true
-	return v
 }
 
 // Selected 返回最终选择结果（Bubbletea 退出后调用）

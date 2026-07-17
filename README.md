@@ -68,12 +68,16 @@ try --version          # 查看版本号
 | 键 | 功能 |
 |---|---|
 | `Enter` | 选择目录 / 确认操作 |
+| `↑` / `↓` | 上下移动（到边界后循环） |
 | `Ctrl-T` | 创建新目录 |
 | `Ctrl-D` | 标记/取消删除 |
 | `Ctrl-R` | 重命名 |
 | `Ctrl-G` | Ship（发布为正式项目） |
-| `Tab` | 切换来源过滤（all / tries / ship / bug） |
-| `Ctrl-P` / `Ctrl-N` | 上下移动 |
+| `Tab` / `Shift-Tab` | 切换来源过滤（all / tries / ship / bug） |
+| `Space` / `Delete` | 切换当前项删除标记 |
+| `Ctrl-A` | 标记当前过滤结果全部条目 |
+| `Ctrl-P` / `Ctrl-N` | 上下移动（到边界后循环） |
+| `/` / `Ctrl-F` | 清空搜索框 |
 | `Esc` | 退出 / 取消 |
 
 ## 配置
@@ -110,9 +114,12 @@ internal/
   config/                    # 配置文件解析（JSON）、主题/语言检测
   selector/                  # 交互式选择器（Bubbletea TUI）
     model.go                   # 核心状态与生命周期
-    view.go                    # 渲染（标题/搜索/来源标签/状态栏）
+    view.go                    # View 入口（主界面 / 对话框叠层）
+    layout.go                  # Header / Footer / 空状态布局
+    styles.go                  # 主题 token 与 Lipgloss 样式
+    icons.go                   # 列表与空状态图标常量
     delegate.go                # 列表条目自定义渲染
-    keyhandler.go              # 按键分派
+    keyhandler.go              # 按键分派（含循环导航）
     keys.go                    # 按键绑定定义
     entry.go                   # 条目类型与选择结果
     dialogs.go                 # 对话框实例接口与工厂模式
@@ -120,12 +127,10 @@ internal/
     loader.go                  # 目录扫描、模糊匹配与列表刷新
   dialog/                    # 对话框实现（删除/重命名/Ship）
     dialog.go                    # Dialog 接口定义
-    delete.go / delete_styles.go # 删除确认弹窗
-    rename.go                    # 重命名输入弹窗
-    ship.go                      # Ship 目标选择弹窗
-    modal.go                     # 弹窗盒子渲染工具
+    delete.go / rename.go / ship.go
+    styles.go / icons.go / modal.go
   fuzzy/                     # 模糊匹配引擎（时间权重 + 子序列评分）
-  i18n/                      # 国际化（中英文界面文本，10 组 62 个字段）
+  i18n/                      # 国际化（中英文界面文本）
   script/                    # 脚本生成（cd 指令）与操作执行
     script.go                    # EmitCd / Quote
     exec.go                      # Execute（cd/mkdir/clone/worktree/delete/rename/ship）

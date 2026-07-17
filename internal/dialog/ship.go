@@ -8,7 +8,6 @@ import (
 
 	tea "charm.land/bubbletea/v2"
 	"charm.land/bubbles/v2/textinput"
-	lipgloss "charm.land/lipgloss/v2"
 	"github.com/loveloki/try/internal/config"
 	"github.com/loveloki/try/internal/selector"
 )
@@ -29,10 +28,11 @@ type ShipDialog struct {
 	result      *selector.SelectionResult
 	errMsg      string
 	width       int
+	styles      Styles
 }
 
 // NewShipDialog 创建 ship 对话框，支持多个目标目录选择
-func NewShipDialog(entry *selector.MatchedEntry, basePath string, shipPaths []string, width int) *ShipDialog {
+func NewShipDialog(entry *selector.MatchedEntry, basePath string, shipPaths []string, width int, colorsEnabled bool) *ShipDialog {
 	projectName := selector.DateSuffixRe.ReplaceAllString(entry.Entry.Basename, "")
 
 	selectedShipPath := ""
@@ -61,6 +61,7 @@ func NewShipDialog(entry *selector.MatchedEntry, basePath string, shipPaths []st
 		basePath:  basePath,
 		shipPaths: shipPaths,
 		width:     width,
+		styles:    NewStyles(selector.NewStyles(colorsEnabled)),
 	}
 }
 
@@ -88,11 +89,12 @@ func (d *ShipDialog) Update(msg tea.Msg) (tea.Model, tea.Cmd) {
 				d.switchShipPath(1)
 				return d, nil
 			}
-		}
-		if keyMsg.Mod == tea.ModShift && keyMsg.Code == tea.KeyTab {
-			if len(d.shipPaths) > 1 {
-				d.switchShipPath(-1)
-				return d, nil
+		default:
+			if keyMsg.Mod == tea.ModShift && keyMsg.Code == tea.KeyTab {
+				if len(d.shipPaths) > 1 {
+					d.switchShipPath(-1)
+					return d, nil
+				}
 			}
 		}
 		if keyMsg.Mod == tea.ModCtrl && keyMsg.Code == 'c' {
@@ -126,40 +128,43 @@ func (d *ShipDialog) switchShipPath(delta int) {
 func (d *ShipDialog) View() tea.View { return tea.NewView(d.ViewContent()) }
 
 func (d *ShipDialog) ViewContent() string {
-	dialogStyle := lipgloss.NewStyle().MarginLeft(4)
-	var b strings.Builder
-	w := d.width - 4
-	if w < 0 {
-		w = 0
+	innerW := modalInnerWidth(d.width)
+	if innerW < 0 {
+		innerW = 0
 	}
-	sep := strings.Repeat("─", w)
+	sep := d.styles.Separator.Render(strings.Repeat("─", innerW))
 
 	m := msgs()
-	b.WriteString(m.ShipTitle + "\n")
+	var b strings.Builder
+	b.WriteString(padLine(d.styles.Title.Render(iconShipDlg+"  "+m.ShipTitle), innerW) + "\n")
 	b.WriteString(sep + "\n")
-	b.WriteString(d.entry.Entry.Basename + "\n\n")
+	b.WriteString(padLine(d.styles.Muted.Render(d.entry.Entry.Basename), innerW) + "\n")
+	b.WriteString(padLine("", innerW) + "\n")
 
-	// 显示目标目录选项（每个独占一行）
 	for i, sp := range d.shipPaths {
+		label := filepath.Base(sp)
+		var line string
 		if i == d.selectedIdx {
-			b.WriteString("  ▸ " + filepath.Base(sp) + "  ← " + sp + "\n")
+			line = d.styles.RadioSelected.Render(iconRadioOn+" "+label) + d.styles.Muted.Render("  "+sp)
 		} else {
-			b.WriteString("    " + filepath.Base(sp) + "\n")
+			line = d.styles.RadioUnselected.Render(iconRadioOff+" "+label)
 		}
+		b.WriteString(padLine(line, innerW) + "\n")
 	}
-	b.WriteString("\n")
 
-	b.WriteString(m.ShipMoveLabel + d.input.View() + "\n")
+	b.WriteString(padLine("", innerW) + "\n")
+	b.WriteString(padLine(d.styles.InputLabel.Render(m.ShipMoveLabel)+d.input.View(), innerW) + "\n")
 	if d.errMsg != "" {
-		b.WriteString(d.errMsg + "\n")
+		b.WriteString(padLine(d.styles.ErrorLine.Render(iconError+" "+d.errMsg), innerW) + "\n")
 	}
-	b.WriteString("\n" + m.ShipHint + "\n\n")
+	b.WriteString(padLine("", innerW) + "\n")
 	b.WriteString(sep + "\n")
-	b.WriteString(m.ShipFooter)
-	return dialogStyle.Render(b.String())
+	footer := d.styles.JoinKeyBadges([]string{"Tab", "Enter", "Esc"})
+	b.WriteString(padLine(d.styles.Footer.Render(footer), innerW))
+	return d.styles.renderModalBox(b.String(), d.width)
 }
 
-func (d *ShipDialog) OverlaysMainUI() bool { return false }
+func (d *ShipDialog) OverlaysMainUI() bool { return true }
 
 func (d *ShipDialog) Result() *selector.SelectionResult { return d.result }
 func (d *ShipDialog) Done() bool                        { return d.done }

@@ -92,14 +92,14 @@ func ResolvePaths(cliPath string, cfg Config) (triesPath string, shipPaths []str
 	return
 }
 
-// DetectTheme 通过 COLORFGBG 环境变量推断终端亮暗模式
+// DetectTheme 通过 COLORFGBG 环境变量推断终端亮暗模式。
+// COLORFGBG 格式为 fg;bg，背景色 7/15 视为浅色终端，其余视为深色。
 func DetectTheme() string {
 	if val := os.Getenv("COLORFGBG"); val != "" {
 		parts := strings.Split(val, ";")
 		if len(parts) >= 2 {
 			bg := parts[len(parts)-1]
-			if bg == "0" || bg == "1" || bg == "2" || bg == "3" ||
-				bg == "4" || bg == "5" || bg == "6" {
+			if bg == "7" || bg == "15" {
 				return "light"
 			}
 		}

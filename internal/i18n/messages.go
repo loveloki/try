@@ -6,7 +6,14 @@ type Messages struct {
 	Title           string
 	SearchPrefix    string
 	CreateNew       string
+	CreateHint      string
+	LoadingHint     string
+	EmptyStateHint  string
+	NoMatchesHint   string // 含 %s 占位符
 	DeleteMode      string // 含 %d 占位符
+	DeleteModeLabel string
+	MarkedCount     string // 含 %d 占位符
+	ItemCount       string // 含 %d 占位符
 	HintBar         string
 	EmptyInputHint  string
 	DeleteCancelled string
@@ -62,11 +69,13 @@ type Messages struct {
 	ErrUnknownOp     string // 含 %d
 
 	// === 时间格式化 ===
-	TimeJustNow string // "just now" / "刚刚"
-	TimeMinAgo  string // 含 %d："%dm ago" / "%d分钟前"
-	TimeHourAgo string // 含 %d："%dh ago" / "%d小时前"
-	TimeDayAgo  string // 含 %d："%dd ago" / "%d天前"
-	TimeWeekAgo string // 含 %d："%dw ago" / "%d周前"
+	TimeJustNow  string // "just now" / "刚刚"
+	TimeMinAgo   string // 含 %d："%dm ago" / "%d分钟前"
+	TimeHourAgo  string // 含 %d："%dh ago" / "%d小时前"
+	TimeDayAgo   string // 含 %d："%dd ago" / "%d天前"
+	TimeWeekAgo  string // 含 %d："%dw ago" / "%d周前"
+	TimeMonthAgo string // 含 %d："%dmo ago" / "%d个月前"
+	TimeYearAgo  string // 含 %d："%dy ago" / "%d年前"
 
 	// === Shell 安装消息 ===
 	ErrDetectShell    string
@@ -85,7 +94,14 @@ var EN = Messages{
 	Title:           "Try Directory Selection",
 	SearchPrefix:    "Search: ",
 	CreateNew:       "Create new: ",
+	CreateHint:      "⌃T create \"%s\"",
+	LoadingHint:     "Loading directories...",
+	EmptyStateHint:  "No directories yet",
+	NoMatchesHint:   "No matches for \"%s\"",
 	DeleteMode:      " DELETE MODE  %d marked  |  Ctrl-D: Toggle  Enter: Confirm  Esc: Cancel",
+	DeleteModeLabel: " DELETE MODE ",
+	MarkedCount:     "%d marked",
+	ItemCount:       "%d items",
 	HintBar:         "Ctrl-T: New  Ctrl-D: Delete  Ctrl-R: Rename  Ctrl-G: Ship  Tab: Filter  Esc: Quit",
 	EmptyInputHint:  "Please enter a directory name first",
 	DeleteCancelled: "Delete cancelled",
@@ -126,22 +142,31 @@ Options:
   --version, -v        Show version
 
 Shortcuts:
-  Enter    Select/Confirm
-  Ctrl-T   Create new directory
-  Ctrl-D   Toggle delete mark
-  Ctrl-R   Rename
-  Ctrl-G   Ship (publish as project)
-  Ctrl-P/N Move up/down
-  Esc      Quit`,
+  Enter      Select/Confirm
+  ↑/↓        Move up/down (wraps at edges)
+  Ctrl-P/N   Move up/down (wraps at edges)
+  Space      Toggle delete mark
+  Delete     Toggle delete mark
+  Ctrl-A     Mark all visible
+  Ctrl-D     Toggle delete mode
+  Ctrl-T     Create new directory
+  Ctrl-R     Rename
+  Ctrl-G     Ship (publish as project)
+  Tab        Switch source filter
+  Shift-Tab  Switch source filter backward
+  /          Focus search
+  Esc        Quit/Cancel`,
 	UsageClone:    "Usage: try clone <url> [name]",
 	UsageWorktree: "Usage: try worktree <dir> [name]",
 	UsageDot:      "Usage: try . <name>",
 
-	TimeJustNow: "just now",
-	TimeMinAgo:  "%dm ago",
-	TimeHourAgo: "%dh ago",
-	TimeDayAgo:  "%dd ago",
-	TimeWeekAgo: "%dw ago",
+	TimeJustNow:  "just now",
+	TimeMinAgo:   "%dm ago",
+	TimeHourAgo:  "%dh ago",
+	TimeDayAgo:   "%dd ago",
+	TimeWeekAgo:  "%dw ago",
+	TimeMonthAgo: "%dmo ago",
+	TimeYearAgo:  "%dy ago",
 
 	ErrNotTerminal: "stdin is not a terminal",
 	ErrParseGitURI: "Cannot parse Git URI: ",
@@ -176,7 +201,14 @@ var ZH = Messages{
 	Title:           "Try 目录选择",
 	SearchPrefix:    "搜索：",
 	CreateNew:       "新建：",
+	CreateHint:      "⌃T 创建 \"%s\"",
+	LoadingHint:     "正在加载目录...",
+	EmptyStateHint:  "暂无目录",
+	NoMatchesHint:   "无匹配结果 \"%s\"",
 	DeleteMode:      " 删除模式  已标记 %d 个  |  Ctrl-D: 切换  Enter: 确认  Esc: 取消",
+	DeleteModeLabel: " 删除模式 ",
+	MarkedCount:     "已标记 %d 个",
+	ItemCount:       "%d 项",
 	HintBar:         "Ctrl-T: 新建  Ctrl-D: 删除  Ctrl-R: 重命名  Ctrl-G: 发布  Tab: 过滤  Esc: 退出",
 	EmptyInputHint:  "请先输入目录名称",
 	DeleteCancelled: "已取消删除",
@@ -217,22 +249,31 @@ var ZH = Messages{
   --version, -v        显示版本
 
 快捷键:
-  Enter    选择/确认
-  Ctrl-T   创建新目录
-  Ctrl-D   标记/取消删除
-  Ctrl-R   重命名
-  Ctrl-G   Ship（发布为正式项目）
-  Ctrl-P/N 上下移动
-  Esc      退出`,
+  Enter      选择/确认
+  ↑/↓        上下移动（到边界后循环）
+  Ctrl-P/N   上下移动（到边界后循环）
+  Space      标记/取消删除
+  Delete     标记/取消删除
+  Ctrl-A     标记全部可见项
+  Ctrl-D     切换删除模式
+  Ctrl-T     创建新目录
+  Ctrl-R     重命名
+  Ctrl-G     Ship（发布为正式项目）
+  Tab        切换来源过滤
+  Shift-Tab  反向切换来源过滤
+  /          聚焦搜索
+  Esc        退出/取消`,
 	UsageClone:    "用法: try clone <url> [名称]",
 	UsageWorktree: "用法: try worktree <目录> [名称]",
 	UsageDot:      "用法: try . <名称>",
 
-	TimeJustNow: "刚刚",
-	TimeMinAgo:  "%d分钟前",
-	TimeHourAgo: "%d小时前",
-	TimeDayAgo:  "%d天前",
-	TimeWeekAgo: "%d周前",
+	TimeJustNow:  "刚刚",
+	TimeMinAgo:   "%d分钟前",
+	TimeHourAgo:  "%d小时前",
+	TimeDayAgo:   "%d天前",
+	TimeWeekAgo:  "%d周前",
+	TimeMonthAgo: "%d个月前",
+	TimeYearAgo:  "%d年前",
 
 	ErrNotTerminal: "标准输入不是终端",
 	ErrParseGitURI: "无法解析 Git URI: ",

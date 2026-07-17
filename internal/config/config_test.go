@@ -160,12 +160,12 @@ func TestDetectTheme(t *testing.T) {
 		},
 		{
 			name: "COLORFGBG light background",
-			envs: map[string]string{"COLORFGBG": "15;0"},
+			envs: map[string]string{"COLORFGBG": "0;15"},
 			want: "light",
 		},
 		{
 			name: "COLORFGBG dark background",
-			envs: map[string]string{"COLORFGBG": "0;15"},
+			envs: map[string]string{"COLORFGBG": "15;0"},
 			want: "dark",
 		},
 	}

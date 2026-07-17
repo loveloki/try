@@ -144,7 +144,7 @@ func TestSelectorViewWithDialog(t *testing.T) {
 
 	// 正常 View
 	normalView := sm.View()
-	if !strings.Contains(normalView.Content, "Try") {
+	if !strings.Contains(normalView.Content, "try") {
 		t.Error("normal view should contain title")
 	}
 

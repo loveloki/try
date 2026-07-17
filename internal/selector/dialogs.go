@@ -20,8 +20,8 @@ type dialog = DialogInstance
 // DialogFactory 对话框创建接口，由外部（CLI 层）注入，避免循环依赖
 type DialogFactory interface {
 	NewDeleteDialog(items []DeleteItem, basePath, testConfirm string, width int, colorsEnabled bool) DialogInstance
-	NewRenameDialog(entry *MatchedEntry, basePath string, width int) DialogInstance
-	NewShipDialog(entry *MatchedEntry, basePath string, shipPaths []string, width int) DialogInstance
+	NewRenameDialog(entry *MatchedEntry, basePath string, width int, colorsEnabled bool) DialogInstance
+	NewShipDialog(entry *MatchedEntry, basePath string, shipPaths []string, width int, colorsEnabled bool) DialogInstance
 }
 
 // SetDialogFactory 注入对话框工厂（避免 selector → dialog 循环依赖）
@@ -68,7 +68,7 @@ func (m SelectorModel) enterRenameDialog() (tea.Model, tea.Cmd) {
 	m.deleteMode = false
 	m.markedForDeletion = map[string]bool{}
 	if m.dialogFactory != nil {
-		dlg := m.dialogFactory.NewRenameDialog(entry, m.basePath, m.width)
+		dlg := m.dialogFactory.NewRenameDialog(entry, m.basePath, m.width, m.colorsEnabled)
 		m.activeDialog = dlg
 		return m, dlg.Init()
 	}
@@ -84,7 +84,7 @@ func (m SelectorModel) enterShipDialog() (tea.Model, tea.Cmd) {
 	m.deleteMode = false
 	m.markedForDeletion = map[string]bool{}
 	if m.dialogFactory != nil {
-		dlg := m.dialogFactory.NewShipDialog(entry, m.basePath, m.shipPaths, m.width)
+		dlg := m.dialogFactory.NewShipDialog(entry, m.basePath, m.shipPaths, m.width, m.colorsEnabled)
 		m.activeDialog = dlg
 		return m, dlg.Init()
 	}

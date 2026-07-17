@@ -71,23 +71,29 @@ func TestThemeAutoDetectsFromEnv(t *testing.T) {
 		return buf.String()
 	}
 
-	dark := renderWithEnv("0;15")
-	light := renderWithEnv("15;0")
+	dark := renderWithEnv("15;0")
+	light := renderWithEnv("0;15")
 
 	if dark == light {
 		t.Error("dark and light env should produce different ANSI output")
 	}
 
-	// 验证 newStyles 中的主题色属性
+	// 验证 NewStyles 中的主题色属性
 	t.Setenv("COLORFGBG", "")
-	stDark := newStyles(true)
-	if stDark.danger.GetForeground() != lipgloss.Color("196") {
-		t.Errorf("dark theme danger foreground = %v, want 196", stDark.danger.GetForeground())
+	stDark := NewStyles(true)
+	if stDark.Danger.GetForeground() != lipgloss.Color("#ff3b30") {
+		t.Errorf("dark theme danger foreground = %v, want #ff3b30", stDark.Danger.GetForeground())
+	}
+	if stDark.SurfaceSelected.GetForeground() != lipgloss.Color("#e6edf3") {
+		t.Errorf("dark theme selected foreground = %v, want #e6edf3", stDark.SurfaceSelected.GetForeground())
 	}
 
-	t.Setenv("COLORFGBG", "15;0")
-	stLight := newStyles(true)
-	if stLight.danger.GetForeground() != lipgloss.Color("160") {
-		t.Errorf("light theme danger foreground = %v, want 160", stLight.danger.GetForeground())
+	t.Setenv("COLORFGBG", "0;15")
+	stLight := NewStyles(true)
+	if stLight.Danger.GetForeground() != lipgloss.Color("#d70000") {
+		t.Errorf("light theme danger foreground = %v, want #d70000", stLight.Danger.GetForeground())
+	}
+	if stLight.SurfaceSelected.GetForeground() != lipgloss.Color("#1f2328") {
+		t.Errorf("light theme selected foreground = %v, want #1f2328", stLight.SurfaceSelected.GetForeground())
 	}
 }

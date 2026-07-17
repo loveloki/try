@@ -179,11 +179,11 @@ func (f *dialogFactoryImpl) NewDeleteDialog(
 	return dialog.NewDeleteDialog(items, basePath, testConfirm, width, colorsEnabled)
 }
 
-func (f *dialogFactoryImpl) NewRenameDialog(entry *selector.MatchedEntry, basePath string, width int) selector.DialogInstance {
-	return dialog.NewRenameDialog(entry, basePath, width)
+func (f *dialogFactoryImpl) NewRenameDialog(entry *selector.MatchedEntry, basePath string, width int, colorsEnabled bool) selector.DialogInstance {
+	return dialog.NewRenameDialog(entry, basePath, width, colorsEnabled)
 }
 
-func (f *dialogFactoryImpl) NewShipDialog(entry *selector.MatchedEntry, basePath string, shipPaths []string, width int) selector.DialogInstance {
-	return dialog.NewShipDialog(entry, basePath, shipPaths, width)
+func (f *dialogFactoryImpl) NewShipDialog(entry *selector.MatchedEntry, basePath string, shipPaths []string, width int, colorsEnabled bool) selector.DialogInstance {
+	return dialog.NewShipDialog(entry, basePath, shipPaths, width, colorsEnabled)
 }
 

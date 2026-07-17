@@ -18,12 +18,12 @@ func (realDialogFactory) NewDeleteDialog(
 	return dialog.NewDeleteDialog(items, basePath, testConfirm, width, colorsEnabled)
 }
 
-func (realDialogFactory) NewRenameDialog(entry *selector.MatchedEntry, basePath string, width int) selector.DialogInstance {
-	return dialog.NewRenameDialog(entry, basePath, width)
+func (realDialogFactory) NewRenameDialog(entry *selector.MatchedEntry, basePath string, width int, colorsEnabled bool) selector.DialogInstance {
+	return dialog.NewRenameDialog(entry, basePath, width, colorsEnabled)
 }
 
-func (realDialogFactory) NewShipDialog(entry *selector.MatchedEntry, basePath string, shipPaths []string, width int) selector.DialogInstance {
-	return dialog.NewShipDialog(entry, basePath, shipPaths, width)
+func (realDialogFactory) NewShipDialog(entry *selector.MatchedEntry, basePath string, shipPaths []string, width int, colorsEnabled bool) selector.DialogInstance {
+	return dialog.NewShipDialog(entry, basePath, shipPaths, width, colorsEnabled)
 }
 
 func TestSelectorDeleteDialogOverlaysMainUI(t *testing.T) {
@@ -36,7 +36,7 @@ func TestSelectorDeleteDialogOverlaysMainUI(t *testing.T) {
 	}, realDialogFactory{})
 
 	view := sm.View().Content
-	if !strings.Contains(view, "Try") {
+	if !strings.Contains(view, "try") {
 		t.Error("overlay view should still show main selector title")
 	}
 	if !strings.Contains(view, "Delete") {

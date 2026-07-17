@@ -6,29 +6,28 @@ import (
 	"strings"
 	"time"
 
-	tea "charm.land/bubbletea/v2"
 	"charm.land/bubbles/v2/list"
+	tea "charm.land/bubbletea/v2"
 	lipgloss "charm.land/lipgloss/v2"
 )
 
-// EntryDelegate 自定义条目渲染器
+// EntryDelegate 自定义条目渲染器。
 type EntryDelegate struct {
 	markedForDeletion map[string]bool
 	width             int
-	styles            *styles
+	styles            *Styles
 }
 
-func (d *EntryDelegate) Height() int                              { return 1 }
-func (d *EntryDelegate) Spacing() int                             { return 0 }
+// Height 返回每行占用的高度：内容行 + 分隔线。
+func (d *EntryDelegate) Height() int { return 2 }
+
+// Spacing 返回行间距（已由分隔线承担，此处为 0）。
+func (d *EntryDelegate) Spacing() int { return 0 }
+
+// Update 处理气泡消息（本委托无状态更新）。
 func (d *EntryDelegate) Update(_ tea.Msg, _ *list.Model) tea.Cmd { return nil }
 
-// rowCtx 封装单行渲染的上下文状态，避免在子函数间传递大量参数
-type rowCtx struct {
-	styles     *styles
-	isSelected bool
-	isMarked   bool
-}
-
+// Render 渲染单行条目及其分隔线。
 func (d *EntryDelegate) Render(w io.Writer, m list.Model, index int, item list.Item) {
 	entry, ok := item.(MatchedEntry)
 	if !ok {
@@ -38,117 +37,131 @@ func (d *EntryDelegate) Render(w io.Writer, m list.Model, index int, item list.I
 	isSelected := index == m.Index()
 	isMarked := d.markedForDeletion[entry.Entry.Path]
 
-	rc := d.newRowCtx(isSelected, isMarked)
-	arrow := d.renderArrow(isSelected, &rc)
-	icon := d.renderIcon(isMarked, &rc)
-	name := d.renderName(entry, &rc)
-	meta := d.renderMeta(entry, &rc)
-
-	line := assembleLine(arrow+icon+name, meta, d.width-1, rc)
-	fmt.Fprint(w, line)
+	content := d.renderContent(entry, isSelected, isMarked)
+	fmt.Fprint(w, content)
+	fmt.Fprint(w, "\n")
+	fmt.Fprint(w, d.renderSeparator())
 }
 
-func (d *EntryDelegate) newRowCtx(isSelected, isMarked bool) rowCtx {
-	return rowCtx{
-		styles:     d.styles,
-		isSelected: isSelected,
-		isMarked:   isMarked,
+func (d *EntryDelegate) renderContent(entry MatchedEntry, isSelected, isMarked bool) string {
+	rowStyle := d.rowStyle(isSelected, isMarked)
+	content := d.renderRawContent(entry, isSelected, isMarked)
+	if !d.styles.ColorsEnabled() {
+		return content
+	}
+	return d.fillRowBackground(rowStyle, content)
+}
+
+func (d *EntryDelegate) rowStyle(isSelected, isMarked bool) lipgloss.Style {
+	switch {
+	case isMarked:
+		return d.styles.DangerSurface
+	case isSelected:
+		return d.styles.SurfaceSelected
+	default:
+		return lipgloss.NewStyle()
 	}
 }
 
-func (d *EntryDelegate) renderArrow(isSelected bool, rc *rowCtx) string {
-	if isSelected {
-		return d.styles.render(rc.styles.highlight, "→ ")
+func (d *EntryDelegate) renderRawContent(entry MatchedEntry, isSelected, isMarked bool) string {
+	arrow := d.renderArrow(isSelected, isMarked)
+	icon := d.renderIcon(isSelected, isMarked)
+	name := d.renderName(entry, isSelected, isMarked)
+	meta := d.renderMeta(entry, isSelected, isMarked)
+
+	left := arrow + icon + name
+	leftW := lipgloss.Width(left)
+	metaW := lipgloss.Width(meta)
+	maxContent := d.width - 1
+
+	if leftW+metaW+2 > maxContent {
+		return left
 	}
-	return "  "
+	padding := maxContent - leftW - metaW
+	return left + strings.Repeat(" ", padding) + meta
 }
 
-func (d *EntryDelegate) renderIcon(isMarked bool, rc *rowCtx) string {
-	icon := "  "
+func (d *EntryDelegate) fillRowBackground(rowStyle lipgloss.Style, content string) string {
+	if rowStyle.GetBackground() == nil {
+		return content
+	}
+	contentW := lipgloss.Width(content)
+	maxW := d.width - 1
+	if contentW < maxW {
+		content += strings.Repeat(" ", maxW-contentW)
+	}
+	return rowStyle.Render(content)
+}
+
+func (d *EntryDelegate) renderSeparator() string {
+	w := d.width - 1
+	if w < 0 {
+		w = 0
+	}
+	return d.styles.Render(d.styles.Line, strings.Repeat("─", w))
+}
+
+func (d *EntryDelegate) renderArrow(isSelected, isMarked bool) string {
+	if !isSelected {
+		return d.padSegment("  ", isMarked)
+	}
+	arrowStyle := d.styles.SelectedArrow
 	if isMarked {
-		icon = "* "
-	}
-	return icon
-}
-
-func (d *EntryDelegate) renderMeta(entry MatchedEntry, rc *rowCtx) string {
-	timeStr := FormatTimeAgo(time.Since(entry.Entry.Mtime))
-	scoreStr := fmt.Sprintf("%.1f", entry.Score)
-
-	var metaText string
-	if entry.Entry.Source != "" && entry.Entry.Source != "tries" {
-		metaText = "[" + entry.Entry.Source + "] " + timeStr + ", " + scoreStr
+		arrowStyle = arrowStyle.Inherit(d.styles.MarkedMeta)
 	} else {
-		metaText = timeStr + ", " + scoreStr
+		arrowStyle = arrowStyle.Inherit(d.styles.SurfaceSelected)
 	}
-
-	if rc.isMarked {
-		return d.styles.render(rc.styles.danger, metaText)
-	}
-	if rc.isSelected {
-		return d.styles.render(rc.styles.selected, metaText)
-	}
-	return d.styles.render(rc.styles.muted, metaText)
+	return d.styles.Render(arrowStyle, iconSelected+" ")
 }
 
-// assembleLine 拼接左侧内容和右侧元数据，用普通空格填充中间空白
-func assembleLine(left, meta string, maxContent int, rc rowCtx) string {
-	leftWidth := lipgloss.Width(left)
-	metaWidth := lipgloss.Width(meta)
-
-	if leftWidth+metaWidth+2 <= maxContent {
-		padding := maxContent - leftWidth - metaWidth
-		return left + strings.Repeat(" ", padding) + meta
+func (d *EntryDelegate) renderIcon(isSelected, isMarked bool) string {
+	icon := rowIconForEntry(isMarked)
+	if isMarked {
+		style := d.styles.MarkedIcon.Inherit(d.styles.MarkedMeta)
+		return d.styles.Render(style, icon+" ")
 	}
-	return left
+	style := d.styles.FolderIcon
+	if isSelected {
+		style = style.Inherit(d.styles.SurfaceSelected)
+	}
+	return d.styles.Render(style, icon+" ")
 }
 
-// renderName 渲染条目名称，含日期拆分和模糊高亮
-func (d *EntryDelegate) renderName(entry MatchedEntry, rc *rowCtx) string {
+func (d *EntryDelegate) renderName(entry MatchedEntry, isSelected, isMarked bool) string {
 	name := entry.Entry.Basename
 	positions := entry.HighlightPositions
-
-	// 如果被标记删除，直接扁平化渲染为红色删除线，不进行分段高亮，避免嵌套样式导致 ANSI 码解析泄露
-	if rc.isMarked {
-		return d.styles.render(rc.styles.danger, name)
-	}
-
 	posSet := make(map[int]bool, len(positions))
 	for _, p := range positions {
 		posSet[p] = true
 	}
 
-	// 拆分名称和日期后缀
 	namePart, datePart := name, ""
 	if loc := DateSuffixRe.FindStringIndex(name); loc != nil {
 		namePart = name[:loc[0]]
 		datePart = name[loc[0]:]
 	}
 
-	var result strings.Builder
-
-	// 确定基础样式
-	var baseStyle lipgloss.Style
-	if rc.isSelected {
-		baseStyle = rc.styles.selected
+	nameBase := d.styles.Foreground
+	dateBase := d.styles.Muted
+	switch {
+	case isMarked:
+		nameBase = d.styles.MarkedName
+		dateBase = d.styles.Muted.Inherit(d.styles.MarkedMeta)
+	case isSelected:
+		nameBase = d.styles.SurfaceSelected
+		dateBase = d.styles.Muted.Inherit(d.styles.SurfaceSelected)
 	}
 
-	d.writeHighlighted(&result, namePart, posSet, 0, rc, baseStyle)
-
+	var b strings.Builder
+	d.writeHighlighted(&b, namePart, posSet, 0, nameBase, isMarked)
 	if datePart != "" {
-		// 日期后缀基础样式：如果是选中项，继承选中项加粗效果
-		dateBaseStyle := rc.styles.muted
-		if rc.isSelected {
-			dateBaseStyle = dateBaseStyle.Inherit(rc.styles.selected)
-		}
-		d.writeHighlighted(&result, datePart, posSet, len(namePart), rc, dateBaseStyle)
+		d.writeHighlighted(&b, datePart, posSet, len(namePart), dateBase, isMarked)
 	}
-
-	return result.String()
+	return b.String()
 }
 
-// writeHighlighted 将文本按匹配位置分段写入 builder，匹配段和普通段使用扁平化的继承样式渲染，完全杜绝嵌套 Render
-func (d *EntryDelegate) writeHighlighted(b *strings.Builder, text string, posSet map[int]bool, offset int, rc *rowCtx, baseStyle lipgloss.Style) {
+// writeHighlighted 按匹配位置分段写入，匹配段使用 match 样式。
+func (d *EntryDelegate) writeHighlighted(b *strings.Builder, text string, posSet map[int]bool, offset int, baseStyle lipgloss.Style, isMarked bool) {
 	i := 0
 	for i < len(text) {
 		if posSet[offset+i] {
@@ -156,22 +169,78 @@ func (d *EntryDelegate) writeHighlighted(b *strings.Builder, text string, posSet
 			for j < len(text) && posSet[offset+j] {
 				j++
 			}
-			// 匹配样式继承基础样式（合并加粗或颜色）
-			matchStyle := rc.styles.match.Inherit(baseStyle)
-			b.WriteString(d.styles.render(matchStyle, text[i:j]))
+			matchStyle := d.styles.Match.Inherit(baseStyle)
+			if isMarked {
+				matchStyle = matchStyle.Strikethrough(true)
+			}
+			b.WriteString(d.styles.Render(matchStyle, text[i:j]))
 			i = j
 		} else {
 			j := i
 			for j < len(text) && !posSet[offset+j] {
 				j++
 			}
-			// 普通样式：如果有前景色或特殊效果，使用 baseStyle 渲染；否则直接写入
-			if baseStyle.GetForeground() != nil || baseStyle.GetBold() {
-				b.WriteString(d.styles.render(baseStyle, text[i:j]))
+			if baseStyle.GetForeground() != nil || baseStyle.GetBackground() != nil || baseStyle.GetBold() || baseStyle.GetStrikethrough() {
+				b.WriteString(d.styles.Render(baseStyle, text[i:j]))
 			} else {
 				b.WriteString(text[i:j])
 			}
 			i = j
 		}
+	}
+}
+
+func (d *EntryDelegate) renderMeta(entry MatchedEntry, isSelected, isMarked bool) string {
+	timeStr := FormatTimeAgo(time.Since(entry.Entry.Mtime))
+	scoreBar := renderScoreBar(entry.Score, 5)
+
+	barText := d.styles.Render(d.styles.ScoreBarFilled, scoreBar.filled) + d.styles.Render(d.styles.ScoreBarEmpty, scoreBar.empty)
+	var parts []string
+	parts = append(parts, barText)
+	parts = append(parts, timeStr)
+	if entry.Entry.Source != "" && entry.Entry.Source != "tries" {
+		parts = append(parts, d.styles.Render(d.styles.SourcePill, " "+entry.Entry.Source+" "))
+	}
+
+	metaText := strings.Join(parts, "  ")
+	style := d.styles.Muted
+	switch {
+	case isMarked:
+		style = d.styles.MarkedMeta
+	case isSelected:
+		style = d.styles.Muted.Inherit(d.styles.SurfaceSelected)
+	}
+	return d.styles.Render(style, metaText)
+}
+
+func (d *EntryDelegate) padSegment(text string, isMarked bool) string {
+	if !isMarked {
+		return text
+	}
+	return d.styles.Render(d.styles.MarkedMeta, text)
+}
+
+type scoreBar struct {
+	filled string
+	empty  string
+}
+
+// renderScoreBar 将分数转换为 ASCII 块条形图，maxBlocks 控制最大块数。
+func renderScoreBar(score float64, maxBlocks int) scoreBar {
+	if maxBlocks <= 0 {
+		maxBlocks = 5
+	}
+	ratio := score / 5.0
+	if ratio > 1 {
+		ratio = 1
+	}
+	if ratio < 0 {
+		ratio = 0
+	}
+	filledCount := int(ratio*float64(maxBlocks) + 0.5)
+	emptyCount := maxBlocks - filledCount
+	return scoreBar{
+		filled: strings.Repeat("█", filledCount),
+		empty:  strings.Repeat("░", emptyCount),
 	}
 }

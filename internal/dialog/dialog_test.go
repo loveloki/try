@@ -60,7 +60,7 @@ func TestDeleteConfirmPathSafety(t *testing.T) {
 func checkRenameConfirm(t *testing.T, input, oldName, basePath string, wantHasResult bool, wantErrMsg string) {
 	t.Helper()
 	entry := &selector.MatchedEntry{Entry: selector.Entry{Basename: oldName}}
-	d := NewRenameDialog(entry, basePath, 80)
+	d := NewRenameDialog(entry, basePath, 80, true)
 	d.input.SetValue(input)
 	result, errMsg := d.confirmRename()
 
@@ -125,7 +125,7 @@ func checkShipConfirm(t *testing.T, input, sourcePath, basePath string, wantHasR
 	entry := &selector.MatchedEntry{
 		Entry: selector.Entry{Basename: "test-2025-08-14", Path: sourcePath},
 	}
-	d := NewShipDialog(entry, basePath, []string{"/tmp/ship"}, 80)
+	d := NewShipDialog(entry, basePath, []string{"/tmp/ship"}, 80, true)
 	d.input.SetValue(input)
 	result, errMsg := d.confirmShip()
 
@@ -143,7 +143,6 @@ func checkShipConfirm(t *testing.T, input, sourcePath, basePath string, wantHasR
 		t.Errorf("confirmShip(%q) = %+v, want nil", input, result)
 	}
 }
-
 
 func TestShipConfirm(t *testing.T) {
 	tmpDir := t.TempDir()
@@ -276,7 +275,7 @@ func TestDeleteDialogEnterWithDefaultNo(t *testing.T) {
 
 func TestRenameDialogEscape(t *testing.T) {
 	entry := &selector.MatchedEntry{Entry: selector.Entry{Basename: "old-name"}}
-	d := NewRenameDialog(entry, t.TempDir(), 80)
+	d := NewRenameDialog(entry, t.TempDir(), 80, true)
 	d = driveDialog(t, d, []tea.KeyPressMsg{
 		{Code: tea.KeyEscape},
 	}).(*RenameDialog)
@@ -291,7 +290,7 @@ func TestRenameDialogEscape(t *testing.T) {
 
 func TestRenameDialogEnter(t *testing.T) {
 	entry := &selector.MatchedEntry{Entry: selector.Entry{Basename: "old-name"}}
-	d := NewRenameDialog(entry, t.TempDir(), 80)
+	d := NewRenameDialog(entry, t.TempDir(), 80, true)
 	d.input.SetValue("new-name")
 	d = driveDialog(t, d, []tea.KeyPressMsg{
 		{Code: tea.KeyEnter},
@@ -317,7 +316,7 @@ func TestShipDialogEscape(t *testing.T) {
 	entry := &selector.MatchedEntry{
 		Entry: selector.Entry{Basename: "test-2025-08-14", Path: filepath.Join(tmpDir, "test")},
 	}
-	d := NewShipDialog(entry, tmpDir, []string{"/tmp/ship"}, 80)
+	d := NewShipDialog(entry, tmpDir, []string{"/tmp/ship"}, 80, true)
 	d = driveDialog(t, d, []tea.KeyPressMsg{
 		{Code: tea.KeyEscape},
 	}).(*ShipDialog)
@@ -335,7 +334,7 @@ func TestShipDialogEnter(t *testing.T) {
 	entry := &selector.MatchedEntry{
 		Entry: selector.Entry{Basename: "test-2025-08-14", Path: filepath.Join(tmpDir, "test")},
 	}
-	d := NewShipDialog(entry, tmpDir, []string{"/tmp/ship"}, 80)
+	d := NewShipDialog(entry, tmpDir, []string{"/tmp/ship"}, 80, true)
 	dest := filepath.Join(tmpDir, "dest")
 	d.input.SetValue(dest)
 	d = driveDialog(t, d, []tea.KeyPressMsg{
@@ -357,6 +356,7 @@ func TestShipDialogEnter(t *testing.T) {
 // --- ViewContent 渲染测试 ---
 
 func TestDeleteDialogViewContent(t *testing.T) {
+	t.Setenv("COLORFGBG", "15;0") // 固定深色主题，断言 dark 真彩色
 	items := []selector.DeleteItem{
 		{Path: "/tmp/dir1", Basename: "dir1"},
 		{Path: "/tmp/dir2", Basename: "dir2"},
@@ -365,19 +365,24 @@ func TestDeleteDialogViewContent(t *testing.T) {
 	content := d.ViewContent()
 	plain := ansi.Strip(content)
 
-	for _, want := range []string{"dir1", "dir2", "Delete", "NO", "YES", "╭", "╯"} {
+	for _, want := range []string{"dir1", "dir2", "🗑️", "Delete", "NO", "YES", "╭", "╯"} {
 		if !strings.Contains(plain, want) {
 			t.Errorf("ViewContent() missing %q\ngot:\n%s", want, plain)
 		}
 	}
-	if !strings.Contains(content, "38;5;196") {
-		t.Errorf("ViewContent() should use danger color (196), got:\n%s", content)
+	// 危险色现在使用真彩色 #ff3b30（深红）
+	if !strings.Contains(content, "38;2;255;59;48") {
+		t.Errorf("ViewContent() should use danger truecolor, got:\n%s", content)
+	}
+	// 默认选中的 NO 应该使用主色高亮
+	if !strings.Contains(content, "38;2;95;175;255") {
+		t.Errorf("ViewContent() should use primary highlight for default NO, got:\n%s", content)
 	}
 }
 
 func TestRenameDialogViewContent(t *testing.T) {
 	entry := &selector.MatchedEntry{Entry: selector.Entry{Basename: "old-dir"}}
-	d := NewRenameDialog(entry, t.TempDir(), 60)
+	d := NewRenameDialog(entry, t.TempDir(), 60, true)
 	content := d.ViewContent()
 
 	for _, want := range []string{"old-dir", "Rename"} {
@@ -391,7 +396,7 @@ func TestShipDialogViewContent(t *testing.T) {
 	entry := &selector.MatchedEntry{
 		Entry: selector.Entry{Basename: "test-2025-08-14", Path: "/tmp/test"},
 	}
-	d := NewShipDialog(entry, "/tmp", []string{"/tmp/ship", "/tmp/bug"}, 60)
+	d := NewShipDialog(entry, "/tmp", []string{"/tmp/ship", "/tmp/bug"}, 60, true)
 	content := d.ViewContent()
 
 	for _, want := range []string{"test-2025-08-14", "Ship", "ship", "bug"} {
@@ -416,5 +421,104 @@ func TestDeleteDialogTestConfirmAutoSubmit(t *testing.T) {
 	}
 	if cmd == nil {
 		t.Error("Init with testConfirm should return non-nil cmd")
+	}
+}
+
+func TestDeleteDialogYesOnlyDangerWhenSelected(t *testing.T) {
+	t.Setenv("COLORFGBG", "15;0") // 固定深色主题，断言 dark 真彩色
+	items := []selector.DeleteItem{
+		{Path: "/tmp/dir1", Basename: "dir1"},
+	}
+	// 默认 NO 选中
+	d := NewDeleteDialog(items, "/tmp", "", 80, true)
+	content := d.ViewContent()
+	plain := ansi.Strip(content)
+	if strings.Contains(plain, "[YES]") {
+		t.Error("YES should not be highlighted when NO is selected")
+	}
+
+	// 切换到 YES
+	d.Update(tea.KeyPressMsg{Code: tea.KeyRight})
+	content = d.ViewContent()
+	if !strings.Contains(content, "38;2;255;59;48") {
+		t.Error("YES should use danger color when selected")
+	}
+}
+
+func TestRenameDialogIsModal(t *testing.T) {
+	entry := &selector.MatchedEntry{Entry: selector.Entry{Basename: "old-dir"}}
+	d := NewRenameDialog(entry, t.TempDir(), 60, true)
+	if !d.OverlaysMainUI() {
+		t.Error("Rename dialog should overlay main UI")
+	}
+	content := d.ViewContent()
+	for _, want := range []string{"✏️", "Rename", "old-dir", "Enter", "Esc", "╭"} {
+		if !strings.Contains(content, want) {
+			t.Errorf("ViewContent() missing %q\ngot:\n%s", want, content)
+		}
+	}
+}
+
+func TestShipDialogIsModal(t *testing.T) {
+	entry := &selector.MatchedEntry{
+		Entry: selector.Entry{Basename: "test-2025-08-14", Path: "/tmp/test"},
+	}
+	d := NewShipDialog(entry, "/tmp", []string{"/tmp/ship", "/tmp/bug"}, 60, true)
+	if !d.OverlaysMainUI() {
+		t.Error("Ship dialog should overlay main UI")
+	}
+	content := d.ViewContent()
+	for _, want := range []string{"🚀", "Ship", "●", "○", "Enter", "Esc", "╭"} {
+		if !strings.Contains(content, want) {
+			t.Errorf("ViewContent() missing %q\ngot:\n%s", want, content)
+		}
+	}
+}
+
+func TestShipDialogSwitchTarget(t *testing.T) {
+	entry := &selector.MatchedEntry{
+		Entry: selector.Entry{Basename: "test-2025-08-14", Path: "/tmp/test"},
+	}
+	d := NewShipDialog(entry, "/tmp", []string{"/tmp/ship", "/tmp/bug"}, 80, true)
+
+	if d.selectedIdx != 0 {
+		t.Fatalf("initial selected idx = %d, want 0", d.selectedIdx)
+	}
+	d.Update(tea.KeyPressMsg{Code: tea.KeyTab})
+	if d.selectedIdx != 1 {
+		t.Errorf("Tab should switch to target 1, got %d", d.selectedIdx)
+	}
+	// Shift+Tab 切回
+	d.Update(tea.KeyPressMsg{Code: tea.KeyTab, Mod: tea.ModShift})
+	if d.selectedIdx != 0 {
+		t.Errorf("Shift+Tab should switch back to target 0, got %d", d.selectedIdx)
+	}
+}
+
+func TestRenameDialogValidation(t *testing.T) {
+	entry := &selector.MatchedEntry{Entry: selector.Entry{Basename: "old-dir"}}
+	d := NewRenameDialog(entry, t.TempDir(), 60, true)
+
+	cases := []struct {
+		name    string
+		input   string
+		wantErr string
+	}{
+		{"empty", "", "cannot be empty"},
+		{"slash", "a/b", "cannot contain /"},
+		{"same", "old-dir", ""},
+	}
+	for _, tc := range cases {
+		t.Run(tc.name, func(t *testing.T) {
+			d.errMsg = ""
+			d.input.SetValue(tc.input)
+			d.Update(tea.KeyPressMsg{Code: tea.KeyEnter})
+			if tc.wantErr != "" && !strings.Contains(d.errMsg, tc.wantErr) {
+				t.Errorf("want err %q, got %q", tc.wantErr, d.errMsg)
+			}
+			if tc.wantErr == "" && d.errMsg != "" {
+				t.Errorf("unexpected err %q", d.errMsg)
+			}
+		})
 	}
 }

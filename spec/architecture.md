@@ -30,19 +30,26 @@ internal/
     config.go          # Config 结构、LoadConfig、ResolvePaths、DetectTheme、ResolveLocale
   selector/            # 交互式选择器（Bubbletea Model + Bubbles list）
     model.go           # SelectorModel：结构体定义、New、Init、Update、View
-    keyhandler.go      # 按键处理函数（handleKey、handleEnter、toggleDelete 等）
+    keyhandler.go      # 按键处理函数（handleKey、handleEnter、toggleDelete、循环导航等）
+    layout.go          # Header / Footer / 空状态布局
+    styles.go          # 主题 token 与 Lipgloss 样式
+    icons.go           # 列表与空状态图标常量
     delegate.go        # 自定义 list.ItemDelegate 渲染
-    view.go            # View 渲染（Header + list.View() + Footer）+ styles 定义
+    view.go            # View 入口（主界面 / 对话框叠层）
     keys.go            # 按键绑定
     entry.go           # 目录条目类型定义（实现 list.Item 接口）+ 工具函数
     loader.go          # 目录加载（loadAllTries）和列表刷新（refreshList）
     dialogs.go         # DialogInstance 接口、DialogFactory、对话框路由
+    overlay.go         # 模态弹窗合成
     testkeys.go        # 测试按键解析（ParseTestKeys、KeyToMsg）
   dialog/              # 对话框子模型
     dialog.go          # Dialog 接口定义
     delete.go          # 删除确认对话框
     rename.go          # 重命名对话框
     ship.go            # ship 对话框
+    styles.go          # 对话框样式（从 selector Styles 派生）
+    icons.go           # 对话框图标常量
+    modal.go           # 弹窗尺寸与盒子渲染
   fuzzy/               # 模糊匹配引擎
     fuzzy.go           # 子序列匹配 + 多维评分
   shell/               # Shell 集成

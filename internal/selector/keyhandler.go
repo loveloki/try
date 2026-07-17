@@ -5,8 +5,8 @@ import (
 	"strings"
 	"time"
 
-	tea "charm.land/bubbletea/v2"
 	"charm.land/bubbles/v2/key"
+	tea "charm.land/bubbletea/v2"
 	"github.com/loveloki/try/internal/git"
 )
 
@@ -18,13 +18,23 @@ func (m SelectorModel) handleKey(msg tea.KeyPressMsg) (tea.Model, tea.Cmd) {
 	case key.Matches(msg, m.keys.Enter):
 		return m.handleEnter()
 	case key.Matches(msg, m.keys.CtrlP):
-		m.list.CursorUp()
+		m.moveCursor(-1)
 		return m, nil
 	case key.Matches(msg, m.keys.CtrlN):
-		m.list.CursorDown()
+		m.moveCursor(1)
 		return m, nil
+	case msg.Code == tea.KeyUp:
+		m.moveCursor(-1)
+		return m, nil
+	case msg.Code == tea.KeyDown:
+		m.moveCursor(1)
+		return m, nil
+	case key.Matches(msg, m.keys.Space), key.Matches(msg, m.keys.Delete):
+		return m.toggleDeleteMark()
 	case key.Matches(msg, m.keys.CtrlD):
 		return m.toggleDelete()
+	case key.Matches(msg, m.keys.CtrlA):
+		return m.markAll()
 	case key.Matches(msg, m.keys.CtrlT):
 		return m.handleCreateNew()
 	case key.Matches(msg, m.keys.CtrlR):
@@ -32,12 +42,28 @@ func (m SelectorModel) handleKey(msg tea.KeyPressMsg) (tea.Model, tea.Cmd) {
 	case key.Matches(msg, m.keys.CtrlG):
 		return m.enterShipDialog()
 	case key.Matches(msg, m.keys.Tab):
-		return m.cycleSourceFilter()
+		return m.cycleSourceFilter(1)
+	case key.Matches(msg, m.keys.ShiftTab):
+		return m.cycleSourceFilter(-1)
+	case key.Matches(msg, m.keys.Slash), key.Matches(msg, m.keys.CtrlF):
+		return m.focusSearch()
 	case key.Matches(msg, m.keys.Quit):
 		return m.handleQuit()
 	}
 
 	return m.handleTextInput(msg)
+}
+
+func (m *SelectorModel) moveCursor(delta int) {
+	items := m.list.Items()
+	if len(items) == 0 {
+		return
+	}
+	next := (m.list.Index() + delta) % len(items)
+	if next < 0 {
+		next += len(items)
+	}
+	m.list.Select(next)
 }
 
 // handleTextInput 将按键转发给 textInput，变化时刷新列表
@@ -90,21 +116,51 @@ func (m SelectorModel) handleCreateNew() (tea.Model, tea.Cmd) {
 }
 
 func (m SelectorModel) handleQuit() (tea.Model, tea.Cmd) {
+	if m.textInput.Value() != "" {
+		m.textInput.SetValue("")
+		m.list.Select(0)
+		return m, m.refreshList()
+	}
 	if m.deleteMode {
 		m.deleteMode = false
 		m.markedForDeletion = map[string]bool{}
 		m.deleteStatus = msgs().DeleteCancelled
+		m.delegate.markedForDeletion = m.markedForDeletion
 		return m, nil
 	}
 	return m, tea.Quit
 }
 
+// focusSearch 聚焦搜索框；由于搜索框始终聚焦，此处仅清空已有查询以重新输入。
+func (m SelectorModel) focusSearch() (tea.Model, tea.Cmd) {
+	if m.textInput.Value() != "" {
+		m.textInput.SetValue("")
+		m.list.Select(0)
+		return m, m.refreshList()
+	}
+	return m, nil
+}
+
+// toggleDelete 切换删除模式；当前有标记时退出模式并清空标记。
 func (m SelectorModel) toggleDelete() (tea.Model, tea.Cmd) {
+	if m.deleteMode {
+		m.deleteMode = false
+		m.markedForDeletion = map[string]bool{}
+	} else {
+		return m.toggleDeleteMark()
+	}
+	m.delegate.markedForDeletion = m.markedForDeletion
+	return m, nil
+}
+
+// toggleDeleteMark 切换当前选中条目的删除标记。
+func (m SelectorModel) toggleDeleteMark() (tea.Model, tea.Cmd) {
 	entry := m.selectedEntry()
 	if entry == nil {
 		return m, nil
 	}
 	path := entry.Entry.Path
+	m.markedForDeletion = copyMarkedMap(m.markedForDeletion)
 	if m.markedForDeletion[path] {
 		delete(m.markedForDeletion, path)
 	} else {
@@ -119,6 +175,29 @@ func (m SelectorModel) toggleDelete() (tea.Model, tea.Cmd) {
 	return m, nil
 }
 
+// markAll 标记当前过滤结果中的所有条目。
+func (m SelectorModel) markAll() (tea.Model, tea.Cmd) {
+	if len(m.cachedResults) == 0 {
+		return m, nil
+	}
+	m.markedForDeletion = copyMarkedMap(m.markedForDeletion)
+	for _, entry := range m.cachedResults {
+		m.markedForDeletion[entry.Entry.Path] = true
+	}
+	m.deleteMode = true
+	m.delegate.markedForDeletion = m.markedForDeletion
+	return m, nil
+}
+
+// copyMarkedMap 深拷贝标记集合（保持不可变性）。
+func copyMarkedMap(src map[string]bool) map[string]bool {
+	out := make(map[string]bool, len(src))
+	for k, v := range src {
+		out[k] = v
+	}
+	return out
+}
+
 func (m SelectorModel) selectedEntry() *MatchedEntry {
 	item := m.list.SelectedItem()
 	if item == nil {
@@ -128,7 +207,7 @@ func (m SelectorModel) selectedEntry() *MatchedEntry {
 	return &entry
 }
 
-func (m SelectorModel) cycleSourceFilter() (tea.Model, tea.Cmd) {
+func (m SelectorModel) cycleSourceFilter(delta int) (tea.Model, tea.Cmd) {
 	if len(m.sourceOptions) <= 1 {
 		return m, nil
 	}
@@ -139,7 +218,8 @@ func (m SelectorModel) cycleSourceFilter() (tea.Model, tea.Cmd) {
 			break
 		}
 	}
-	m.sourceFilter = m.sourceOptions[(currentIdx+1)%len(m.sourceOptions)]
+	n := len(m.sourceOptions)
+	m.sourceFilter = m.sourceOptions[((currentIdx+delta)%n+n)%n]
 	m.lastQuery = ""
 	m.cachedResults = nil
 	m.list.Select(0)

@@ -38,12 +38,12 @@ func (f *mockDialogFactory) NewDeleteDialog(
 	return &mockDialog{}
 }
 
-func (f *mockDialogFactory) NewRenameDialog(entry *MatchedEntry, basePath string, width int) DialogInstance {
+func (f *mockDialogFactory) NewRenameDialog(entry *MatchedEntry, basePath string, width int, colorsEnabled bool) DialogInstance {
 	f.renameCalled = true
 	return &mockDialog{}
 }
 
-func (f *mockDialogFactory) NewShipDialog(entry *MatchedEntry, basePath string, shipPaths []string, width int) DialogInstance {
+func (f *mockDialogFactory) NewShipDialog(entry *MatchedEntry, basePath string, shipPaths []string, width int, colorsEnabled bool) DialogInstance {
 	f.shipCalled = true
 	return &mockDialog{}
 }

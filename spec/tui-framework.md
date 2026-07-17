@@ -16,132 +16,153 @@ charm.land/lipgloss/v2     # 样式
 
 ### 全局开关
 
-颜色始终启用。`newStyles` 始终返回带完整样式的配置。颜色降采样交由 bubbletea v2 内置渲染器处理，`newStyles` 不做额外 colorprofile 降采样以避免双重转换导致背景色丢失。
+`NewStyles(colorsEnabled)` 根据 `colorsEnabled` 与 `config.DetectTheme()` 返回带完整样式或纯文本样式。十六进制色值由 Bubbletea/Lipgloss 渲染器根据终端 `colorprofile` 自动降采样，避免业务层做二次转换。
 
 ### 主题系统
 
-支持 `dark` 和 `light` 两套配色，使用 GitHub 风格 256-color ANSI 码。通过 `themePalette` 结构定义色值，`newStyles` 通过 `config.DetectTheme()` 自动检测终端亮暗来选择色板。
+支持 `dark` 和 `light` 两套配色，色值与 Next.js GUI 设计系统保持一致。
 
 ```go
-type themePalette struct {
-    header     string // 标题/品牌色
-    highlight  string // 选中箭头/强调前景色
-    muted      string // 次要文本
-    match      string // 模糊搜索命中高亮
-    accent     string // 创建新目录等操作提示
-    danger     string // 删除标记前景色
+type colorToken struct {
+    dark  string
+    light string
 }
 ```
 
-#### Dark 色板（GitHub Dark 风格）
+#### 语义色板
 
-| 名称 | ANSI 256 码 | 近似色 | 用途 |
-|------|-------------|--------|------|
-| header | 75 | #5fafff 浅蓝 | 标题文字 |
-| highlight | 75 | #5fafff 浅蓝 | 选中箭头 |
-| muted | 245 | #8a8a8a 灰 | 次要文本 |
-| match | 215 | #ffaf5f 浅橙 | 搜索匹配高亮 |
-| accent | 114 | #87d787 浅绿 | 操作提示 |
-| danger | 196 | #ff0000 鲜红 | 删除标记前景色 |
-
-#### Light 色板（GitHub Light 风格）
-
-| 名称 | ANSI 256 码 | 近似色 | 用途 |
-|------|-------------|--------|------|
-| header | 26 | #005fd7 深蓝 | 标题文字 |
-| highlight | 26 | #005fd7 深蓝 | 选中箭头 |
-| muted | 242 | #6c6c6c 中灰 | 次要文本 |
-| match | 130 | #af5f00 棕橙 | 搜索匹配高亮 |
-| accent | 28 | #008700 深绿 | 操作提示 |
-| danger | 160 | #d70000 深红 | 删除标记前景色 |
+| 名称 | Dark | Light | 用途 |
+|------|------|-------|------|
+| background | `#0d1117` | `#ffffff` | 页面背景（少用） |
+| foreground | `#e6edf3` | `#1f2328` | 主文字、选中行前景 |
+| surface | `#161b22` | `#f6f8fa` | 面板、footer、输入框背景 |
+| surfaceHover | `#1f242c` | `#f3f4f6` | hover 背景 |
+| surfaceSelected | `#21262d` | `#eef0f2` | 选中行背景 |
+| line | `#30363d` | `#d0d7de` | 分隔线、边框 |
+| header | `#5fafff` | `#005fd7` | 标题、选中箭头、活动标签 |
+| highlight | `#5fafff` | `#005fd7` | 强调前景色 |
+| match | `#ffaf5f` | `#af5f00` | 模糊搜索命中高亮 |
+| accent | `#87d787` | `#008700` | 创建/成功提示 |
+| danger | `#ff3b30` | `#d70000` | 删除标记、危险按钮 |
+| dangerSurface | `#3f1e1c` | `#ffe5e5` | 标记删除行背景 |
+| onDanger | `#ffffff` | `#ffffff` | 危险背景上的文字 |
+| muted | `#8b949e` | `#6e7781` | 次要文本 |
+| disabled | `#6e7681` | `#aeb4ba` | 不可用元素 |
 
 ### 主题检测
 
-通过 `COLORFGBG` 环境变量推断终端亮暗（背景色值 0-6 判定为 light），无法推断时默认 dark。
+通过 `COLORFGBG` 环境变量推断终端亮暗（背景色 `7`/`15` 判定为 light），无法推断时默认 dark。
 
-auto 检测逻辑：解析 `COLORFGBG` 环境变量（格式 `fg;bg`），背景色值 0-6 判定为浅色终端返回 "light"，其他返回 "dark"。
+auto 检测逻辑：解析 `COLORFGBG` 环境变量（格式 `fg;bg`），背景色为 `7` 或 `15` 时判定为浅色终端返回 `"light"`，其他返回 `"dark"`。
 
-### 选中行与删除标记渲染
-
-行样式的渲染通过扁平化的样式继承与组合来实现，避免样式嵌套导致的 ANSI 转义码解析错乱。
-
-- **选中行**：应用 `selected` 样式进行加粗渲染。箭头、条目名称和元数据分别继承并组合 `selected` 的加粗样式。
-- **删除标记行**：应用 `danger` 样式（带前景色与删除线）。为了确保稳定性，处于删除标记状态的行直接将其名称扁平化渲染为纯文本形式，不进行模糊匹配分段高亮。
-- **删除模式底栏与删除确认弹窗**：底栏 `DELETE MODE`、取消提示、弹窗标题/列表/边框及 YES 选项均使用 `danger` 红色（`DeleteDialogStyles` / `NewDeleteDialogStyles`），与删除标记行一致。
-- **样式继承**：在匹配高亮渲染时，高亮部分样式通过 `Inherit` 继承行基础样式（如加粗），确保渲染层级扁平且样式正确复合。
-- **空白填充**：左右部分的对齐填充使用普通的空格填充，保持简单干净。
-
-### styles 结构
+### Styles 结构
 
 ```go
-type styles struct {
-    header    lipgloss.Style
-    highlight lipgloss.Style
-    muted     lipgloss.Style
-    match     lipgloss.Style
-    selected  lipgloss.Style // 仅包含加粗属性，供组件继承
-    danger    lipgloss.Style // 包含前景色及删除线属性
-    accent    lipgloss.Style
+type Styles struct {
+    Background, Foreground, Surface, SurfaceHover, SurfaceSelected lipgloss.Style
+    Line, Header, Highlight, Match, Accent, Danger, DangerSurface, Muted, Disabled lipgloss.Style
+    SelectedArrow, MarkedIcon, FolderIcon lipgloss.Style
+    ScoreBarFilled, ScoreBarEmpty lipgloss.Style
+    SourcePill, KeyBadge, DeleteModeBadge lipgloss.Style
+    MarkedName, MarkedMeta lipgloss.Style
 }
-
-func (s *styles) render(style lipgloss.Style, text string) string
 ```
 
-`render` 方法用 `style.Render(text)` 渲染文本，颜色降采样由 bubbletea 渲染器统一处理。
+样式渲染统一通过 `Styles.Render(style, text)`，禁止在业务代码中直接构造 `lipgloss.NewStyle()`。
 
 ## 布局结构
 
 ```
 Screen（Bubbletea View 输出）
-  ├── Header → 标题、分隔线、搜索栏
-  ├── Body   → 列表条目（可滚动）
-  └── Footer → 状态栏、快捷键提示
+  ├── Header → 标题、分隔线、搜索栏、分隔线、来源标签栏
+  ├── Body   → 列表条目（可滚动）或空状态面板
+  └── Footer → 创建输入预览（可选）、分隔线、状态栏/快捷键提示
 ```
 
-Header 和 Footer 固定行数，Body 填充剩余空间。整帧由 Bubbletea 的渲染器在单次 flush 中输出（无闪烁）。
+Header 与 Footer 行数动态计算（Footer 在创建预览出现时增加 1 行），Body 填充剩余空间。整帧由 Bubbletea 渲染器在单次 flush 中输出。
 
 ### 规格文档图示约定
 
 - **允许**：模块树、数据流、优先级链、代码签名等 ASCII（不含模拟终端像素）。
 - **禁止**：手写 TUI 界面示意图（固定列宽 `────`、`╭│╰` 弹窗框、emoji 与英文混排的 mock 屏幕）。此类图在 Markdown 与终端中宽度不一致，易误导实现。
-- **界面行为**：用有序列表、表格或字段说明描述；实现以 `internal/selector/view.go`、`internal/dialog/` 为准。
+- **界面行为**：用有序列表、表格或字段说明描述；实现以 `internal/selector/view.go`、`internal/selector/layout.go`、`internal/dialog/` 为准。
 
-### View 函数结构
+## 列表行
 
-`View()` 按 Header → Body（`list.View()`） → Footer 顺序拼接，通过 `tea.NewView()` 返回并声明式启用 alt screen。完整实现见 `selector.md`。
+每行占用 **2 行**：1 行内容 + 1 行水平分隔线。
 
-### 行布局
+### 内容行结构
 
-每行左侧为条目名称（含图标），右侧为元数据（相对时间与评分）。使用 `lipgloss.PlaceHorizontal` 拼接左右内容，配合 `lipgloss.Width()` 和 `lipgloss.Truncate()` 控制宽度。右侧内容在左侧过长时隐藏，保证左侧名称优先可见。
+左侧：选中箭头 `›`（仅选中行）+ 图标 + 名称（含日期后缀拆分）+ 右对齐元数据。
 
-`maxContent = width - 1` 避免终端最后一列自动换行。
+| 状态 | 图标 | 背景 | 文字样式 |
+|------|------|------|----------|
+| 普通 | `📁` | 无 | `foreground` |
+| 选中 | `📁` | `surfaceSelected` | `foreground` 加粗 |
+| 标记删除 | `✕` | `dangerSurface` | 白色删除线 |
 
-## 文本测量（Lipgloss 内置）
+### 元数据
 
-- `lipgloss.Width(text)`：ANSI-aware 宽度计算，内部使用 go-runewidth
-- `lipgloss.Truncate(text, maxWidth)`：ANSI-aware 截断
-- `lipgloss.TruncateLeft(text, maxWidth)`：从左侧截断（保留尾部）
+右侧显示：
+1. 评分条：5 段 ASCII 块（`█`/`░`），主色填充。
+2. 相对时间：just now / Xm ago / Xh ago / Xd ago / Xmo ago / Xy ago。
+3. 来源 pill（仅非 `tries` 来源）：`[source]` 样式。
 
-## 终端尺寸（Bubbletea 内置）
+### 模糊匹配高亮
 
-Bubbletea 自动检测终端大小变化并发送 `tea.WindowSizeMsg`，只需在 Update 中存储 `width`/`height`。
+命中字符使用 `match` 颜色（橙色）加粗。标记删除行上的命中字符保留删除线，以维持删除状态可读性。
 
-唯一需要手动处理的：检查 `TRY_WIDTH` / `TRY_HEIGHT` 环境变量覆盖（测试用），在收到 WindowSizeMsg 时优先使用环境变量值。
+## 来源标签栏
+
+Header 第 5 行渲染来源过滤标签：`all`、`tries` 以及每个 ship 目录的 basename。
+
+- 活动标签：`surfaceSelected` 背景 + `header` 前景，右侧显示数量徽章。
+- 非活动标签：`surfaceHover` 背景 + `muted` 前景，右侧显示数量徽章。
+
+数量在 `loadAllTries` 时计算并缓存到 `sourceCounts`。
+
+## Footer
+
+### 左侧
+
+- 默认模式：`{N} items`。
+- 删除模式：`DELETE {N}` 危险徽章。
+
+### 右侧
+
+快捷键以 key-badge 形式渲染（小背景块），例如 `Ctrl-T`、`Ctrl-D`、`Tab`、`Esc`。
+
+### 创建输入预览
+
+搜索框非空时，在分隔线上方额外渲染一行：`Create new: {input}`（`accent` 样式）。
+
+## 空状态
+
+- 加载中（`allTries == nil`）：居中显示 `⏳ Loading directories...`。
+- 无目录：居中显示 `📁 No directories yet.` + `Ctrl-T: create the directory`。
+- 搜索无匹配：居中显示 `🔍 No matches for '{query}'.` + 创建提示。
+
+空状态面板使用 `surface` 背景与 `muted` 前景，高度由 `bodyHeight` 推导。
+
+## 文本测量
+
+- `lipgloss.Width(text)`：ANSI-aware 宽度计算。
+- `lipgloss.Place(width, height, ...)`：居中放置内容。
+
+## 终端尺寸
+
+Bubbletea 自动检测终端大小变化并发送 `tea.WindowSizeMsg`。收到时优先使用 `TRY_WIDTH` / `TRY_HEIGHT` 环境变量覆盖。
 
 ## Bubbles 组件使用策略
 
 ### list 组件
 
-使用 `charm.land/bubbles/v2/list` 管理光标追踪和滚动，禁用所有内置 UI，不使用内置过滤（搜索由独立 `textinput` 管理，排序混合时间权重需在外部控制）。自定义 `ItemDelegate` 实现条目渲染。初始化代码和使用策略见 `selector.md`。
+使用 `charm.land/bubbles/v2/list` 管理光标追踪和滚动，禁用所有内置 UI，不使用内置过滤（搜索由独立 `textinput` 管理）。自定义 `ItemDelegate` 实现条目渲染。
 
 ### textinput 组件
 
 搜索框和对话框各自拥有独立的 `textinput` 实例。搜索框渲染在 Header 区域，通过 `textinput.Validate` 实现各自的字符过滤规则。
 
-## 填充线
+## Emoji 处理
 
-分隔线使用 `strings.Repeat("─", width)` 填充，应用 muted 样式。
-
-## Emoji 处理（Lipgloss 内置）
-
-`lipgloss.Width()` 内部使用 `go-runewidth`，已正确处理 emoji 宽度（📁 = 2 列）。不需要单独引入 `go-runewidth` 或手动计算。
+`lipgloss.Width()` 内部使用 `go-runewidth`，已正确处理 emoji 宽度（📁 = 2 列）。

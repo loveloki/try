@@ -102,9 +102,12 @@ func FormatTimeAgo(d time.Duration) string {
 		return fmt.Sprintf(m.TimeHourAgo, hours)
 	}
 	days := hours / 24
-	if days < 7 {
+	if days < 30 {
 		return fmt.Sprintf(m.TimeDayAgo, days)
 	}
-	weeks := days / 7
-	return fmt.Sprintf(m.TimeWeekAgo, weeks)
+	months := days / 30
+	if months < 12 {
+		return fmt.Sprintf(m.TimeMonthAgo, months)
+	}
+	return fmt.Sprintf(m.TimeYearAgo, months/12)
 }

@@ -98,10 +98,16 @@ func KeyToMsg(token string) tea.KeyPressMsg {
 		return tea.KeyPressMsg{Code: tea.KeyRight}
 	case "ENTER":
 		return tea.KeyPressMsg{Code: tea.KeyEnter}
+	case "SPACE":
+		return tea.KeyPressMsg{Code: tea.KeySpace, Text: " "}
+	case "DELETE":
+		return tea.KeyPressMsg{Code: tea.KeyDelete}
 	case "ESC":
 		return tea.KeyPressMsg{Code: tea.KeyEscape}
 	case "BACKSPACE":
 		return tea.KeyPressMsg{Code: tea.KeyBackspace}
+	case "SHIFT-TAB":
+		return tea.KeyPressMsg{Code: tea.KeyTab, Mod: tea.ModShift}
 	default:
 		if strings.HasPrefix(token, "CTRL-") {
 			ch := strings.ToLower(token[5:])

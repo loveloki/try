@@ -8,7 +8,6 @@ import (
 
 	tea "charm.land/bubbletea/v2"
 	"charm.land/bubbles/v2/textinput"
-	lipgloss "charm.land/lipgloss/v2"
 	"github.com/loveloki/try/internal/selector"
 )
 
@@ -27,10 +26,11 @@ type RenameDialog struct {
 	result   *selector.SelectionResult
 	errMsg   string
 	width    int
+	styles   Styles
 }
 
 // NewRenameDialog 创建重命名对话框，输入框初始值为当前目录名
-func NewRenameDialog(entry *selector.MatchedEntry, basePath string, width int) *RenameDialog {
+func NewRenameDialog(entry *selector.MatchedEntry, basePath string, width int, colorsEnabled bool) *RenameDialog {
 	ti := textinput.New()
 	ti.SetValue(entry.Entry.Basename)
 	ti.CharLimit = 256
@@ -50,6 +50,7 @@ func NewRenameDialog(entry *selector.MatchedEntry, basePath string, width int) *
 		entry:    entry,
 		basePath: basePath,
 		width:    width,
+		styles:   NewStyles(selector.NewStyles(colorsEnabled)),
 	}
 }
 
@@ -87,28 +88,30 @@ func (d *RenameDialog) Update(msg tea.Msg) (tea.Model, tea.Cmd) {
 func (d *RenameDialog) View() tea.View { return tea.NewView(d.ViewContent()) }
 
 func (d *RenameDialog) ViewContent() string {
-	dialogStyle := lipgloss.NewStyle().MarginLeft(4)
-	var b strings.Builder
-	w := d.width - 4
-	if w < 0 {
-		w = 0
+	innerW := modalInnerWidth(d.width)
+	if innerW < 0 {
+		innerW = 0
 	}
-	sep := strings.Repeat("─", w)
+	sep := d.styles.Separator.Render(strings.Repeat("─", innerW))
 
 	m := msgs()
-	b.WriteString(m.RenameTitle + "\n")
+	var b strings.Builder
+	b.WriteString(padLine(d.styles.Title.Render(iconRenameDlg+"  "+m.RenameTitle), innerW) + "\n")
 	b.WriteString(sep + "\n")
-	b.WriteString(d.entry.Entry.Basename + "\n\n\n")
-	b.WriteString(m.RenamePrompt + d.input.View() + "\n")
+	b.WriteString(padLine(d.styles.Muted.Render(d.entry.Entry.Basename), innerW) + "\n")
+	b.WriteString(padLine("", innerW) + "\n")
+	b.WriteString(padLine(d.styles.InputLabel.Render(m.RenamePrompt)+d.input.View(), innerW) + "\n")
 	if d.errMsg != "" {
-		b.WriteString(d.errMsg + "\n")
+		b.WriteString(padLine(d.styles.ErrorLine.Render(iconError+" "+d.errMsg), innerW) + "\n")
 	}
-	b.WriteString("\n" + sep + "\n")
-	b.WriteString(m.RenameFooter)
-	return dialogStyle.Render(b.String())
+	b.WriteString(padLine("", innerW) + "\n")
+	b.WriteString(sep + "\n")
+	footer := d.styles.JoinKeyBadges([]string{"Enter", "Esc"})
+	b.WriteString(padLine(d.styles.Footer.Render(footer), innerW))
+	return d.styles.renderModalBox(b.String(), d.width)
 }
 
-func (d *RenameDialog) OverlaysMainUI() bool { return false }
+func (d *RenameDialog) OverlaysMainUI() bool { return true }
 
 func (d *RenameDialog) Result() *selector.SelectionResult { return d.result }
 func (d *RenameDialog) Done() bool                        { return d.done }

@@ -26,6 +26,14 @@ func overlayModal(background, modal string, width, height int) string {
 		y = 0
 	}
 
+	// 限制模态框不超出画布边界，避免右侧/底部碎片行。
+	if mw > width {
+		mw = width
+	}
+	if mh > height {
+		mh = height
+	}
+
 	comp := lipgloss.NewCompositor(
 		lipgloss.NewLayer(bg),
 		lipgloss.NewLayer(modal).X(x).Y(y),

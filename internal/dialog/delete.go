@@ -7,7 +7,6 @@ import (
 
 	tea "charm.land/bubbletea/v2"
 	lipgloss "charm.land/lipgloss/v2"
-	"github.com/charmbracelet/x/ansi"
 	"github.com/loveloki/try/internal/i18n"
 	"github.com/loveloki/try/internal/selector"
 )
@@ -23,7 +22,7 @@ type DeleteDialog struct {
 	done        bool
 	result      *selector.SelectionResult
 	width       int
-	styles      selector.DeleteDialogStyles
+	styles      Styles
 }
 
 // NewDeleteDialog 创建删除确认对话框
@@ -38,7 +37,7 @@ func NewDeleteDialog(
 		basePath:    basePath,
 		testConfirm: testConfirm,
 		width:       width,
-		styles:      selector.NewDeleteDialogStyles(colorsEnabled),
+		styles:      NewStyles(selector.NewStyles(colorsEnabled)),
 	}
 	if testConfirm == "YES" {
 		d.confirmYes = true
@@ -98,45 +97,38 @@ func (d *DeleteDialog) ViewContent() string {
 	}
 	sep := d.styles.Separator.Render(strings.Repeat("─", innerW))
 
-	padAndTrunc := func(s string, style lipgloss.Style) string {
-		if innerW <= 0 {
-			return s
-		}
-		rendered := style.Render(s)
-		w := ansi.StringWidth(rendered)
-		if w >= innerW {
-			return ansi.Truncate(rendered, innerW, "…")
-		}
-		return rendered + strings.Repeat(" ", innerW-w)
+	pad := func(s string, style lipgloss.Style) string {
+		return padLine(style.Render(s), innerW)
 	}
 
 	m := msgs()
-	b.WriteString(padAndTrunc(fmt.Sprintf(m.DeleteTitle, len(d.markedItems)), d.styles.Title) + "\n")
+	title := fmt.Sprintf("🗑️  "+m.DeleteTitle, len(d.markedItems))
+	b.WriteString(pad(title, d.styles.Title) + "\n")
 	b.WriteString(sep + "\n")
 	for _, item := range d.markedItems {
-		b.WriteString(padAndTrunc(item.Basename, d.styles.Item) + "\n")
+		b.WriteString(pad("✕ "+item.Basename, d.styles.ItemMarked) + "\n")
 	}
-	b.WriteString(padAndTrunc("", lipgloss.NewStyle()) + "\n")
-	b.WriteString(padAndTrunc("", lipgloss.NewStyle()) + "\n")
-	b.WriteString(padAndTrunc(d.renderChoice(), lipgloss.NewStyle()) + "\n")
-	b.WriteString(padAndTrunc("", lipgloss.NewStyle()) + "\n")
+	b.WriteString(pad("", lipgloss.NewStyle()) + "\n")
+	b.WriteString(pad(d.renderChoice(), lipgloss.NewStyle()) + "\n")
+	b.WriteString(pad("", lipgloss.NewStyle()) + "\n")
 	b.WriteString(sep + "\n")
-	b.WriteString(padAndTrunc(m.DeleteFooter, d.styles.Footer))
-	return renderModalBoxWithBorder(d.styles.ModalBorder, b.String(), d.width)
+	footer := d.styles.JoinKeyBadges([]string{"←/→", "Enter", "Esc"})
+	b.WriteString(pad(footer, d.styles.Footer))
+	return d.styles.renderModalBox(b.String(), d.width)
 }
 
 func (d *DeleteDialog) renderChoice() string {
 	m := msgs()
-	noLabel := m.DeleteOptionNo
-	yesLabel := m.DeleteOptionYes
+	noLabel := " " + m.DeleteOptionNo + " "
+	yesLabel := " " + m.DeleteOptionYes + " "
 	if d.confirmYes {
-		noLabel = " " + noLabel + " "
-		yesLabel = d.styles.ChoiceActive.Render(" " + yesLabel + " ")
-	} else {
-		noLabel = d.styles.ChoiceActive.Render(" " + noLabel + " ")
-		yesLabel = d.styles.ChoiceYes.Render(" " + yesLabel + " ")
+		return m.DeleteConfirmPrompt +
+			d.styles.ChoiceInactive.Render(noLabel) + "  " +
+			d.styles.ChoiceDanger.Render(yesLabel)
 	}
-	return m.DeleteConfirmPrompt + noLabel + "  " + yesLabel
+	return m.DeleteConfirmPrompt +
+		d.styles.ChoiceActive.Render(noLabel) + "  " +
+		d.styles.ChoiceInactive.Render(yesLabel)
 }
 
 func (d *DeleteDialog) OverlaysMainUI() bool { return true }

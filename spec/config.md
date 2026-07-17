@@ -91,7 +91,7 @@ func ExpandPath(s string) string
 - `LoadConfig`：从 `~/.config/try/config.json` 读取。文件不存在、空文件或 JSON 语法错误时返回 error。配置文件由 `try install` 自动初始化，正常情况下应当存在。
 - `InitConfigFile`：在 `~/.config/try/config.json` 创建默认配置文件（如果不存在）。文件已存在时返回 `(false, nil)`，新创建时返回 `(true, nil)`。在 `try install` 命令中自动调用。
 - `ResolvePaths`：按优先级链合并 tries 和 ships 路径，最终展开为绝对路径。启动时自动创建所有 ship 目录。
-- `DetectTheme`：通过 `COLORFGBG` 环境变量推断终端亮暗（背景色值 0-6 判定为 light），无法推断时默认 dark。
+- `DetectTheme`：通过 `COLORFGBG` 环境变量推断终端亮暗（背景色 `7`/`15` 判定为 light），无法推断时默认 dark。
 - `ResolveLocale`：auto 模式通过 `LC_ALL` > `LC_MESSAGES` > `LANG` 推断语言（以 `zh` 开头时为中文），默认 en。
 - `ExpandPath`：展开 `~` 为用户 home 目录。
 

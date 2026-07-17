@@ -12,7 +12,7 @@ import (
 	"github.com/loveloki/try/internal/fuzzy"
 )
 
-// loadAllTries 从 basePath 和 shipPaths 读取所有子目录，计算时间权重基础分
+// loadAllTries 从 basePath 和 shipPaths 读取所有子目录，并计算各来源数量。
 func (m *SelectorModel) loadAllTries() []Entry {
 	if m.allTries != nil {
 		return m.allTries
@@ -21,17 +21,30 @@ func (m *SelectorModel) loadAllTries() []Entry {
 	now := time.Now()
 	var result []Entry
 
-	// 扫描 tries 目录
 	result = append(result, scanDir(m.basePath, "tries", now)...)
-
-	// 扫描所有 ship 目录
 	for _, sp := range m.shipPaths {
 		source := filepath.Base(sp)
 		result = append(result, scanDir(sp, source, now)...)
 	}
 
 	m.allTries = result
-	return result
+	if m.allTries == nil {
+		m.allTries = []Entry{}
+	}
+	m.sourceCounts = computeSourceCounts(m.allTries, m.sourceOptions)
+	return m.allTries
+}
+
+func computeSourceCounts(entries []Entry, options []string) map[string]int {
+	counts := make(map[string]int, len(options))
+	for _, opt := range options {
+		counts[opt] = 0
+	}
+	for _, e := range entries {
+		counts[e.Source]++
+	}
+	counts[""] = len(entries)
+	return counts
 }
 
 func scanDir(dir, source string, now time.Time) []Entry {
@@ -81,7 +94,7 @@ func (m *SelectorModel) refreshList() tea.Cmd {
 	}
 
 	filtered := m.filteredEntries()
-	maxResults := m.height - 6
+	maxResults := bodyHeight(m)
 	if maxResults < 3 {
 		maxResults = 3
 	}

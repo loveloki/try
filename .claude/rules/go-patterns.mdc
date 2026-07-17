@@ -1,0 +1,44 @@
+---
+description: Go 设计模式——函数选项、依赖注入、包组织
+alwaysApply: true
+---
+
+# Go 设计模式
+
+## 函数选项模式
+
+```go
+type Option func(*Server)
+
+func WithPort(port int) Option {
+    return func(s *Server) { s.port = port }
+}
+
+func NewServer(opts ...Option) *Server {
+    s := &Server{port: 8080}
+    for _, opt := range opts {
+        opt(s)
+    }
+    return s
+}
+```
+
+## 依赖注入
+
+通过构造函数注入，不使用包级全局状态：
+
+```go
+func NewUserService(repo UserRepository, logger Logger) *UserService {
+    return &UserService{repo: repo, logger: logger}
+}
+```
+
+## 包命名
+
+短、小写、无下划线。一个包对应一个职责。
+
+## 并发
+
+- 使用 channel 协调 goroutine，不通过共享内存通信
+- 始终传递 `context.Context` 控制取消和超时
+- 使用 `errgroup` 协调多 goroutine 错误处理

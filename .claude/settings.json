@@ -1,0 +1,13 @@
+{
+  "skills": [
+    "./.claude/skills/new-feature",
+    "./.claude/skills/design-docs",
+    "./.claude/skills/tui-testing",
+    "./.claude/skills/tui-testing-with-agent-tty",
+    "./.claude/skills/go-reviewer",
+    "./.claude/skills/go-build-resolver",
+    "./.claude/skills/golang-patterns",
+    "./.claude/skills/golang-testing",
+    "./.claude/skills/multi-agent-breakthrough"
+  ]
+}

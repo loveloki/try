@@ -1,0 +1,27 @@
+---
+description: Go 安全规范——密钥管理、静态分析、超时控制
+alwaysApply: true
+---
+
+# Go 安全规范
+
+## 密钥管理
+
+- 通过环境变量获取密钥，不硬编码
+- 缺少必要密钥时立即失败
+
+## 超时控制
+
+始终使用 `context.Context` 控制外部调用超时：
+
+```go
+ctx, cancel := context.WithTimeout(ctx, 5*time.Second)
+defer cancel()
+```
+
+## 安全检查
+
+- 使用 `gosec ./...` 进行静态安全分析
+- 不使用 `InsecureSkipVerify: true`
+- 不使用 `unsafe` 包（除非有充分理由）
+- 文件路径操作使用 `filepath.Clean` + 前缀检查防止路径遍历

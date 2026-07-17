@@ -1,0 +1,190 @@
+---
+name: tui-testing
+description: >-
+  审查和编写 Go TUI 应用测试，遵循 matklad 测试原则；并实现/审查自定义 TUI 组件
+  （弹窗、叠层、对话框）。用于发现测试盲区、检查值接收器陷阱、验证真实交互路径，
+  以及避免手写拼接导致的布局错位。当用户提到 TUI 测试、Bubbletea 测试、自定义组件、
+  弹窗/模态框/overlay、检查测试覆盖、或 matklad 测试原则时触发。
+---
+
+# TUI 测试审查与编写
+
+## 核心原则（matklad）
+
+1. **测试功能而非代码**：测试用户可观测的行为（"输入文字后按 Ctrl-T 创建目录"），而非内部实现细节
+2. **data-driven check 函数**：每个模块用 `check` 辅助函数封装被测 API，API 变更只改一处
+3. **neural network test**：即使内部实现完全替换，只要行为不变测试仍应通过
+4. **不 mock，用真实依赖**：上层测试直接调用真实的下层模块，用 temp dir 做文件操作
+
+## 自定义 TUI 组件实现（弹窗 / 叠层 / 边框）
+
+Bubbletea 与 Bubbles **不提供**现成 dialog/modal 组件；在 `internal/dialog` 等处的子 Model 属于**项目自定义组件**。实现时必须用 Lipgloss/Bubbletea 的布局与合成 API，**禁止**靠硬编码尺寸或手写字符串拼接来「凑」界面。
+
+### 禁止做法
+
+| 禁止 | 原因 |
+|------|------|
+| 用固定列数拼边框、分隔线（如写死 `64`、`strings.Repeat("─", 60)` 且与终端无关） | 终端宽度变化时框体与内容错位 |
+| 用空格/`MarginLeft(n)` 硬编码对齐弹窗 | 无法适配宽字符、emoji、ANSI 样式宽度 |
+| 逐行 `overlayLine` / `strings` 拼接把前景「插进」背景 | 破坏 Lipgloss 边框与 ANSI 序列，典型症状是右侧竖线断裂、多余 `\|`、`]` |
+| `Place` 整屏铺满空白前景再 `Compose` | 空白格会盖住背景，标题/列表消失 |
+| 在 `package selector` 测试里 `import dialog` | `dialog → selector` 已存在，会形成 import cycle；集成测试用 `package selector_test` |
+
+### 推荐做法
+
+1. **尺寸来自终端与内容**
+   - 宽度/高度用 `SelectorModel` 的 `width`/`height`（或 `tea.WindowSizeMsg`）传入子组件。
+   - 用 `lipgloss.Width` / `lipgloss.Height`、`ansi.StringWidth` 测量；长文本用 `ansi.Truncate` 或 `Style.MaxWidth`，避免撑破边框。
+
+2. **边框与内边距用 Style，不手写框线字符**
+   - 弹窗外壳：`lipgloss.NewStyle().Border(lipgloss.RoundedBorder()).Padding(...).Width(boxW).Render(content)`（见 `internal/dialog/modal.go`）。
+   - 内容区宽度用**推导**（`modalInnerWidth(termWidth)`），分隔线与截断共用同一 `innerW`。
+
+3. **叠层用 Compositor + Canvas，不手写逐行覆盖**
+   - 背景：`lipgloss.Place(width, height, lipgloss.Left, lipgloss.Top, background)` 铺满。
+   - 弹窗：`lipgloss.NewCompositor(背景层, 弹窗层.X(x).Y(y))`，再 `NewCanvas(w,h).Compose(comp).Render()`（见 `internal/selector/overlay.go`）。
+   - 居中：`x = (width - lipgloss.Width(modal)) / 2`，`y` 同理；**不要**把已居中的整屏字符串当作第二层盖上去。
+
+4. **子 Model 仍走 Bubbletea 惯例**
+   - 输入用 Bubbles `textinput`；确认逻辑在 `Update`/`confirm()`，不在 `View` 里改状态。
+   - 与主界面集成：`DialogInstance.OverlaysMainUI()` 区分全屏对话框与叠层弹窗。
+
+5. **测试**
+   - 单元测：边框字符存在（如 `╭`）、关键文案、截断行为。
+   - 跨包集成：`package selector_test` + 真实 `dialog` 工厂（`export_test.go` 导出驱动辅助函数）。
+   - 视觉/端到端：`scripts/run_all_tui_tests.sh` 或 `tui-testing-with-agent-tty` 截图走查。
+
+### 审查清单（实现自定义组件时必查）
+
+- [ ] 是否存在与 `termWidth` 无关的魔法数字宽度？
+- [ ] 叠层是否使用 `Compositor`/`Canvas`，而非字符串 splice？
+- [ ] 宽字符/emoji/ANSI 是否用 `ansi` 或 `lipgloss` 测量，而非 `len(string)`？
+- [ ] 弹窗内容是否可能超出 `innerW` 并已截断或换行？
+- [ ] 集成测试是否避免 `selector` ↔ `dialog` import cycle？
+
+## 常见陷阱检查清单
+
+### 1. 测试环境隔离（Go test cache 陷阱）
+
+Go 测试缓存**只追踪源代码和编译参数的变化**，不追踪外部文件系统状态。
+如果测试读取了用户真实目录（如 `~/src/tries`），首次通过后结果被缓存，
+即使目录内容变化（新增/删除文件）缓存也不会失效。当其他因素（如添加 `-timeout`
+参数）导致缓存失效并重新执行时，测试会因外部状态变化而意外失败。
+
+**规则**：所有读取文件系统或启动 TUI 的测试必须完全隔离：
+
+```go
+func TestRunNoArgs(t *testing.T) {
+    // 1. 用临时目录覆盖真实路径，避免依赖用户环境
+    t.Setenv("TRY_PATH", t.TempDir())
+    t.Setenv("TRY_PROJECTS", t.TempDir())
+
+    // 2. 将 stdin 替换为关闭的 pipe（非 TTY），防止 bubbletea 进入交互模式卡住
+    r, w, _ := os.Pipe()
+    w.Close()
+    oldStdin := os.Stdin
+    os.Stdin = r
+    t.Cleanup(func() { os.Stdin = oldStdin; r.Close() })
+
+    code := Run(nil)
+    if code != 1 {
+        t.Errorf("Run(nil) = %d, want 1", code)
+    }
+}
+```
+
+**审查规则**：
+- 凡是调用 `Run()`、`runSelector()` 或任何最终读取 `triesPath`/`shipPath` 的函数，
+  测试中必须通过 `t.Setenv` 或参数注入指向 `t.TempDir()`
+- 凡是会启动 bubbletea `tea.NewProgram` 的测试，必须将 `os.Stdin` 替换为
+  关闭的 pipe，否则在 TTY 终端中运行 `go test` 会因进入交互模式而卡住
+- 禁止假设"测试环境下某个目录一定为空" — 只有 `t.TempDir()` 能保证干净
+- 用 `go clean -testcache && go test ./... -timeout 60s` 验证测试在无缓存下仍能通过
+
+### 2. 值接收器 vs 指针接收器
+
+Bubbletea v2 的 `Init()` / `Update()` / `View()` 使用值接收器。调用子组件的指针方法时，
+修改的是副本而非原始 model。
+
+```go
+// 错误：Focus() 是指针方法，修改的是 Init() 参数的副本
+func (m Model) Init() tea.Cmd {
+    return m.textInput.Focus() // m.textInput.focus = true 不会保留
+}
+
+// 正确：在 New() 中直接调用
+func New() Model {
+    ti := textinput.New()
+    ti.Focus()  // 直接修改 ti，状态保留到 Model 中
+    return Model{textInput: ti}
+}
+```
+
+**审查规则**：在 `Init()` 和 `Update()` 中搜索所有对子组件指针方法的调用，
+确认状态修改会被返回值携带回去。
+
+### 3. 测试绕过了真实路径
+
+测试基础设施（如 `driveModel`）可能绕过 `Init()`，导致初始化相关的 bug 不被发现。
+
+```go
+// 危险：InitialInput 通过 SetValue 直接设值，不经过 textInput.Update
+sm := driveModel(t, Config{InitialInput: "text", TestKeys: []string{"CTRL-T"}})
+
+// 安全：通过 TestKeys 模拟真实打字，经过 textInput.Update 路径
+sm := driveModel(t, Config{TestKeys: []string{"h", "i", "CTRL-T"}})
+```
+
+**审查规则**：对每个测试问"这个测试走的是用户真实操作的代码路径吗？"
+
+### 4. 预填值 vs 真实输入
+
+`SetValue()` 不需要焦点，`Update(KeyPressMsg)` 需要焦点。
+如果所有测试都用 `SetValue()` 预填，则焦点相关的 bug 永远不会被发现。
+
+**审查规则**：确保至少有一个测试通过模拟按键输入文字。
+
+## 审查流程
+
+1. **列出所有 `driveModel` / 测试辅助函数**，检查它们跳过了哪些真实路径（Init、Focus、WindowSize 等）
+2. **检查每个 `InitialInput` / `SetValue` 的使用**，确认是否有对应的真实输入测试
+3. **搜索值接收器方法中的指针方法调用**：`func (m Model) Init/Update/View` 中调用 `.Focus()`、`.Blur()`、`.SetValue()` 等
+4. **确认导航键路径都被测试**：Ctrl-P/N vs UP/DOWN 是不同的代码路径
+5. **检查清除/退格行为**：输入清空后状态是否正确恢复
+
+## Bubbletea v2 测试模式
+
+### 无 TTY 环境的 Model 驱动
+
+```go
+func driveModel(t *testing.T, cfg Config) Model {
+    m := New(cfg)
+    var model tea.Model = m
+    model, _ = model.Update(tea.WindowSizeMsg{Width: 80, Height: 24})
+    sm := model.(Model)
+
+    for _, k := range cfg.TestKeys {
+        model, _ = sm.Update(KeyToMsg(k))
+        sm = model.(Model)
+        if sm.done {
+            break
+        }
+    }
+    return sm
+}
+```
+
+### 按键构造
+
+```go
+// 普通字符
+tea.KeyPressMsg{Code: 'a', Text: "a"}
+
+// 控制键
+tea.KeyPressMsg{Code: 't', Mod: tea.ModCtrl}  // Ctrl-T
+
+// 特殊键
+tea.KeyPressMsg{Code: tea.KeyEnter}
+tea.KeyPressMsg{Code: tea.KeyEscape}
+tea.KeyPressMsg{Code: tea.KeyBackspace}
+```

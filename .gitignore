@@ -1,5 +1,6 @@
-try
+/try
+try-gui-bin
 test-output.txt
 node_modules/
-package.json
-package-lock.json
+/package.json
+/package-lock.json

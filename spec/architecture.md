@@ -21,6 +21,7 @@ go get charm.land/lipgloss/v2
 
 ```
 cmd/try/main.go        # 入口：调用 cli.Run(os.Args[1:])
+cmd/try-gui/main.go    # GUI 入口：本机 HTTP + 系统浏览器
 internal/
   cli/                 # CLI 解析与命令分派
     cli.go             # Run 主入口、parseGlobalFlags、runSelector、帮助文本
@@ -28,6 +29,16 @@ internal/
     flags.go           # 参数提取工具函数（hasFlag、extractPath、extractValueFlag 等）
   config/              # 配置文件加载（~/.config/try/config.json）
     config.go          # Config 结构、LoadConfig、ResolvePaths、DetectTheme、ResolveLocale
+  gui/                 # 跨平台 GUI 后端（CGO=0，本机 HTTP + 嵌入静态资源）
+    app.go             # Run：加载配置、起服务、打开浏览器、等信号退出
+    server.go          # 路由、CORS（仅本机）、静态资源
+    handlers.go        # JSON API handlers
+    dto.go             # 与 try-gui 对齐的 JSON DTO
+    paths.go           # 路径沙箱（tries/ships 子树）
+    browser.go         # 跨平台打开 URL/文件
+    embed_dev.go       # !embed：WebAssets 为 nil
+    embed_prod.go      # embed：嵌入 web/
+    web/               # 前端静态资源（prod 嵌入）
   selector/            # 交互式选择器（Bubbletea Model + Bubbles list）
     model.go           # SelectorModel：结构体定义、New、Init、Update、View
     keyhandler.go      # 按键处理函数（handleKey、handleEnter、toggleDelete、循环导航等）
@@ -39,6 +50,7 @@ internal/
     keys.go            # 按键绑定
     entry.go           # 目录条目类型定义（实现 list.Item 接口）+ 工具函数
     loader.go          # 目录加载（loadAllTries）和列表刷新（refreshList）
+    catalog.go         # 包级扫描/匹配 API（LoadAllEntries、MatchEntries、SourceCounts）
     dialogs.go         # DialogInstance 接口、DialogFactory、对话框路由
     overlay.go         # 模态弹窗合成
     testkeys.go        # 测试按键解析（ParseTestKeys、KeyToMsg）
@@ -58,6 +70,7 @@ internal/
     template.go        # 包装函数模板生成
   script/              # 操作执行 + cd 脚本生成
     exec.go            # Go 直接执行副作用操作（mkdir/rm/mv/git）
+    actions.go         # ExecuteSideEffect：GUI 用，不写 cd 到 stdout
     script.go          # cd 脚本输出（Quote + EmitCd）
   git/                 # Git 集成
     uri.go             # Git URI 解析、IsGitURI、GenerateCloneDirName、ResolveUniqueName

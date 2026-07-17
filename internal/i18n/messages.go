@@ -67,6 +67,8 @@ type Messages struct {
 	ErrWorktreeMove  string
 	ErrMove          string
 	ErrUnknownOp     string // 含 %d
+	ErrPathDenied    string // 路径越界
+	ErrBadRequest    string // 非法请求
 
 	// === 时间格式化 ===
 	TimeJustNow  string // "just now" / "刚刚"
@@ -184,6 +186,8 @@ Shortcuts:
 	ErrWorktreeMove:  "git worktree move failed",
 	ErrMove:          "failed to move directory",
 	ErrUnknownOp:     "unknown operation type: %d",
+	ErrPathDenied:    "path outside allowed directories",
+	ErrBadRequest:    "invalid request",
 
 	ErrDetectShell:    "Cannot detect shell type. Please use bash, zsh, or fish.",
 	ErrUnsupportShell: "Unsupported shell type: %s",
@@ -291,6 +295,8 @@ var ZH = Messages{
 	ErrWorktreeMove:  "git worktree move 失败",
 	ErrMove:          "移动目录失败",
 	ErrUnknownOp:     "未知的操作类型: %d",
+	ErrPathDenied:    "路径超出允许范围",
+	ErrBadRequest:    "无效请求",
 
 	ErrDetectShell:    "无法检测 Shell 类型，请确认使用 bash、zsh 或 fish",
 	ErrUnsupportShell: "不支持的 Shell 类型: %s",

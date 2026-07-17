@@ -9,7 +9,6 @@ import (
 
 	"charm.land/bubbles/v2/list"
 	tea "charm.land/bubbletea/v2"
-	"github.com/loveloki/try/internal/fuzzy"
 )
 
 // loadAllTries 从 basePath 和 shipPaths 读取所有子目录，并计算各来源数量。
@@ -17,20 +16,7 @@ func (m *SelectorModel) loadAllTries() []Entry {
 	if m.allTries != nil {
 		return m.allTries
 	}
-
-	now := time.Now()
-	var result []Entry
-
-	result = append(result, scanDir(m.basePath, "tries", now)...)
-	for _, sp := range m.shipPaths {
-		source := filepath.Base(sp)
-		result = append(result, scanDir(sp, source, now)...)
-	}
-
-	m.allTries = result
-	if m.allTries == nil {
-		m.allTries = []Entry{}
-	}
+	m.allTries = LoadAllEntries(m.basePath, m.shipPaths)
 	m.sourceCounts = computeSourceCounts(m.allTries, m.sourceOptions)
 	return m.allTries
 }
@@ -111,41 +97,9 @@ func (m *SelectorModel) refreshList() tea.Cmd {
 }
 
 func (m *SelectorModel) filteredEntries() []Entry {
-	allTries := m.loadAllTries()
-	if m.sourceFilter == "" {
-		return allTries
-	}
-	var filtered []Entry
-	for _, e := range allTries {
-		if e.Source == m.sourceFilter {
-			filtered = append(filtered, e)
-		}
-	}
-	return filtered
+	return filterBySource(m.loadAllTries(), m.sourceFilter)
 }
 
 func (m *SelectorModel) matchEntries(entries []Entry, query string, maxResults int) []MatchedEntry {
-	fuzzyEntries := make([]fuzzy.Entry, len(entries))
-	for i, e := range entries {
-		name := e.Basename
-		if loc := DateSuffixRe.FindStringIndex(name); loc != nil {
-			name = name[:loc[0]]
-		}
-		fuzzyEntries[i] = fuzzy.Entry{
-			Text:      name,
-			BaseScore: e.BaseScore,
-			Data:      e,
-		}
-	}
-
-	results := fuzzy.Match(fuzzyEntries, query, maxResults)
-	matched := make([]MatchedEntry, len(results))
-	for i, r := range results {
-		matched[i] = MatchedEntry{
-			Entry:              r.Entry.Data.(Entry),
-			Score:              r.Score,
-			HighlightPositions: r.Positions,
-		}
-	}
-	return matched
+	return matchQuery(entries, query, maxResults)
 }

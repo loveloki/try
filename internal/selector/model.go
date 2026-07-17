@@ -3,7 +3,6 @@ package selector
 import (
 	"fmt"
 	"os"
-	"path/filepath"
 
 	tea "charm.land/bubbletea/v2"
 	"charm.land/bubbles/v2/list"
@@ -78,7 +77,7 @@ func New(cfg Config) SelectorModel {
 	}
 
 	l := newList(delegate)
-	sourceOpts := buildSourceOptions(cfg.ShipPaths)
+	sourceOpts := SourceOptions(cfg.ShipPaths)
 
 	return SelectorModel{
 		textInput:         ti,
@@ -119,14 +118,6 @@ func newList(delegate *EntryDelegate) list.Model {
 	l.SetFilteringEnabled(false)
 	l.DisableQuitKeybindings()
 	return l
-}
-
-func buildSourceOptions(shipPaths []string) []string {
-	opts := []string{"", "tries"}
-	for _, sp := range shipPaths {
-		opts = append(opts, filepath.Base(sp))
-	}
-	return opts
 }
 
 func (m SelectorModel) Init() tea.Cmd {

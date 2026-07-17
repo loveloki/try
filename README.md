@@ -80,6 +80,28 @@ try --version          # 查看版本号
 | `/` / `Ctrl-F` | 清空搜索框 |
 | `Esc` | 退出 / 取消 |
 
+## GUI（try-gui）
+
+`try-gui` 是与 TUI 并列的跨平台图形入口，读取同一份配置，复用相同的目录扫描、模糊匹配与文件操作逻辑。它在本机 `127.0.0.1` 上启动一个 HTTP 服务并自动打开系统默认浏览器，界面配色与快捷键与 TUI 对齐。
+
+```bash
+try-gui                # 启动 GUI（自动打开浏览器）
+try-gui -path ~/src/tries  # 临时覆盖 tries 根目录
+```
+
+两大视图：
+
+- **选择器**：搜索、来源过滤（all / tries / ship / bug）、循环导航、创建（Ctrl-T）、删除（Ctrl-D）、重命名（Ctrl-R）、Ship（Ctrl-G）。
+- **文件视图**：进入目录后浏览文件、删除、调用系统默认程序打开文件，Esc 返回选择器。
+
+GUI 与 TUI 的差异：GUI 用「进入文件视图」替代 TUI 的 `cd` 脚本输出，不提供 clone / worktree / install 与 Shell 集成。所有文件操作限制在配置解析出的 tries 与 ship 目录子树内，且不允许删除或重命名根目录本身。
+
+静态界面资源以纯 HTML/CSS/JS 手写并通过 `-tags embed` 内嵌进二进制，构建仍为 `CGO_ENABLED=0` 单二进制，无需 Node 运行时。`try-gui/` 目录中的 Next.js 工程仅作为 UI/UX 设计参考，不参与构建与分发。
+
+```bash
+go build -tags embed ./cmd/try-gui  # 构建内嵌完整界面的 GUI 二进制
+```
+
 ## 配置
 
 配置文件位于 `~/.config/try/config.json`，运行 `try install` 时自动生成，JSON 格式：
@@ -105,7 +127,8 @@ try --version          # 查看版本号
 ## 项目结构
 
 ```
-cmd/try/main.go              # 入口
+cmd/try/main.go              # TUI/CLI 入口
+cmd/try-gui/main.go          # GUI 入口
 internal/
   cli/                       # CLI 参数解析与命令分派
     cli.go                     # 主入口（Run）、全局标志解析
@@ -136,6 +159,16 @@ internal/
     exec.go                      # Execute（cd/mkdir/clone/worktree/delete/rename/ship）
   shell/                     # Shell 检测与集成安装（bash/zsh/fish）
   git/                       # Git URI 解析与目录命名
+  gui/                       # GUI 后端：本机 HTTP 服务 + 内嵌静态界面
+    app.go                     # 生命周期：加载配置、起服务、打开浏览器
+    server.go                  # 路由、静态资源、仅本机 CORS
+    handlers.go                # JSON API（entries / files / 副作用操作）
+    dto.go                     # 与前端对齐的 JSON 类型
+    paths.go                   # 路径沙箱（拒绝越界与根目录本身）
+    browser.go                 # 跨平台打开系统浏览器
+    embed_prod.go / embed_dev.go # embed 构建标签切换内嵌资源
+    web/                       # 手写静态界面（index.html / app.css / app.js）
+try-gui/                     # UI/UX 设计参考（Next.js，不参与构建分发）
 ```
 
 ## 技术栈

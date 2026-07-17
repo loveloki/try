@@ -2,7 +2,8 @@
 version: 2
 
 builds:
-  - main: ./cmd/try
+  - id: try
+    main: ./cmd/try
     binary: try
     env:
       - CGO_ENABLED=0
@@ -10,6 +11,28 @@ builds:
       - -trimpath
     ldflags:
       - -s -w -X github.com/loveloki/try/internal/cli.version={{.Version}}
+    goos:
+      - linux
+      - darwin
+      - windows
+    goarch:
+      - amd64
+      - arm64
+    ignore:
+      - goos: windows
+        goarch: arm64
+
+  # try-gui 内嵌手写静态资源（internal/gui/web），使用 embed 构建标签，保持 CGO_ENABLED=0
+  - id: try-gui
+    main: ./cmd/try-gui
+    binary: try-gui
+    env:
+      - CGO_ENABLED=0
+    flags:
+      - -trimpath
+      - -tags=embed
+    ldflags:
+      - -s -w
     goos:
       - linux
       - darwin

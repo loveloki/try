@@ -21,7 +21,9 @@ func init() {
 func setupTestConfig(t *testing.T) string {
 	t.Helper()
 	tmpDir := t.TempDir()
+	// Windows 上 os.UserHomeDir 读 USERPROFILE，Unix 读 HOME。
 	t.Setenv("HOME", tmpDir)
+	t.Setenv("USERPROFILE", tmpDir)
 	configDir := filepath.Join(tmpDir, ".config", "try")
 	if err := os.MkdirAll(configDir, 0o755); err != nil {
 		t.Fatal(err)

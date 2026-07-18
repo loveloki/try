@@ -142,11 +142,11 @@ func (d *DeleteDialog) confirm() *selector.SelectionResult {
 		return nil
 	}
 
-	baseReal, _ := filepath.EvalSymlinks(d.basePath)
+	baseReal := resolveRealPath(d.basePath)
 	var validated []selector.DeleteItem
 	for _, item := range d.markedItems {
-		targetReal, _ := filepath.EvalSymlinks(item.Path)
-		if !strings.HasPrefix(targetReal, baseReal+"/") {
+		targetReal := resolveRealPath(item.Path)
+		if !isPathUnder(baseReal, targetReal) {
 			return nil
 		}
 		validated = append(validated, selector.DeleteItem{Path: targetReal, Basename: item.Basename})
@@ -157,4 +157,21 @@ func (d *DeleteDialog) confirm() *selector.SelectionResult {
 		Paths:    validated,
 		BasePath: baseReal,
 	}
+}
+
+func resolveRealPath(path string) string {
+	real, err := filepath.EvalSymlinks(path)
+	if err != nil {
+		return filepath.Clean(path)
+	}
+	return real
+}
+
+// isPathUnder 判断 target 是否严格位于 base 之下（跨平台路径分隔符）。
+func isPathUnder(base, target string) bool {
+	rel, err := filepath.Rel(base, target)
+	if err != nil {
+		return false
+	}
+	return rel != "." && rel != ".." && !strings.HasPrefix(rel, ".."+string(filepath.Separator))
 }

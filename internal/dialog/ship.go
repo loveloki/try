@@ -115,7 +115,8 @@ func (d *ShipDialog) switchShipPath(delta int) {
 	newPath := d.shipPaths[d.selectedIdx]
 
 	current := d.input.Value()
-	if strings.HasPrefix(current, oldPath+"/") {
+	sep := string(filepath.Separator)
+	if strings.HasPrefix(current, oldPath+sep) {
 		suffix := current[len(oldPath):]
 		d.input.SetValue(newPath + suffix)
 	} else {

@@ -2,8 +2,17 @@ package config
 
 import (
 	"os"
+	"path/filepath"
+	"runtime"
 	"testing"
 )
+
+// setTestHome 同时设置 HOME 与 USERPROFILE，使 os.UserHomeDir 在 Windows/Unix 下都指向临时目录。
+func setTestHome(t *testing.T, dir string) {
+	t.Helper()
+	t.Setenv("HOME", dir)
+	t.Setenv("USERPROFILE", dir)
+}
 
 // checkParseOK 封装成功路径的配置解析测试逻辑
 func checkParseOK(t *testing.T, content string, want Config) {
@@ -109,8 +118,8 @@ func TestResolvePaths(t *testing.T) {
 		{
 			name:      "all defaults",
 			cfg:       Config{Path: "~/src/tries", Ships: []string{"~/src/ship", "~/src/bug"}},
-			wantTries: home + "/src/tries",
-			wantShips: []string{home + "/src/ship", home + "/src/bug"},
+			wantTries: filepath.Join(home, "src", "tries"),
+			wantShips: []string{filepath.Join(home, "src", "ship"), filepath.Join(home, "src", "bug")},
 		},
 		{
 			name:      "config overrides default",
@@ -136,8 +145,8 @@ func TestResolvePaths(t *testing.T) {
 		{
 			name:      "tilde expansion in resolved paths",
 			cfg:       Config{Path: "~/my/tries", Ships: []string{"~/my/ship", "~/my/bug"}},
-			wantTries: home + "/my/tries",
-			wantShips: []string{home + "/my/ship", home + "/my/bug"},
+			wantTries: filepath.Join(home, "my", "tries"),
+			wantShips: []string{filepath.Join(home, "my", "ship"), filepath.Join(home, "my", "bug")},
 		},
 	}
 
@@ -263,7 +272,7 @@ func TestResolveLocale(t *testing.T) {
 func TestInitConfigFile(t *testing.T) {
 	t.Run("creates default config when file does not exist", func(t *testing.T) {
 		tmpDir := t.TempDir()
-		t.Setenv("HOME", tmpDir)
+		setTestHome(t, tmpDir)
 
 		created, err := InitConfigFile()
 		if err != nil {
@@ -273,7 +282,7 @@ func TestInitConfigFile(t *testing.T) {
 			t.Error("InitConfigFile() should return true when creating a new config")
 		}
 
-		content, err := os.ReadFile(tmpDir + "/.config/try/config.json")
+		content, err := os.ReadFile(filepath.Join(tmpDir, ".config", "try", "config.json"))
 		if err != nil {
 			t.Fatalf("config file was not created: %v", err)
 		}
@@ -295,14 +304,14 @@ func TestInitConfigFile(t *testing.T) {
 
 	t.Run("does not overwrite existing config", func(t *testing.T) {
 		tmpDir := t.TempDir()
-		t.Setenv("HOME", tmpDir)
+		setTestHome(t, tmpDir)
 
-		configDir := tmpDir + "/.config/try"
+		configDir := filepath.Join(tmpDir, ".config", "try")
 		if err := os.MkdirAll(configDir, 0o755); err != nil {
 			t.Fatal(err)
 		}
 		customContent := []byte(`{"path":"/custom/path"}` + "\n")
-		if err := os.WriteFile(configDir+"/config.json", customContent, 0o644); err != nil {
+		if err := os.WriteFile(filepath.Join(configDir, "config.json"), customContent, 0o644); err != nil {
 			t.Fatal(err)
 		}
 
@@ -314,7 +323,7 @@ func TestInitConfigFile(t *testing.T) {
 			t.Error("InitConfigFile() should return false when config already exists")
 		}
 
-		content, err := os.ReadFile(configDir + "/config.json")
+		content, err := os.ReadFile(filepath.Join(configDir, "config.json"))
 		if err != nil {
 			t.Fatal(err)
 		}
@@ -324,16 +333,17 @@ func TestInitConfigFile(t *testing.T) {
 	})
 
 	t.Run("error when home dir is invalid", func(t *testing.T) {
-		// HOME is set to empty to cause os.UserHomeDir() to still work,
-		// so we instead test by making the path unwritable via chmod.
+		if runtime.GOOS == "windows" {
+			t.Skip("Windows 上 chmod 无法使目录对当前用户不可写")
+		}
+		// 将目录设为只读，使 MkdirAll 失败
 		tmpDir := t.TempDir()
-		t.Setenv("HOME", tmpDir)
+		setTestHome(t, tmpDir)
 
-		// Make the directory read-only so MkdirAll fails
 		if err := os.Chmod(tmpDir, 0o444); err != nil {
 			t.Fatal(err)
 		}
-		t.Cleanup(func() { os.Chmod(tmpDir, 0o755) })
+		t.Cleanup(func() { _ = os.Chmod(tmpDir, 0o755) })
 
 		if _, err := InitConfigFile(); err == nil {
 			t.Error("InitConfigFile() should return error when config dir cannot be created")
@@ -348,7 +358,7 @@ func TestExpandPath(t *testing.T) {
 		input string
 		want  string
 	}{
-		{"~/foo", home + "/foo"},
+		{"~/foo", filepath.Join(home, "foo")},
 		{"/absolute/path", "/absolute/path"},
 		{"relative/path", "relative/path"},
 		{"~notahome", "~notahome"},

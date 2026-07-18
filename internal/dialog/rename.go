@@ -125,7 +125,7 @@ func (d *RenameDialog) confirmRename() (*selector.SelectionResult, string) {
 	if newName == "" {
 		return nil, m.RenameEmpty
 	}
-	if strings.Contains(newName, "/") {
+	if strings.ContainsAny(newName, `/\`) {
 		return nil, m.RenameSlash
 	}
 	if newName == oldName {

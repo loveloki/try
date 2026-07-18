@@ -92,11 +92,10 @@ jobs:
       - name: Package GUI (fyne package)
         if: matrix.gui
         shell: bash
-        env:
-          PATH: ${{ env.PATH }}
         run: |
           set -euo pipefail
           export PATH="$(go env GOPATH)/bin:$PATH"
+          command -v fyne
           VERSION="${GITHUB_REF_NAME#v}"
           bash scripts/package-gui.sh "${{ matrix.goos }}" "${{ matrix.goarch }}" "$VERSION"
 

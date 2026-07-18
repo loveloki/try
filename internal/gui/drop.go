@@ -15,6 +15,9 @@ func (g *desktopGUI) bindDrop() {
 		}
 		dest := g.filesPath
 		g.dropBusy = true
+		if g.watcher != nil {
+			g.watcher.Pause()
+		}
 		g.updateDropProgress(0, len(uris), "")
 		g.setDropOverlayVisible(true)
 		g.setPersistentToast(g.msgs.GUIDropImporting)
@@ -26,6 +29,9 @@ func (g *desktopGUI) bindDrop() {
 			})
 			fyne.Do(func() {
 				g.dropBusy = false
+				if g.watcher != nil {
+					g.watcher.Resume()
+				}
 				g.setDropOverlayVisible(false)
 				if err != nil {
 					g.showError(err)

@@ -11,6 +11,7 @@
 | `github.com/charmbracelet/x/ansi` | v0.11.7 | ANSI 文本处理。由 selector 渲染测试直接使用，并由 Charm 套件复用。 |
 | `github.com/sahilm/fuzzy` | v0.1.2 | 子序列匹配库。仅使用匹配位置与基础结果，自定义时间权重、日期后缀加成和排序。 |
 | `github.com/jeandeaual/go-locale` | v0.0.0-20250612000132-0ef82f21eade | OS 语言检测。`locale: auto` 且无 `LANG`/`LC_*` 时（GUI 从 Dock/开始菜单启动）回退系统语言。 |
+| `github.com/fsnotify/fsnotify` | v1.9.0 | Files 视图监听当前目录变更并防抖刷新列表。 |
 
 ## 使用的 Bubbles 子包
 

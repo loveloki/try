@@ -36,9 +36,12 @@ internal/
     flags.go           # 参数提取工具函数（hasFlag、extractPath、extractValueFlag 等）
   config/              # 配置文件加载（~/.config/try/config.json）
     config.go          # Config 结构、LoadConfig、ResolvePaths、DetectTheme、ResolveLocale
+  docx/                # .docx ZIP 打包/解压（无 OOXML 业务逻辑）
+    zip.go             # Unpack / Pack、时间戳避重名、zip-slip 防护
   gui/                 # 跨平台原生 GUI（Fyne）
     app.go             # Run：加载配置、创建窗口、托盘、生命周期
     actions.go         # 键鼠动作与对话框流程
+    actions_docx.go    # 工具栏打包/解压 .docx
     actions_mouse.go   # 单击选中、双击按行索引打开、文件管理器揭示
     view.go            # Selector / Files 视图切换与刷新
     view_selector.go   # 选择器布局
@@ -46,6 +49,7 @@ internal/
     service.go         # entries/files 操作与副作用分派（含 touchDir）
     service_import.go  # 拖拽复制 copyDroppedFiles + 进度回调
     drop.go            # Window.SetOnDropped 注册与 overlay/进度反馈
+    watch.go           # FilesPath fsnotify 防抖刷新
     inset.go           # 内容区 16px 水平内边距
     format.go          # 相对时间与文件大小格式化
     browser.go         # 系统默认打开文件 / 文件管理器揭示目录

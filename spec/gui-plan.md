@@ -25,7 +25,7 @@
 - **Shell 集成与 `cd` 语义**：GUI 是独立进程，副作用通过 `internal/script` 直接执行，不调用 `EmitCd`，也不向父 Shell 输出可 eval 的脚本。
 - **clone / worktree / install**：这些操作由 TUI / CLI 承担。
 - **多窗口**：同一会话内一个选择器与一个文件视图，切换项目时返回选择器。
-- **富文本 docx 编辑**：docx 处理为后续 Phase。
+- **富文本 docx 编辑**：GUI 仅提供 ZIP 语义的打包/解压；不提供 Word 级编辑或 OOXML 校验。
 
 ### 1.4 与 TUI 功能对照
 

@@ -102,6 +102,11 @@ type Messages struct {
 	GUIOpenFolder     string
 	GUIDocxPack          string
 	GUIDocxUnpack        string
+	GUIToastDocxPacked   string // 含 %s：输出文件名
+	GUIToastDocxUnpacked string // 含 %s：输出目录名
+	GUIErrDocxNeedFile   string
+	GUIErrDocxNeedDir    string
+	GUIErrDocxMulti      string
 	GUINotImplemented    string
 	GUIFilesItemCount    string // 含 %d
 	GUIColName           string
@@ -268,6 +273,11 @@ Shortcuts:
 	GUIOpenFolder:        "Reveal",
 	GUIDocxPack:          "Pack .docx",
 	GUIDocxUnpack:        "Unpack .docx",
+	GUIToastDocxPacked:   "Packed %s",
+	GUIToastDocxUnpacked: "Unpacked to %s",
+	GUIErrDocxNeedFile:   "Select a .docx file",
+	GUIErrDocxNeedDir:    "Select a folder to pack",
+	GUIErrDocxMulti:       "Select only one item",
 	GUINotImplemented:    "Not implemented yet",
 	GUIFilesItemCount:    "%d items",
 	GUIColName:           "Name",
@@ -424,6 +434,11 @@ var ZH = Messages{
 	GUIOpenFolder:        "在文件管理器中打开",
 	GUIDocxPack:          "打包 .docx",
 	GUIDocxUnpack:        "解压 .docx",
+	GUIToastDocxPacked:   "已打包 %s",
+	GUIToastDocxUnpacked: "已解压到 %s",
+	GUIErrDocxNeedFile:   "请选择一个 .docx 文件",
+	GUIErrDocxNeedDir:    "请选择一个文件夹进行打包",
+	GUIErrDocxMulti:       "请只选择一项",
 	GUINotImplemented:    "尚未实现",
 	GUIFilesItemCount:    "%d 个项目",
 	GUIColName:           "名称",

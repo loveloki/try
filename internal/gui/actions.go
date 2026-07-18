@@ -12,8 +12,8 @@ import (
 
 func (g *desktopGUI) moveSelection(delta int) {
 	if g.view == "files" {
-		g.fileSelected = wrapIndex(g.fileSelected+delta, len(g.files))
-		if g.list != nil && len(g.files) > 0 {
+		g.fileSelected = stepFileSelected(g.fileSelected, delta, len(g.files))
+		if g.list != nil && len(g.files) > 0 && g.fileSelected >= 0 {
 			g.list.Select(g.fileSelected)
 			g.list.ScrollTo(g.fileSelected)
 			g.list.Refresh()

@@ -1,5 +1,17 @@
 ---
 
+## [2026-07-18] Files 四需求方案（docx + 选中/拖出/监听）
+
+- **本会话**：用户确认 docx 重名策略并要求按序实现四项。
+- **结论 / 决定**：
+  - **①** 进入 Files：`fileSelected=-1`，无高亮；↓/↑ 从无选中起步。
+  - **③** `fsnotify` 监听 `FilesPath`，250ms 防抖刷新；拖入/docx 期间 Pause。
+  - **docx**：ZIP Pack/Unpack；重名用 `原名-<时间戳>`；模块 `internal/docx`。
+  - **② 拖出**：Fyne 不支持跨应用拖出，**不做备选实现**（已撤销剪贴板/Reveal 选中文件相关代码）。
+- **相关**：`internal/gui/watch.go`、`actions_docx.go`、`internal/docx/`
+
+---
+
 ## [2026-07-18] GUI 进目录 / changelog / locale / 版本回退 0.4.0
 
 - **本会话**：`/architect` `/planner` `/loop-operator` `/multi-agent-breakthrough` 修四问题；对抗审查否决裸 `git describe HEAD^` 与「AppleLanguages 优先于 LANG」。

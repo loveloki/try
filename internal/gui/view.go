@@ -13,6 +13,7 @@ func (g *desktopGUI) switchToSelector(focusSearch bool) {
 	g.list = g.entryList
 	g.setWindowContent(g.selectorBody)
 	g.refreshSelectorUI()
+	g.syncFilesWatch()
 	if focusSearch {
 		g.focusSearch()
 	} else if g.list != nil {
@@ -25,6 +26,7 @@ func (g *desktopGUI) switchToFiles() {
 	g.list = g.fileList
 	g.setWindowContent(g.filesBody)
 	g.refreshFilesUI()
+	g.syncFilesWatch()
 	if g.list != nil {
 		g.window.Canvas().Focus(g.list)
 	}
@@ -56,7 +58,7 @@ func (g *desktopGUI) refreshFilesUI() {
 	g.rebuildBreadcrumbs()
 	if g.list != nil {
 		g.list.Refresh()
-		if len(g.files) > 0 {
+		if g.fileSelected >= 0 && g.fileSelected < len(g.files) {
 			g.list.Select(g.fileSelected)
 			g.list.ScrollTo(g.fileSelected)
 		} else {
@@ -118,15 +120,30 @@ func (g *desktopGUI) refreshEntries() {
 }
 
 func (g *desktopGUI) refreshFiles() {
+	prevPath := ""
+	if g.fileSelected >= 0 && g.fileSelected < len(g.files) {
+		prevPath = g.files[g.fileSelected].Path
+	}
 	files, err := g.service.listFiles(g.filesPath)
 	if err != nil {
 		g.showError(err)
 		return
 	}
 	g.files = files
-	if g.fileSelected >= len(g.files) {
-		g.fileSelected = max(0, len(g.files)-1)
+	if prevPath != "" {
+		g.fileSelected = indexOfFilePath(files, prevPath)
+		return
 	}
+	g.fileSelected = clampFileSelected(g.fileSelected, len(g.files))
+}
+
+func indexOfFilePath(files []FileEntry, path string) int {
+	for i, f := range files {
+		if f.Path == path {
+			return i
+		}
+	}
+	return -1
 }
 
 func (g *desktopGUI) enterFiles(root, path string) {
@@ -142,14 +159,18 @@ func (g *desktopGUI) applyFilesNav(root, path string) {
 	}
 	g.filesRoot = root
 	g.filesPath = path
-	g.fileSelected = 0
+	g.fileSelected = -1
 	g.fileMarked = map[string]bool{}
 	g.view = "files"
 }
 
-func max(a, b int) int {
-	if a > b {
-		return a
+// clampFileSelected 将光标夹到合法范围；空列表或原无选中时为 -1。
+func clampFileSelected(selected, length int) int {
+	if length <= 0 || selected < 0 {
+		return -1
 	}
-	return b
+	if selected >= length {
+		return length - 1
+	}
+	return selected
 }

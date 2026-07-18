@@ -62,6 +62,8 @@ type desktopGUI struct {
 
 	entryList *navList
 	fileList  *navList
+
+	watcher *dirWatcher
 }
 
 // Run 加载配置、创建原生桌面窗口，并阻塞至应用退出。
@@ -100,6 +102,14 @@ func newDesktopGUI(triesPath string, shipPaths []string, themeName string) *desk
 		marked:     map[string]bool{},
 		fileMarked: map[string]bool{},
 	}
+	g.watcher = newDirWatcher(func() {
+		fyne.Do(func() {
+			if g.view != "files" || g.dropBusy {
+				return
+			}
+			g.refreshFilesUI()
+		})
+	}, filesWatchDebounce)
 	g.applyTheme()
 	g.setupTray()
 	g.setupWindow()
@@ -108,7 +118,21 @@ func newDesktopGUI(triesPath string, shipPaths []string, themeName string) *desk
 }
 
 func (g *desktopGUI) run() {
+	if g.watcher != nil {
+		defer g.watcher.Close()
+	}
 	g.window.ShowAndRun()
+}
+
+func (g *desktopGUI) syncFilesWatch() {
+	if g.watcher == nil {
+		return
+	}
+	if g.view != "files" || g.filesPath == "" {
+		_ = g.watcher.SetPath("")
+		return
+	}
+	_ = g.watcher.SetPath(g.filesPath)
 }
 
 func (g *desktopGUI) hideToTray() {

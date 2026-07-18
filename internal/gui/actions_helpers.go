@@ -78,6 +78,20 @@ func wrapIndex(index, length int) int {
 	return index % length
 }
 
+// stepFileSelected 文件列表光标步进：无选中时 ↓→首项、↑→末项；否则首尾循环。
+func stepFileSelected(selected, delta, length int) int {
+	if length <= 0 {
+		return -1
+	}
+	if selected < 0 {
+		if delta > 0 {
+			return 0
+		}
+		return length - 1
+	}
+	return wrapIndex(selected+delta, length)
+}
+
 func normalizeTheme(themeName string) string {
 	if themeName == "light" {
 		return "light"

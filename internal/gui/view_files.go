@@ -43,13 +43,9 @@ func (g *desktopGUI) buildFilesToolbar() fyne.CanvasObject {
 	back.Importance = widget.LowImportance
 	edit := widget.NewButtonWithIcon(g.msgs.GUIEdit, theme.DocumentCreateIcon(), g.openSelectedFile)
 	edit.Importance = widget.LowImportance
-	pack := widget.NewButtonWithIcon(g.msgs.GUIDocxPack, theme.FolderIcon(), func() {
-		g.setToast(g.msgs.GUINotImplemented)
-	})
+	pack := widget.NewButtonWithIcon(g.msgs.GUIDocxPack, theme.FolderIcon(), g.packDocx)
 	pack.Importance = widget.LowImportance
-	unpack := widget.NewButtonWithIcon(g.msgs.GUIDocxUnpack, theme.FolderOpenIcon(), func() {
-		g.setToast(g.msgs.GUINotImplemented)
-	})
+	unpack := widget.NewButtonWithIcon(g.msgs.GUIDocxUnpack, theme.FolderOpenIcon(), g.unpackDocx)
 	unpack.Importance = widget.LowImportance
 	reveal := widget.NewButtonWithIcon(g.msgs.GUIOpenFolder, theme.FolderOpenIcon(), g.revealCurrentFolder)
 	reveal.Importance = widget.LowImportance
@@ -164,7 +160,7 @@ func (g *desktopGUI) buildFileList() *navList {
 	)
 	list.HideSeparators = true
 	list.OnSelected = func(id widget.ListItemID) { g.fileSelected = int(id) }
-	if len(g.files) > 0 {
+	if g.fileSelected >= 0 && g.fileSelected < len(g.files) {
 		list.Select(g.fileSelected)
 	}
 	return list

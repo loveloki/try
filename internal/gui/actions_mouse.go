@@ -44,13 +44,9 @@ func (g *desktopGUI) revealCurrentFolder() {
 	if g.view != "files" || g.filesPath == "" {
 		return
 	}
-	if err := g.revealPath(g.filesPath); err != nil {
+	if err := g.service.revealInFileManager(g.filesPath); err != nil {
 		g.showError(fmt.Errorf("%s: %w", g.msgs.GUIErrOpenFolder, err))
 		return
 	}
 	g.setToast(g.msgs.GUIToastOpenedFolder)
-}
-
-func (g *desktopGUI) revealPath(path string) error {
-	return g.service.revealInFileManager(path)
 }

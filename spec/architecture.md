@@ -290,4 +290,4 @@ func dirExists(path string) bool  // git 包内部使用
 | Homebrew | `Formula/try.rb` |
 | `go install` | `go install github.com/loveloki/try/cmd/try@latest` |
 
-`try-gui` 使用 Fyne 原生窗口，CI 在 macOS、Windows、Linux runner 上分别原生构建（`.github/workflows/ci.yml`）。Release（`.github/workflows/release.yml`）分平台构建并将 `try` 与 `try-gui` 打入同一归档；`install.sh` 默认安装二者（`TRY_INSTALL_GUI=0` 可跳过 GUI）。Linux arm64 归档可仅含 `try`。`.goreleaser.yaml` 保留供本地 CLI snapshot。
+`try-gui` 使用 Fyne 原生窗口。GitHub Actions（`.github/workflows/ci.yml` 与 `release.yml`）仅在推送 `v*` tag 时运行：CI 做 lint/test/分平台构建，Release 打包归档；推送 `main` 或 PR 不触发。Release 将 `try` 与 `try-gui` 打入同一归档；`install.sh` 默认安装二者（`TRY_INSTALL_GUI=0` 可跳过 GUI）。Linux arm64 归档可仅含 `try`。`.goreleaser.yaml` 保留供本地 CLI snapshot。

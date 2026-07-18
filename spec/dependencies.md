@@ -79,7 +79,7 @@ require (
 
 ## try-gui 平台构建依赖
 
-CI（`.github/workflows/ci.yml`）在 ubuntu / macos / windows 三平台 runner 上原生编译，不交叉编译。
+CI（`.github/workflows/ci.yml`，仅 `v*` tag）在 ubuntu / macos / windows 三平台 runner 上原生编译，不交叉编译。
 
 | 平台 | CGO | 额外依赖 |
 |------|-----|----------|

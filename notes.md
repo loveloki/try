@@ -1,5 +1,13 @@
 ---
 
+## [2026-07-18] Actions 仅 tag 触发
+
+- **本会话**：用户要求推送 `main` 不再跑 Actions，只有推送 tag 才跑。
+- **结论 / 决定**：`ci.yml` 的 `on` 改为仅 `push.tags: v*`（去掉 main / PR）；`release.yml` 本就只跟 tag。文档同步 `README.md`、`spec/architecture.md`、`spec/dependencies.md`。
+- **相关**：`.github/workflows/ci.yml`
+
+---
+
 ## [2026-07-18] GitHub CI Release 缺 Wayland 头文件
 
 - **本会话**：用户 `/architect` `/planner` `/multi-agent-breakthrough` 解决 GitHub CI 错误；截图为 release `build (ubuntu-latest, linux, amd64, true)` 编 glfw 时 `wayland-client-core.h: No such file or directory`，另有 `upload-artifact@v4` Node 20 deprecation 警告。

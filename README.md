@@ -213,7 +213,7 @@ staticcheck ./...   # 第三方静态检查（需安装：go install honnef.co/g
 
 ## 发布
 
-一键发布新版本（自动推断版本号、运行测试、创建 tag、推送触发 CI）：
+一键发布新版本（自动推断版本号、运行测试、创建 tag、推送 tag 触发 Actions）：
 
 ```bash
 ./scripts/release.sh         # 自动推断版本（根据 commit 历史）
@@ -222,7 +222,7 @@ staticcheck ./...   # 第三方静态检查（需安装：go install honnef.co/g
 ./scripts/release.sh major   # 主版本 (X.0.0)
 ```
 
-依赖 [svu](https://github.com/caarlos0/svu)（`go install github.com/caarlos0/svu@latest`）。GoReleaser 会构建全平台二进制并创建 GitHub Release。
+依赖 [svu](https://github.com/caarlos0/svu)（`go install github.com/caarlos0/svu@latest`）。推送 `v*` tag 时运行 CI（lint/test/build）与 Release（分平台归档）；推送 `main` 或 PR 不触发 Actions。
 
 Release（`.github/workflows/release.yml`）在 Linux / macOS / Windows runner 上分平台原生构建：`try` 使用 `CGO_ENABLED=0`，`try-gui` 使用 `CGO_ENABLED=1`，打入同一归档 `try_<os>_<arch>.tar.gz`（Windows 为 `.zip`）供 `install.sh` 下载。Linux arm64 仅打包 `try`（无可靠 CGO 交叉编 GUI）。
 

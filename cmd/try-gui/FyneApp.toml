@@ -1,0 +1,12 @@
+[Details]
+Icon = "Icon.png"
+Name = "Try"
+ID = "com.loveloki.try.gui"
+Version = "0.0.0"
+Build = 1
+
+[LinuxAndBSD]
+GenericName = "Experiment directory manager"
+Categories = ["Utility"]
+Comment = "Manage temporary experiment directories"
+Keywords = ["try", "experiments", "tries"]

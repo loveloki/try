@@ -69,7 +69,7 @@
 2. macOS 产物在 macOS runner 构建，满足 AppKit / Metal / OpenGL 相关依赖。
 3. Windows 产物在 Windows runner 构建，并使用 `-ldflags -H=windowsgui` 避免启动控制台窗口。
 4. Linux 产物在 Linux runner 构建，安装 Fyne 所需图形开发包。
-5. Release 由 `.github/workflows/release.yml` 分平台原生构建，归档同时包含 `try` 与 `try-gui`（Linux arm64 可仅含 `try`）；`install.sh` 默认安装二者。
+5. Release 双轨：CLI 裸归档 `try_*`；GUI 官方包由 `fyne package`（`scripts/package-gui.sh`）产出 `try-gui_*`，供手动安装与安装脚本适配。元数据见 `cmd/try-gui/FyneApp.toml`（`ID = com.loveloki.try.gui`）。详情见 `spec/distribution.md`。
 
 ## 3. 模块划分
 

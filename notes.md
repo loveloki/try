@@ -1,5 +1,22 @@
 ---
 
+## [2026-07-18] 三平台打成系统应用（调研定案）
+
+- **本会话**：`/planner` `/loop-operator` `/architect` `/multi-agent-breakthrough` 调研 macOS/Windows/Linux 如何把 try-gui 打进应用列表；对抗审查否决「opt-in + 双轨裸二进制」的松散验收。后续澄清：官方打包是否仅 macOS；「基于官方打包再安装」；用户要求 **Release 必须保留官方打包产物供手动安装**，并据此重做计划。
+- **结论 / 决定**：
+  - **双轨资产（硬约束）**：
+    - CLI 轨：保留现有 `try_<os>_<arch>.*` 裸二进制（含可选裸 try-gui）。
+    - GUI 轨：**必须**另发 `fyne package` 官方产物（`try-gui_darwin_*.app.zip` / `try-gui_windows_amd64.zip` / `try-gui_linux_amd64.tar.gz`），用户可不经脚本手动安装。
+  - **`install.sh` / `install.ps1` 仅为适配器**：消费 `try-gui_*`，不是唯一交付物；装 GUI 时默认写桌面入口。
+  - **手动 vs 脚本**：macOS 拖 `.app`；Windows 解压 exe；Linux 解压到 `/usr/local` 或自选；脚本侧 Linux 适配到 `~/.local`。
+  - **App ID**：`com.loveloki.try.gui`（与 `NewWithID` 同步）。
+  - **里程碑**：M0 元数据 → M1 Release 双轨 → M2 安装适配器 → M3 文档；第一刀仅 M0（FyneApp.toml + Icon + App ID）。
+  - **不做首版**：公证 / Authenticode / Flatpak / MSIX / Store；Linux arm64 无 GUI；`try install` 不写桌面入口。
+  - **已实现并发版**：`FyneApp.toml` + `Icon.png`、`AppID=com.loveloki.try.gui`、`scripts/package-gui.sh`、`release.yml` 双轨、`install.sh`/`install.ps1`、`spec/distribution.md`；本地 macOS `fyne package` 验证通过（Bundle ID 正确）。发 **v3.2.0**。
+- **相关**：`install.sh`、`install.ps1`、`scripts/package-gui.sh`、`.github/workflows/release.yml`、`cmd/try-gui/`、`spec/distribution.md`；计划修订 [Planner](22e84142-94f0-4107-be1a-ccf4788d98e2)
+
+---
+
 ## [2026-07-18] Actions 仅 tag 触发
 
 - **本会话**：用户要求推送 `main` 不再跑 Actions，只有推送 tag 才跑。

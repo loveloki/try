@@ -81,8 +81,11 @@ func Run(opts Options) error {
 	return nil
 }
 
+// AppID 为 Fyne / 平台应用标识，须与 cmd/try-gui/FyneApp.toml 的 ID 一致。
+const AppID = "com.loveloki.try.gui"
+
 func newDesktopGUI(triesPath string, shipPaths []string, themeName string) *desktopGUI {
-	a := app.NewWithID("github.com/loveloki/try/try-gui")
+	a := app.NewWithID(AppID)
 	msgs := i18n.Get()
 	chrome := NewWindowChrome(a, msgs.GUITitle)
 

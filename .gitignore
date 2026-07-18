@@ -1,5 +1,6 @@
 /try
 try-gui-bin
+/dist/
 test-output.txt
 node_modules/
 /package.json

@@ -24,6 +24,11 @@ go get charm.land/lipgloss/v2
 ```
 cmd/try/main.go        # TUI/CLI 入口：调用 cli.Run(os.Args[1:])
 cmd/try-gui/main.go    # GUI 入口：创建原生桌面窗口
+cmd/try-gui/FyneApp.toml  # fyne package 元数据（App ID / Name / Icon）
+cmd/try-gui/Icon.png   # GUI 打包与桌面图标源
+install.sh             # Linux/macOS 安装适配器（CLI + 官方 GUI 包）
+install.ps1            # Windows 安装适配器
+scripts/package-gui.sh # CI：fyne package → try-gui_* 官方包
 internal/
   cli/                 # CLI 解析与命令分派
     cli.go             # Run 主入口、parseGlobalFlags、runSelector、帮助文本
@@ -290,4 +295,4 @@ func dirExists(path string) bool  // git 包内部使用
 | Homebrew | `Formula/try.rb` |
 | `go install` | `go install github.com/loveloki/try/cmd/try@latest` |
 
-`try-gui` 使用 Fyne 原生窗口。GitHub Actions（`.github/workflows/ci.yml` 与 `release.yml`）仅在推送 `v*` tag 时运行：CI 做 lint/test/分平台构建，Release 打包归档；推送 `main` 或 PR 不触发。Release 将 `try` 与 `try-gui` 打入同一归档；`install.sh` 默认安装二者（`TRY_INSTALL_GUI=0` 可跳过 GUI）。Linux arm64 归档可仅含 `try`。`.goreleaser.yaml` 保留供本地 CLI snapshot。
+`try-gui` 使用 Fyne 原生窗口。GitHub Actions（`.github/workflows/ci.yml` 与 `release.yml`）仅在推送 `v*` tag 时运行：CI 做 lint/test/分平台构建，Release 打包归档；推送 `main` 或 PR 不触发。Release 同时发布 CLI 裸归档 `try_*` 与 `fyne package` 官方 GUI 包 `try-gui_*`（见 `spec/distribution.md`）。`install.sh` / `install.ps1` 作为适配器默认安装二者（`TRY_INSTALL_GUI=0` 可跳过 GUI）。Linux arm64 仅含 CLI。`.goreleaser.yaml` 保留供本地 CLI snapshot。

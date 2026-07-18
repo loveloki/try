@@ -9,7 +9,7 @@ permissions:
   contents: write
 
 jobs:
-  # 分平台原生构建，使 try-gui（CGO）进入与 install.sh 一致的归档。
+  # 分平台原生构建：CLI 裸归档 + fyne package 官方 GUI 包。
   build:
     strategy:
       fail-fast: false
@@ -74,12 +74,33 @@ jobs:
             -ldflags "-s -w -X github.com/loveloki/try/internal/cli.version=${VERSION}" \
             -o "dist/try${EXT}" ./cmd/try
           if [ "${{ matrix.gui }}" = "true" ]; then
-            CGO_ENABLED=1 go build -trimpath -ldflags "-s -w" \
+            WINFLAGS=""
+            if [ "${{ matrix.goos }}" = "windows" ]; then
+              WINFLAGS="-H=windowsgui"
+            fi
+            CGO_ENABLED=1 go build -trimpath \
+              -ldflags "-s -w ${WINFLAGS}" \
               -o "dist/try-gui${EXT}" ./cmd/try-gui
           fi
           ls -la dist
 
-      - name: Package archive
+      - name: Install fyne CLI
+        if: matrix.gui
+        shell: bash
+        run: go install fyne.io/tools/cmd/fyne@latest
+
+      - name: Package GUI (fyne package)
+        if: matrix.gui
+        shell: bash
+        env:
+          PATH: ${{ env.PATH }}
+        run: |
+          set -euo pipefail
+          export PATH="$(go env GOPATH)/bin:$PATH"
+          VERSION="${GITHUB_REF_NAME#v}"
+          bash scripts/package-gui.sh "${{ matrix.goos }}" "${{ matrix.goarch }}" "$VERSION"
+
+      - name: Package CLI archive
         shell: bash
         run: |
           set -euo pipefail
@@ -91,18 +112,25 @@ jobs:
             FILES+=("try-gui${EXT}")
           fi
           if [ "${{ matrix.archive_ext }}" = "zip" ]; then
-            # Git for Windows 自带 tar，可用 -a 生成 zip
             tar -a -cf "${OUT}.zip" "${FILES[@]}"
           else
             tar -czf "${OUT}.tar.gz" "${FILES[@]}"
           fi
           ls -la
 
-      - name: Upload archive
+      - name: Upload CLI archive
         uses: actions/upload-artifact@v7
         with:
           name: release-${{ matrix.goos }}-${{ matrix.goarch }}
           path: dist/try_${{ matrix.goos }}_${{ matrix.goarch }}.*
+          if-no-files-found: error
+
+      - name: Upload GUI package
+        if: matrix.gui
+        uses: actions/upload-artifact@v7
+        with:
+          name: release-gui-${{ matrix.goos }}-${{ matrix.goarch }}
+          path: dist/try-gui_${{ matrix.goos }}_${{ matrix.goarch }}.*
           if-no-files-found: error
 
   release:
@@ -125,6 +153,9 @@ jobs:
         run: |
           set -euo pipefail
           sha256sum try_* > checksums.txt
+          if ls try-gui_* >/dev/null 2>&1; then
+            sha256sum try-gui_* >> checksums.txt
+          fi
           ls -la
           cat checksums.txt
 

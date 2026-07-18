@@ -10,16 +10,20 @@ jobs:
   lint:
     runs-on: ubuntu-latest
     env:
-      # lint 走 CGO=0：Linux 使用 native_linux_stub，不拉图形库
+      # CGO=0：不拉图形库。Fyne/GL 包在无 CGO 时无法 typecheck，由 test/build（CGO=1）覆盖。
       CGO_ENABLED: "0"
     steps:
       - uses: actions/checkout@v6
       - uses: actions/setup-go@v6
         with:
           go-version-file: go.mod
-      - run: go vet ./...
-      - run: go install honnef.co/go/tools/cmd/staticcheck@latest
-      - run: staticcheck ./...
+      - name: Vet and staticcheck (exclude Fyne packages)
+        run: |
+          set -euo pipefail
+          mapfile -t pkgs < <(go list ./... | grep -vE '/internal/gui$|/cmd/try-gui$')
+          go vet "${pkgs[@]}"
+          go install honnef.co/go/tools/cmd/staticcheck@latest
+          staticcheck "${pkgs[@]}"
 
   test:
     strategy:

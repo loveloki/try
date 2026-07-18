@@ -8,6 +8,24 @@ package gui
 #include <X11/Xatom.h>
 #include <stdlib.h>
 #include <string.h>
+
+static void send_client_message(Display *dpy, Window win, Atom msg_type,
+	long d0, long d1, long d2, long d3, long d4) {
+	XClientMessageEvent event;
+	memset(&event, 0, sizeof(event));
+	event.type = ClientMessage;
+	event.window = win;
+	event.message_type = msg_type;
+	event.format = 32;
+	event.data.l[0] = d0;
+	event.data.l[1] = d1;
+	event.data.l[2] = d2;
+	event.data.l[3] = d3;
+	event.data.l[4] = d4;
+	XSendEvent(dpy, DefaultRootWindow(dpy), False,
+		SubstructureRedirectMask | SubstructureNotifyMask, (XEvent *)&event);
+	XFlush(dpy);
+}
 */
 import "C"
 
@@ -116,23 +134,14 @@ func x11SetMaximized(dpy *C.Display, win C.Window, enable bool) {
 	atomState := x11Atom(dpy, netWMStateAtom)
 	atomVert := x11Atom(dpy, netWMMaximizedVertAtom)
 	atomHorz := x11Atom(dpy, netWMMaximizedHorzAtom)
-
-	var event C.XEvent
-	C.memset(unsafe.Pointer(&event), 0, C.size_t(unsafe.Sizeof(event)))
-	event.xclient.type = C.ClientMessage
-	event.xclient.window = win
-	event.xclient.message_type = atomState
-	event.xclient.format = 32
-	// EWMH：data.l[0] 必须是 0/1/2 整数动作码，不是 Atom。
-	event.xclient.data.l[0] = C.long(netWMMaximizeAction(enable))
-	event.xclient.data.l[1] = C.long(atomVert)
-	event.xclient.data.l[2] = C.long(atomHorz)
-	event.xclient.data.l[3] = 1 // source indication: application
-
-	root := C.XDefaultRootWindow(dpy)
-	mask := C.SubstructureRedirectMask | C.SubstructureNotifyMask
-	C.XSendEvent(dpy, root, 0, mask, &event)
-	C.XFlush(dpy)
+	C.send_client_message(
+		dpy, win, atomState,
+		C.long(netWMMaximizeAction(enable)),
+		C.long(atomVert),
+		C.long(atomHorz),
+		1,
+		0,
+	)
 }
 
 func x11BeginMove(dpy *C.Display, win C.Window) {
@@ -142,22 +151,14 @@ func x11BeginMove(dpy *C.Display, win C.Window) {
 	var mask C.uint
 
 	C.XQueryPointer(dpy, win, &root, &child, &rootX, &rootY, &winX, &winY, &mask)
-
 	atomMove := x11Atom(dpy, netWMMoveResizeAtom)
-
-	var event C.XEvent
-	C.memset(unsafe.Pointer(&event), 0, C.size_t(unsafe.Sizeof(event)))
-	event.xclient.type = C.ClientMessage
-	event.xclient.window = win
-	event.xclient.message_type = atomMove
-	event.xclient.format = 32
-	event.xclient.data.l[0] = C.long(rootX)
-	event.xclient.data.l[1] = C.long(rootY)
-	event.xclient.data.l[2] = C.long(netWMMoveResizeMove)
-	event.xclient.data.l[3] = 1
-	event.xclient.data.l[4] = 0
-
 	C.XUngrabPointer(dpy, C.CurrentTime)
-	C.XSendEvent(dpy, root, 0, C.SubstructureRedirectMask|C.SubstructureNotifyMask, &event)
-	C.XFlush(dpy)
+	C.send_client_message(
+		dpy, win, atomMove,
+		C.long(rootX),
+		C.long(rootY),
+		C.long(netWMMoveResizeMove),
+		1,
+		0,
+	)
 }

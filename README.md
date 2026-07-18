@@ -18,6 +18,8 @@
 
 ### 一键安装（推荐）
 
+安装 **TUI（`try`）** 与 **GUI（`try-gui`）**（当前平台 Release 含 GUI 时）：
+
 ```bash
 curl -fsSL https://raw.githubusercontent.com/loveloki/try/main/install.sh | sh
 ```
@@ -28,10 +30,19 @@ curl -fsSL https://raw.githubusercontent.com/loveloki/try/main/install.sh | sh
 TRY_INSTALL_DIR=~/.local/bin curl -fsSL https://raw.githubusercontent.com/loveloki/try/main/install.sh | sh
 ```
 
+仅安装 TUI：
+
+```bash
+TRY_INSTALL_GUI=0 curl -fsSL https://raw.githubusercontent.com/loveloki/try/main/install.sh | sh
+```
+
+脚本会将二进制放到 `~/.local/bin`（可用 `TRY_INSTALL_DIR` 覆盖），并自动执行 `try install` 完成 Shell 集成。若归档中无 `try-gui`（例如部分 Linux arm64 构建），会跳过 GUI 并提示源码安装方式。
+
 ### 从源码安装
 
 ```bash
 go install github.com/loveloki/try/cmd/try@latest
+CGO_ENABLED=1 go install github.com/loveloki/try/cmd/try-gui@latest
 ```
 
 ### Shell 集成
@@ -214,7 +225,7 @@ staticcheck ./...   # 第三方静态检查（需安装：go install honnef.co/g
 
 依赖 [svu](https://github.com/caarlos0/svu)（`go install github.com/caarlos0/svu@latest`）。GoReleaser 会构建全平台二进制并创建 GitHub Release。
 
-Release 构建中 `try` 保持 `CGO_ENABLED=0`。`try-gui` 使用 `CGO_ENABLED=1`，由目标平台 runner 构建并打包。
+Release（`.github/workflows/release.yml`）在 Linux / macOS / Windows runner 上分平台原生构建：`try` 使用 `CGO_ENABLED=0`，`try-gui` 使用 `CGO_ENABLED=1`，打入同一归档 `try_<os>_<arch>.tar.gz`（Windows 为 `.zip`）供 `install.sh` 下载。Linux arm64 仅打包 `try`（无可靠 CGO 交叉编 GUI）。
 
 ## 致谢
 

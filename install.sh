@@ -1,10 +1,15 @@
 #!/bin/sh
-# try 安装脚本
+# try 安装脚本：安装 TUI（try）与 GUI（try-gui）
 # 用法: curl -fsSL https://raw.githubusercontent.com/loveloki/try/main/install.sh | sh
+#
+# 环境变量：
+#   TRY_INSTALL_DIR   安装目录（默认 ~/.local/bin）
+#   TRY_INSTALL_GUI   设为 0 时跳过 try-gui（默认安装）
 set -e
 
 REPO="loveloki/try"
 INSTALL_DIR="${TRY_INSTALL_DIR:-$HOME/.local/bin}"
+INSTALL_GUI="${TRY_INSTALL_GUI:-1}"
 
 detect_platform() {
     OS=$(uname -s | tr '[:upper:]' '[:lower:]')
@@ -39,6 +44,27 @@ get_latest_version() {
     fi
 }
 
+download() {
+    URL="$1"
+    DEST="$2"
+    if command -v curl >/dev/null 2>&1; then
+        curl -fsSL "$URL" -o "$DEST"
+    else
+        wget -q "$URL" -O "$DEST"
+    fi
+}
+
+install_binary() {
+    SRC="$1"
+    NAME="$2"
+    if [ ! -f "$SRC" ]; then
+        return 1
+    fi
+    mv "$SRC" "${INSTALL_DIR}/${NAME}"
+    chmod +x "${INSTALL_DIR}/${NAME}"
+    return 0
+}
+
 install() {
     FILENAME="try_${OS}_${ARCH}.tar.gz"
     URL="https://github.com/${REPO}/releases/download/v${VERSION}/${FILENAME}"
@@ -46,23 +72,30 @@ install() {
     trap 'rm -rf "$TMPDIR"' EXIT
 
     echo "下载 try v${VERSION} (${OS}/${ARCH})..."
-
-    if command -v curl >/dev/null 2>&1; then
-        curl -fsSL "$URL" -o "${TMPDIR}/${FILENAME}"
-    else
-        wget -q "$URL" -O "${TMPDIR}/${FILENAME}"
-    fi
-
+    download "$URL" "${TMPDIR}/${FILENAME}"
     tar -xzf "${TMPDIR}/${FILENAME}" -C "$TMPDIR"
-
     mkdir -p "$INSTALL_DIR"
-    mv "${TMPDIR}/try" "${INSTALL_DIR}/try"
-    chmod +x "${INSTALL_DIR}/try"
 
+    if ! install_binary "${TMPDIR}/try" "try"; then
+        echo "归档中缺少 try 二进制" >&2
+        exit 1
+    fi
     echo ""
     echo "✓ try v${VERSION} 已安装到 ${INSTALL_DIR}/try"
 
-    # 检查 PATH 是否包含安装目录
+    if [ "$INSTALL_GUI" != "0" ]; then
+        if install_binary "${TMPDIR}/try-gui" "try-gui"; then
+            echo "✓ try-gui v${VERSION} 已安装到 ${INSTALL_DIR}/try-gui"
+        else
+            echo ""
+            echo "⚠  当前平台归档未包含 try-gui，已跳过 GUI 安装。"
+            echo "   可从源码构建：CGO_ENABLED=1 go install github.com/loveloki/try/cmd/try-gui@latest"
+        fi
+    else
+        echo ""
+        echo "已跳过 try-gui（TRY_INSTALL_GUI=0）"
+    fi
+
     case ":$PATH:" in
         *":${INSTALL_DIR}:"*) ;;
         *)
@@ -72,12 +105,15 @@ install() {
             ;;
     esac
 
-    # 自动设置 Shell 集成
     echo ""
     "${INSTALL_DIR}/try" install
 
     echo ""
-    echo "重启终端或 source 对应配置文件即可使用 try 命令。"
+    echo "重启终端或 source 对应配置文件即可使用："
+    echo "  try       # TUI 选择器"
+    if [ -x "${INSTALL_DIR}/try-gui" ]; then
+        echo "  try-gui   # 原生 GUI"
+    fi
 }
 
 detect_platform

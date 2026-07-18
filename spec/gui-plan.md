@@ -70,7 +70,7 @@
 2. macOS 产物在 macOS runner 构建，满足 AppKit / Metal / OpenGL 相关依赖。
 3. Windows 产物在 Windows runner 构建，并使用 `-ldflags -H=windowsgui` 避免启动控制台窗口。
 4. Linux 产物在 Linux runner 构建，安装 Fyne 所需图形开发包。
-5. `.goreleaser.yaml` 为 `try` 与 `try-gui` 分开声明构建策略；`try-gui` 构建 flags 保留 `-trimpath` 和平台链接参数。
+5. Release 由 `.github/workflows/release.yml` 分平台原生构建，归档同时包含 `try` 与 `try-gui`（Linux arm64 可仅含 `try`）；`install.sh` 默认安装二者。
 
 ## 3. 模块划分
 

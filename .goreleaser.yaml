@@ -1,4 +1,6 @@
 # yaml-language-server: $schema=https://goreleaser.com/static/schema.json
+# 正式发版由 .github/workflows/release.yml 分平台原生构建（含 CGO 的 try-gui）。
+# 本文件保留供本地 snapshot / 仅 CLI 调试使用。
 version: 2
 
 builds:
@@ -11,28 +13,6 @@ builds:
       - -trimpath
     ldflags:
       - -s -w -X github.com/loveloki/try/internal/cli.version={{.Version}}
-    goos:
-      - linux
-      - darwin
-      - windows
-    goarch:
-      - amd64
-      - arm64
-    ignore:
-      - goos: windows
-        goarch: arm64
-
-  # try-gui 使用 Fyne 原生窗口。GUI 产物依赖 CGO 和目标平台图形栈，
-  # Release 需要在对应平台 runner 上构建或提供等价交叉编译工具链。
-  - id: try-gui
-    main: ./cmd/try-gui
-    binary: try-gui
-    env:
-      - CGO_ENABLED=1
-    flags:
-      - -trimpath
-    ldflags:
-      - -s -w
     goos:
       - linux
       - darwin

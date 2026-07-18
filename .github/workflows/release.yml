@@ -9,18 +9,128 @@ permissions:
   contents: write
 
 jobs:
+  # 分平台原生构建，使 try-gui（CGO）进入与 install.sh 一致的归档。
+  build:
+    strategy:
+      fail-fast: false
+      matrix:
+        include:
+          - os: ubuntu-latest
+            goos: linux
+            goarch: amd64
+            gui: true
+          - os: ubuntu-latest
+            goos: linux
+            goarch: arm64
+            gui: false # ubuntu amd64 上 CGO 交叉编 GUI 不可靠
+          - os: macos-latest
+            goos: darwin
+            goarch: arm64
+            gui: true
+          - os: macos-latest
+            goos: darwin
+            goarch: amd64
+            gui: true
+          - os: windows-latest
+            goos: windows
+            goarch: amd64
+            gui: true
+            exe: .exe
+            archive_ext: zip
+    runs-on: ${{ matrix.os }}
+    steps:
+      - uses: actions/checkout@v6
+        with:
+          fetch-depth: 0
+
+      - uses: actions/setup-go@v6
+        with:
+          go-version-file: go.mod
+
+      - name: Install Linux Fyne / X11 build deps
+        if: runner.os == 'Linux' && matrix.gui
+        run: |
+          sudo apt-get update
+          sudo apt-get install -y \
+            gcc libgl1-mesa-dev xorg-dev \
+            libxcursor-dev libxrandr-dev libxinerama-dev libxi-dev libxxf86vm-dev
+
+      - name: Install Windows MinGW (CGO)
+        if: runner.os == 'Windows' && matrix.gui
+        run: choco install mingw -y
+
+      - name: Build binaries
+        shell: bash
+        env:
+          GOOS: ${{ matrix.goos }}
+          GOARCH: ${{ matrix.goarch }}
+        run: |
+          set -euo pipefail
+          EXT="${{ matrix.exe }}"
+          VERSION="${GITHUB_REF_NAME#v}"
+          mkdir -p dist
+          CGO_ENABLED=0 go build -trimpath \
+            -ldflags "-s -w -X github.com/loveloki/try/internal/cli.version=${VERSION}" \
+            -o "dist/try${EXT}" ./cmd/try
+          if [ "${{ matrix.gui }}" = "true" ]; then
+            CGO_ENABLED=1 go build -trimpath -ldflags "-s -w" \
+              -o "dist/try-gui${EXT}" ./cmd/try-gui
+          fi
+          ls -la dist
+
+      - name: Package archive
+        shell: bash
+        run: |
+          set -euo pipefail
+          EXT="${{ matrix.exe }}"
+          OUT="try_${{ matrix.goos }}_${{ matrix.goarch }}"
+          cd dist
+          FILES=("try${EXT}")
+          if [ -f "try-gui${EXT}" ]; then
+            FILES+=("try-gui${EXT}")
+          fi
+          if [ "${{ matrix.archive_ext }}" = "zip" ]; then
+            # Git for Windows 自带 tar，可用 -a 生成 zip
+            tar -a -cf "${OUT}.zip" "${FILES[@]}"
+          else
+            tar -czf "${OUT}.tar.gz" "${FILES[@]}"
+          fi
+          ls -la
+
+      - name: Upload archive
+        uses: actions/upload-artifact@v4
+        with:
+          name: release-${{ matrix.goos }}-${{ matrix.goarch }}
+          path: dist/try_${{ matrix.goos }}_${{ matrix.goarch }}.*
+          if-no-files-found: error
+
   release:
+    needs: build
     runs-on: ubuntu-latest
     steps:
       - uses: actions/checkout@v6
         with:
           fetch-depth: 0
-      - uses: actions/setup-go@v6
+
+      - name: Download archives
+        uses: actions/download-artifact@v4
         with:
-          go-version-file: go.mod
-      - uses: goreleaser/goreleaser-action@v7
+          pattern: release-*
+          path: dist
+          merge-multiple: true
+
+      - name: Checksums
+        working-directory: dist
+        run: |
+          set -euo pipefail
+          sha256sum try_* > checksums.txt
+          ls -la
+          cat checksums.txt
+
+      - name: Publish GitHub Release
+        uses: softprops/action-gh-release@v2
         with:
-          version: '~> v2'
-          args: release --clean
+          files: dist/*
+          generate_release_notes: true
         env:
           GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}

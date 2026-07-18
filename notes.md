@@ -1,5 +1,16 @@
 ---
 
+## [2026-07-18] 一键安装支持 TUI + GUI
+
+- **本会话**：用户要求 `install.sh` 同时安装 TUI 与 GUI。
+- **结论 / 决定**：
+  - `install.sh` 默认安装 `try` + `try-gui`；`TRY_INSTALL_GUI=0` 可跳过 GUI；归档缺 GUI 时警告并继续。
+  - Release 改为分平台原生构建（非单 ubuntu goreleaser），归档名仍为 `try_<os>_<arch>.tar.gz`。
+  - Linux arm64 仅发布 `try`（无 CGO 交叉编 GUI）。
+- **相关**：`install.sh`、`.github/workflows/release.yml`、`README.md`、`spec/architecture.md`
+
+---
+
 ## [2026-07-18] GUI 六项 UX（hover/排序/多选/上传/拖拽/留白）
 
 - **本会话**：

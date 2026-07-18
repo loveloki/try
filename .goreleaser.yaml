@@ -22,15 +22,15 @@ builds:
       - goos: windows
         goarch: arm64
 
-  # try-gui 内嵌手写静态资源（internal/gui/web），使用 embed 构建标签，保持 CGO_ENABLED=0
+  # try-gui 使用 Fyne 原生窗口。GUI 产物依赖 CGO 和目标平台图形栈，
+  # Release 需要在对应平台 runner 上构建或提供等价交叉编译工具链。
   - id: try-gui
     main: ./cmd/try-gui
     binary: try-gui
     env:
-      - CGO_ENABLED=0
+      - CGO_ENABLED=1
     flags:
       - -trimpath
-      - -tags=embed
     ldflags:
       - -s -w
     goos:

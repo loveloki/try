@@ -7,6 +7,9 @@
 | `charm.land/bubbletea/v2` | v2.0.6 | TUI 框架核心。提供 Elm Architecture 运行时（Model/Update/View）、终端管理（alt screen、鼠标、光标）、消息循环、Program 生命周期。所有交互式界面的基础。 |
 | `charm.land/bubbles/v2` | v2.1.0 | TUI 组件库。使用的子包：`list`（列表管理：光标追踪、滚动、分页、ItemDelegate）、`textinput`（搜索输入框和对话框输入：光标位置、Emacs 快捷键、Placeholder）、`key`（按键绑定定义与匹配）。 |
 | `charm.land/lipgloss/v2` | v2.0.2 | 声明式终端样式。用于所有 TUI 渲染：文字颜色/背景色/粗体、ANSI-aware 宽度计算（`Width()`）、文本截断（`Truncate()`/`TruncateLeft()`）、水平对齐（`PlaceHorizontal()`）。NO_COLOR 支持通过 color profile 实现。 |
+| `fyne.io/fyne/v2` | v2.8.0 | GUI 桌面框架。用于 `try-gui` 原生窗口、系统托盘、窗口内容绘制、键鼠输入、对话框与主题。 |
+| `github.com/charmbracelet/x/ansi` | v0.11.7 | ANSI 文本处理。由 selector 渲染测试直接使用，并由 Charm 套件复用。 |
+| `github.com/sahilm/fuzzy` | v0.1.2 | 子序列匹配库。仅使用匹配位置与基础结果，自定义时间权重、日期后缀加成和排序。 |
 
 ## 使用的 Bubbles 子包
 
@@ -66,11 +69,25 @@ require (
     charm.land/bubbles/v2   v2.1.0
     charm.land/bubbletea/v2 v2.0.6
     charm.land/lipgloss/v2  v2.0.2
-    github.com/sahilm/fuzzy v0.1.2
+    fyne.io/fyne/v2           v2.8.0
+    github.com/charmbracelet/x/ansi v0.11.7
+    github.com/sahilm/fuzzy   v0.1.2
 )
 ```
 
-> 实际 `go.sum` 和间接依赖由 `go mod tidy` 生成。`sahilm/fuzzy` 因代码中直接 import 而作为 direct require。
+> 实际 `go.sum` 和间接依赖由 `go mod tidy` 生成。Fyne 引入桌面图形、字体、SVG、托盘与平台窗口相关间接依赖，`try-gui` 发布构建使用 CGO。
+
+## try-gui 平台构建依赖
+
+CI（`.github/workflows/ci.yml`）在 ubuntu / macos / windows 三平台 runner 上原生编译，不交叉编译。
+
+| 平台 | CGO | 额外依赖 |
+|------|-----|----------|
+| Linux | `CGO_ENABLED=1` | `gcc`、`libgl1-mesa-dev`、`xorg-dev`、`libxcursor-dev`、`libxrandr-dev`、`libxinerama-dev`、`libxi-dev`、`libxxf86vm-dev`（含 X11，供自绘标题栏拖拽/最大化） |
+| macOS | `CGO_ENABLED=1` | Xcode Command Line Tools（GitHub `macos-latest` 已具备） |
+| Windows | `CGO_ENABLED=1` | MinGW（CI 用 `choco install mingw`） |
+
+`try` CLI 始终 `CGO_ENABLED=0`。
 
 ## 不使用的库（设计决策）
 
@@ -81,3 +98,4 @@ require (
 | 日志 | slog, zerolog | TUI 程序 stderr 用于渲染，不适合混合日志输出 |
 | 测试框架 | testify, gomega | 标准 `testing` 包已足够，减少依赖 |
 | 颜色 | fatih/color, aurora | Lipgloss 已提供完整的样式能力 |
+| WebView 框架 | Wails, webview | GUI 主界面采用 Fyne 原生窗口与 Go 组件 |

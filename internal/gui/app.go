@@ -1,15 +1,15 @@
 package gui
 
 import (
-	"context"
 	"fmt"
-	"net"
-	"net/http"
 	"os"
-	"os/signal"
-	"syscall"
-	"time"
 
+	"fyne.io/fyne/v2"
+	"fyne.io/fyne/v2/app"
+	"fyne.io/fyne/v2/canvas"
+	"fyne.io/fyne/v2/driver/desktop"
+	"fyne.io/fyne/v2/theme"
+	"fyne.io/fyne/v2/widget"
 	"github.com/loveloki/try/internal/config"
 	"github.com/loveloki/try/internal/i18n"
 )
@@ -19,7 +19,52 @@ type Options struct {
 	Path string // 可选，覆盖 tries 根目录（对应 -path）
 }
 
-// Run 加载配置、启动本机 HTTP 服务、打开浏览器，并阻塞至收到退出信号。
+type desktopGUI struct {
+	app     fyne.App
+	window  fyne.Window
+	chrome  *WindowChrome
+	service *service
+	msgs    *i18n.Messages
+
+	themeName string
+	view      string
+	query     string
+	source    string
+
+	entries      []EntryView
+	counts       map[string]int
+	sources      []string
+	selected     int
+	selectedPath string
+	marked       map[string]bool
+
+	files        []FileEntry
+	filesPath    string
+	filesRoot    string
+	fileSelected int
+	fileMarked   map[string]bool
+
+	selectorBody  fyne.CanvasObject
+	filesBody     fyne.CanvasObject
+	sourceTabsBox *fyne.Container
+	filesTitle    *widget.Label
+	breadcrumbBox *fyne.Container
+	dropOverlay   fyne.CanvasObject
+	dropOverlayLabel    *canvas.Text
+	dropOverlayProgress *widget.ProgressBar
+	dropBusy            bool
+	toastGen            uint64
+
+	search         *searchEntry
+	list           *navList // 当前视图活动列表（selector 或 files）
+	selectorStatus *statusBar
+	filesStatus    *statusBar
+
+	entryList *navList
+	fileList  *navList
+}
+
+// Run 加载配置、创建原生桌面窗口，并阻塞至应用退出。
 func Run(opts Options) error {
 	cfg, err := loadOrInitConfig()
 	if err != nil {
@@ -31,55 +76,128 @@ func Run(opts Options) error {
 
 	ensureGUIDirs(triesPath, shipPaths)
 
-	ln, err := net.Listen("tcp", "127.0.0.1:0")
-	if err != nil {
-		return fmt.Errorf("listen: %w", err)
-	}
-	addr := ln.Addr().String()
-	url := "http://" + addr + "/"
-
-	srv := newServer(serverConfig{
-		triesPath: triesPath,
-		shipPaths: shipPaths,
-		locale:    locale,
-		theme:     config.DetectTheme(),
-	})
-
-	httpSrv := &http.Server{
-		Handler:           srv.handler(),
-		ReadHeaderTimeout: 5 * time.Second,
-	}
-
-	errCh := make(chan error, 1)
-	go func() {
-		errCh <- httpSrv.Serve(ln)
-	}()
-
-	ctx, cancel := context.WithTimeout(context.Background(), 3*time.Second)
-	defer cancel()
-	if err := openURL(ctx, url); err != nil {
-		fmt.Fprintf(os.Stderr, "open browser: %v\n", err)
-		fmt.Fprintf(os.Stderr, "open %s manually\n", url)
-	} else {
-		fmt.Fprintf(os.Stderr, "try-gui listening on %s\n", url)
-	}
-
-	sigCh := make(chan os.Signal, 1)
-	signal.Notify(sigCh, syscall.SIGINT, syscall.SIGTERM)
-
-	select {
-	case sig := <-sigCh:
-		fmt.Fprintf(os.Stderr, "received %s, shutting down\n", sig)
-	case err := <-errCh:
-		if err != nil && err != http.ErrServerClosed {
-			return fmt.Errorf("server: %w", err)
-		}
-	}
-
-	shutdownCtx, shutdownCancel := context.WithTimeout(context.Background(), 5*time.Second)
-	defer shutdownCancel()
-	_ = httpSrv.Shutdown(shutdownCtx)
+	gui := newDesktopGUI(triesPath, shipPaths, config.DetectTheme())
+	gui.run()
 	return nil
+}
+
+func newDesktopGUI(triesPath string, shipPaths []string, themeName string) *desktopGUI {
+	a := app.NewWithID("github.com/loveloki/try/try-gui")
+	msgs := i18n.Get()
+	chrome := NewWindowChrome(a, msgs.GUITitle)
+
+	g := &desktopGUI{
+		app:        a,
+		window:     chrome.Window(),
+		chrome:     chrome,
+		service:    newService(triesPath, shipPaths),
+		msgs:       msgs,
+		themeName:  normalizeTheme(themeName),
+		view:       "selector",
+		marked:     map[string]bool{},
+		fileMarked: map[string]bool{},
+	}
+	g.applyTheme()
+	g.setupTray()
+	g.setupWindow()
+	g.refreshEntries()
+	return g
+}
+
+func (g *desktopGUI) run() {
+	g.window.ShowAndRun()
+}
+
+func (g *desktopGUI) hideToTray() {
+	g.window.Hide()
+}
+
+func (g *desktopGUI) setWindowContent(body fyne.CanvasObject) {
+	g.window.SetContent(g.chrome.WrapContent(body))
+}
+
+func (g *desktopGUI) setupTray() {
+	desk, ok := g.app.(desktop.App)
+	if !ok {
+		g.window.SetCloseIntercept(g.hideToTray)
+		return
+	}
+	menu := fyne.NewMenu(g.msgs.GUITitle,
+		fyne.NewMenuItem(g.msgs.GUITrayShow, func() {
+			g.window.Show()
+			g.window.RequestFocus()
+		}),
+		fyne.NewMenuItem(g.msgs.GUITrayQuit, func() {
+			g.app.Quit()
+		}),
+	)
+	desk.SetSystemTrayMenu(menu)
+	desk.SetSystemTrayIcon(theme.FolderIcon())
+	desk.SetSystemTrayWindow(g.window)
+	g.window.SetCloseIntercept(g.hideToTray)
+}
+
+func (g *desktopGUI) bindKeys() {
+	c := g.window.Canvas()
+	c.SetOnTypedKey(func(e *fyne.KeyEvent) {
+		// 搜索框与列表通过各自 TypedKey 处理；此处仅兜底无焦点对象的情况。
+		if focused := c.Focused(); focused != nil {
+			if focused == g.search || focused == g.list {
+				return
+			}
+		}
+		g.handleNavKey(e)
+	})
+	c.SetOnTypedRune(func(r rune) {
+		if g.view != "selector" || r != '/' {
+			return
+		}
+		if g.search != nil && c.Focused() != g.search {
+			g.focusSearch()
+		}
+	})
+	for _, sc := range []struct {
+		key fyne.KeyName
+		fn  func()
+	}{
+		{fyne.KeyT, g.promptCreate},
+		{fyne.KeyD, g.toggleMark},
+		{fyne.KeyR, g.promptRename},
+		{fyne.KeyG, g.promptShip},
+		{fyne.KeyP, func() { g.moveSelection(-1) }},
+		{fyne.KeyN, func() { g.moveSelection(1) }},
+		{fyne.KeyF, g.focusSearch},
+	} {
+		c.AddShortcut(ctrlShortcut{key: sc.key}, func(f func()) func(fyne.Shortcut) {
+			return func(fyne.Shortcut) { f() }
+		}(sc.fn))
+	}
+}
+
+func (g *desktopGUI) handleNavKey(e *fyne.KeyEvent) {
+	switch e.Name {
+	case fyne.KeyUp:
+		g.moveSelection(-1)
+	case fyne.KeyDown:
+		g.moveSelection(1)
+	case fyne.KeyEscape:
+		g.handleEsc()
+	case fyne.KeyReturn, fyne.KeyEnter:
+		g.openSelected()
+	case fyne.KeyDelete:
+		g.confirmDelete()
+	case fyne.KeySpace:
+		g.toggleMark()
+	case fyne.KeyTab:
+		if g.view != "selector" {
+			return
+		}
+		delta := 1
+		if currentKeyModifiers()&fyne.KeyModifierShift != 0 {
+			delta = -1
+		}
+		g.cycleSource(delta)
+	}
 }
 
 func loadOrInitConfig() (config.Config, error) {

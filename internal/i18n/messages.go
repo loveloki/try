@@ -70,6 +70,54 @@ type Messages struct {
 	ErrPathDenied    string // 路径越界
 	ErrBadRequest    string // 非法请求
 
+	// === GUI 桌面窗口 ===
+	GUITitle             string
+	GUISearchPlace       string
+	GUIFilesTitle        string
+	GUIFilesEmpty        string
+	GUIFilesHintBar      string // 兼容旧单行；新底栏用下方分段字段
+	GUIBack              string
+	GUIOpen              string
+	GUIEdit              string
+	GUIDelete            string
+	GUIConfirm           string
+	GUICancel            string
+	GUIThemeDark         string
+	GUIThemeLight        string
+	GUIThemeToggle       string // 主题按钮无障碍标签
+	GUITrayShow          string
+	GUITrayQuit          string
+	GUIToastCreated      string
+	GUIToastDeleted      string
+	GUIToastRenamed      string
+	GUIToastShipped      string
+	GUIToastOpened       string
+	GUIToastOpenedFolder string
+	GUIToastCopied       string // 含 %d
+	GUIToastSkipped      string // 含 %d
+	GUIToastPartial      string // 含 %d %d（copied, skipped）
+	GUIToastCopying   string
+	GUIDropImporting  string
+	GUIDropProgress   string // 含 %d %d（done, total）
+	GUIOpenFolder     string
+	GUIDocxPack          string
+	GUIDocxUnpack        string
+	GUINotImplemented    string
+	GUIFilesItemCount    string // 含 %d
+	GUIColName           string
+	GUIColSize           string
+	GUIColMTime          string
+	GUIShortcutNav       string
+	GUIShortcutOpen      string
+	GUIShortcutNew       string
+	GUIShortcutDelete    string
+	GUIShortcutEscBack   string
+	GUIShortcutDrop      string
+	GUIErrCopy           string
+	GUIErrOpen           string
+	GUIErrOpenFolder     string
+	GUIErrNoSelection    string
+
 	// === 时间格式化 ===
 	TimeJustNow  string // "just now" / "刚刚"
 	TimeMinAgo   string // 含 %d："%dm ago" / "%d分钟前"
@@ -189,6 +237,53 @@ Shortcuts:
 	ErrPathDenied:    "path outside allowed directories",
 	ErrBadRequest:    "invalid request",
 
+	GUITitle:             "try-gui",
+	GUISearchPlace:       "Type to filter or create...",
+	GUIFilesTitle:        "Files",
+	GUIFilesEmpty:        "This directory is empty",
+	GUIFilesHintBar:      "Enter: Open  Delete: Delete  Esc: Back  ·  Drop to copy",
+	GUIBack:              "Back",
+	GUIOpen:              "Open",
+	GUIEdit:              "Edit",
+	GUIDelete:            "Delete",
+	GUIConfirm:           "Confirm",
+	GUICancel:            "Cancel",
+	GUIThemeDark:         "Dark",
+	GUIThemeLight:        "Light",
+	GUIThemeToggle:       "Toggle theme",
+	GUITrayShow:          "Show",
+	GUITrayQuit:          "Quit",
+	GUIToastCreated:      "Created",
+	GUIToastDeleted:      "Deleted",
+	GUIToastRenamed:      "Renamed",
+	GUIToastShipped:      "Shipped",
+	GUIToastOpened:       "Opened",
+	GUIToastOpenedFolder: "Opened in file manager",
+	GUIToastCopied:       "Copied %d item(s)",
+	GUIToastSkipped:      "Skipped %d existing item(s)",
+	GUIToastPartial:      "Copied %d, skipped %d",
+	GUIToastCopying:      "Copying…",
+	GUIDropImporting:     "Copying files…",
+	GUIDropProgress:      "Copying %d / %d",
+	GUIOpenFolder:        "Reveal",
+	GUIDocxPack:          "Pack .docx",
+	GUIDocxUnpack:        "Unpack .docx",
+	GUINotImplemented:    "Not implemented yet",
+	GUIFilesItemCount:    "%d items",
+	GUIColName:           "Name",
+	GUIColSize:           "Size",
+	GUIColMTime:          "Modified",
+	GUIShortcutNav:       "Navigate",
+	GUIShortcutOpen:      "Open",
+	GUIShortcutNew:       "New",
+	GUIShortcutDelete:    "Delete",
+	GUIShortcutEscBack:   "Back",
+	GUIShortcutDrop:      "Drop to upload",
+	GUIErrCopy:           "copy failed",
+	GUIErrOpen:           "open failed",
+	GUIErrOpenFolder:     "open folder failed",
+	GUIErrNoSelection:    "no selection",
+
 	ErrDetectShell:    "Cannot detect shell type. Please use bash, zsh, or fish.",
 	ErrUnsupportShell: "Unsupported shell type: %s",
 	ErrGetExePath:     "Cannot get try executable path",
@@ -297,6 +392,53 @@ var ZH = Messages{
 	ErrUnknownOp:     "未知的操作类型: %d",
 	ErrPathDenied:    "路径超出允许范围",
 	ErrBadRequest:    "无效请求",
+
+	GUITitle:             "try-gui",
+	GUISearchPlace:       "输入以过滤或创建...",
+	GUIFilesTitle:        "文件",
+	GUIFilesEmpty:        "目录为空",
+	GUIFilesHintBar:      "Enter: 打开  Delete: 删除  Esc: 返回  ·  拖拽上传",
+	GUIBack:              "返回",
+	GUIOpen:              "打开",
+	GUIEdit:              "编辑",
+	GUIDelete:            "删除",
+	GUIConfirm:           "确认",
+	GUICancel:            "取消",
+	GUIThemeDark:         "深色",
+	GUIThemeLight:        "浅色",
+	GUIThemeToggle:       "切换主题",
+	GUITrayShow:          "显示",
+	GUITrayQuit:          "退出",
+	GUIToastCreated:      "已创建",
+	GUIToastDeleted:      "已删除",
+	GUIToastRenamed:      "已重命名",
+	GUIToastShipped:      "已发布",
+	GUIToastOpened:       "已打开",
+	GUIToastOpenedFolder: "已在文件管理器中打开",
+	GUIToastCopied:       "已复制 %d 项",
+	GUIToastSkipped:      "已跳过 %d 个已存在项",
+	GUIToastPartial:      "已复制 %d，跳过 %d",
+	GUIToastCopying:      "正在复制…",
+	GUIDropImporting:     "正在复制文件…",
+	GUIDropProgress:      "正在复制 %d / %d",
+	GUIOpenFolder:        "在文件管理器中打开",
+	GUIDocxPack:          "打包 .docx",
+	GUIDocxUnpack:        "解压 .docx",
+	GUINotImplemented:    "尚未实现",
+	GUIFilesItemCount:    "%d 个项目",
+	GUIColName:           "名称",
+	GUIColSize:           "大小",
+	GUIColMTime:          "修改时间",
+	GUIShortcutNav:       "导航",
+	GUIShortcutOpen:      "打开",
+	GUIShortcutNew:       "新建",
+	GUIShortcutDelete:    "删除",
+	GUIShortcutEscBack:   "返回",
+	GUIShortcutDrop:      "拖拽上传",
+	GUIErrCopy:           "复制失败",
+	GUIErrOpen:           "打开失败",
+	GUIErrOpenFolder:     "打开文件夹失败",
+	GUIErrNoSelection:    "未选择项目",
 
 	ErrDetectShell:    "无法检测 Shell 类型，请确认使用 bash、zsh 或 fish",
 	ErrUnsupportShell: "不支持的 Shell 类型: %s",

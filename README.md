@@ -82,24 +82,35 @@ try --version          # 查看版本号
 
 ## GUI（try-gui）
 
-`try-gui` 是与 TUI 并列的跨平台图形入口，读取同一份配置，复用相同的目录扫描、模糊匹配与文件操作逻辑。它在本机 `127.0.0.1` 上启动一个 HTTP 服务并自动打开系统默认浏览器，界面配色与快捷键与 TUI 对齐。
+`try-gui` 是与 TUI 并列的跨平台原生桌面入口，读取同一份配置，复用相同的目录扫描、模糊匹配与文件操作逻辑。启动后显示原生应用窗口，默认尺寸约 900 × 600，最小尺寸约 720 × 480，内容区配色与快捷键与 TUI 对齐。
 
 ```bash
-try-gui                # 启动 GUI（自动打开浏览器）
+try-gui                # 启动 GUI
 try-gui -path ~/src/tries  # 临时覆盖 tries 根目录
 ```
+
+平台窗口规则：
+
+- macOS：系统标题栏，关闭 / 最小化 / 最大化控件在左上角。
+- Windows / Linux：WinUI3 风格标题栏，最小化 / 最大化 / 关闭控件在右上角。
+- 内容区布局、配色、字体层级、快捷键、Selector、Files、对话框与 Toast 跨平台一致。
+- 系统托盘提供 Show 与 Quit；关闭窗口时隐藏到托盘。
 
 两大视图：
 
 - **选择器**：搜索、来源过滤（all / tries / ship / bug）、循环导航、创建（Ctrl-T）、删除（Ctrl-D）、重命名（Ctrl-R）、Ship（Ctrl-G）。
-- **文件视图**：进入目录后浏览文件、删除、调用系统默认程序打开文件，Esc 返回选择器。
+- **文件视图**：进入目录后浏览文件、删除、调用系统默认程序打开文件；支持从 Finder/资源管理器拖入文件或文件夹复制到当前目录；Esc 返回选择器。
 
 GUI 与 TUI 的差异：GUI 用「进入文件视图」替代 TUI 的 `cd` 脚本输出，不提供 clone / worktree / install 与 Shell 集成。所有文件操作限制在配置解析出的 tries 与 ship 目录子树内，且不允许删除或重命名根目录本身。
 
-静态界面资源以纯 HTML/CSS/JS 手写并通过 `-tags embed` 内嵌进二进制，构建仍为 `CGO_ENABLED=0` 单二进制，无需 Node 运行时。`try-gui/` 目录中的 Next.js 工程仅作为 UI/UX 设计参考，不参与构建与分发。
+`try-gui` 使用 Fyne 构建原生桌面窗口。构建 GUI 产物需要 CGO 和目标平台图形依赖；CI 在 macOS、Windows、Linux runner 上分别原生编译（见 `.github/workflows/ci.yml`）。`try-gui/` 目录中的 Next.js 工程仅作为 UI/UX 设计参考，不参与构建与分发。
 
 ```bash
-go build -tags embed ./cmd/try-gui  # 构建内嵌完整界面的 GUI 二进制
+# macOS / Linux（需本机图形开发头文件，Linux 见 spec/dependencies.md）
+CGO_ENABLED=1 go build ./cmd/try-gui
+
+# Windows（需 MinGW，且通常加 -H=windowsgui 避免控制台窗）
+CGO_ENABLED=1 go build ./cmd/try-gui
 ```
 
 ## 配置
@@ -159,15 +170,15 @@ internal/
     exec.go                      # Execute（cd/mkdir/clone/worktree/delete/rename/ship）
   shell/                     # Shell 检测与集成安装（bash/zsh/fish）
   git/                       # Git URI 解析与目录命名
-  gui/                       # GUI 后端：本机 HTTP 服务 + 内嵌静态界面
-    app.go                     # 生命周期：加载配置、起服务、打开浏览器
-    server.go                  # 路由、静态资源、仅本机 CORS
-    handlers.go                # JSON API（entries / files / 副作用操作）
-    dto.go                     # 与前端对齐的 JSON 类型
+  gui/                       # GUI：Fyne 原生窗口 + 系统托盘
+    app.go                     # 生命周期：加载配置、创建窗口、托盘
+    state.go / update.go       # GUI 状态机与键鼠输入处理
+    service.go                 # entries / files / 副作用操作
     paths.go                   # 路径沙箱（拒绝越界与根目录本身）
-    browser.go                 # 跨平台打开系统浏览器
-    embed_prod.go / embed_dev.go # embed 构建标签切换内嵌资源
-    web/                       # 手写静态界面（index.html / app.css / app.js）
+    opener.go                  # 跨平台打开文件
+    chrome_*.go                # 平台标题栏策略
+    view_*.go                  # Selector / Files / Dialog / Toast
+    theme.go                   # GUI 主题 token 映射
 try-gui/                     # UI/UX 设计参考（Next.js，不参与构建分发）
 ```
 
@@ -177,12 +188,14 @@ try-gui/                     # UI/UX 设计参考（Next.js，不参与构建分
 - [Bubbletea v2](https://charm.land/bubbletea) — TUI 框架（Elm Architecture）
 - [Bubbles v2](https://charm.land/bubbles) — TUI 组件库
 - [Lipgloss v2](https://charm.land/lipgloss) — 终端样式
+- [Fyne v2](https://fyne.io/) — 原生桌面 GUI 框架
 - [sahilm/fuzzy](https://github.com/sahilm/fuzzy) — 子序列匹配
 
 ## 开发
 
 ```bash
 go build ./cmd/try  # 构建二进制
+CGO_ENABLED=1 go build ./cmd/try-gui # 构建 GUI
 go test ./...       # 运行所有测试
 go vet ./...        # 官方静态检查
 staticcheck ./...   # 第三方静态检查（需安装：go install honnef.co/go/tools/cmd/staticcheck@latest）
@@ -200,6 +213,8 @@ staticcheck ./...   # 第三方静态检查（需安装：go install honnef.co/g
 ```
 
 依赖 [svu](https://github.com/caarlos0/svu)（`go install github.com/caarlos0/svu@latest`）。GoReleaser 会构建全平台二进制并创建 GitHub Release。
+
+Release 构建中 `try` 保持 `CGO_ENABLED=0`。`try-gui` 使用 `CGO_ENABLED=1`，由目标平台 runner 构建并打包。
 
 ## 致谢
 

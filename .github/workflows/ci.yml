@@ -9,6 +9,9 @@ on:
 jobs:
   lint:
     runs-on: ubuntu-latest
+    env:
+      # lint 走 CGO=0：Linux 使用 native_linux_stub，不拉图形库
+      CGO_ENABLED: "0"
     steps:
       - uses: actions/checkout@v6
       - uses: actions/setup-go@v6
@@ -20,14 +23,82 @@ jobs:
 
   test:
     strategy:
+      fail-fast: false
       matrix:
-        os: [ubuntu-latest, macos-latest]
+        os: [ubuntu-latest, macos-latest, windows-latest]
     runs-on: ${{ matrix.os }}
     steps:
       - uses: actions/checkout@v6
       - uses: actions/setup-go@v6
         with:
           go-version-file: go.mod
-      - run: go test ./... -timeout 60s
-      - run: go build ./cmd/try
-      - run: go build -tags embed ./cmd/try-gui
+
+      - name: Install Linux Fyne / X11 build deps
+        if: runner.os == 'Linux'
+        run: |
+          sudo apt-get update
+          sudo apt-get install -y \
+            gcc libgl1-mesa-dev xorg-dev \
+            libxcursor-dev libxrandr-dev libxinerama-dev libxi-dev libxxf86vm-dev
+
+      - name: Install Windows MinGW (CGO)
+        if: runner.os == 'Windows'
+        run: choco install mingw -y
+
+      - name: Test
+        env:
+          CGO_ENABLED: "1"
+        run: go test ./... -count=1 -timeout 120s
+
+  build:
+    strategy:
+      fail-fast: false
+      matrix:
+        include:
+          - os: ubuntu-latest
+            goos: linux
+            try_bin: try
+            gui_bin: try-gui
+          - os: macos-latest
+            goos: darwin
+            try_bin: try
+            gui_bin: try-gui
+          - os: windows-latest
+            goos: windows
+            try_bin: try.exe
+            gui_bin: try-gui.exe
+    runs-on: ${{ matrix.os }}
+    steps:
+      - uses: actions/checkout@v6
+      - uses: actions/setup-go@v6
+        with:
+          go-version-file: go.mod
+
+      - name: Install Linux Fyne / X11 build deps
+        if: runner.os == 'Linux'
+        run: |
+          sudo apt-get update
+          sudo apt-get install -y \
+            gcc libgl1-mesa-dev xorg-dev \
+            libxcursor-dev libxrandr-dev libxinerama-dev libxi-dev libxxf86vm-dev
+
+      - name: Install Windows MinGW (CGO)
+        if: runner.os == 'Windows'
+        run: choco install mingw -y
+
+      - name: Build try (CGO=0)
+        env:
+          CGO_ENABLED: "0"
+        run: go build -o ${{ matrix.try_bin }} ./cmd/try
+
+      - name: Build try-gui (CGO=1)
+        env:
+          CGO_ENABLED: "1"
+        run: go build -o ${{ matrix.gui_bin }} ./cmd/try-gui
+
+      - name: Upload try-gui artifact
+        uses: actions/upload-artifact@v4
+        with:
+          name: try-gui-${{ matrix.goos }}
+          path: ${{ matrix.gui_bin }}
+          if-no-files-found: error

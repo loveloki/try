@@ -7,7 +7,8 @@
   - GUI 创建后 `createFromName` → `enterFiles`（对齐 TUI mkdir→cd）。
   - Release body 用 `scripts/changelog.sh`（祖先 tag + 排除 docs/test/chore），去掉 `generate_release_notes`。
   - TUI/GUI 共用 config；`locale: auto` 时 env 优先，均空回退 OS（`go-locale`）。
-  - 删远端 v3.1.0–v3.2.2 tag/Release，在含上述修复的 main 上发 **v0.4.0**；保留侧枝 `v0.3.0`。
+  - 已推 main `946389a`；已删远端 tag `v3.1.0`–`v3.2.2`；已打并推送 **v0.4.0**；Release workflow 全绿，body 含 commit changelog。
+  - 保留侧枝 `v0.3.0`。无 `gh` 登录时未能删残存 GitHub Release（`v3.1.2`/`v3.2.2` 页面可能仍在）；需本地 `gh auth login` 后 `gh release delete`。
 - **相关**：`internal/gui/actions.go`、`internal/config/locale_os.go`、`scripts/changelog.sh`、`.github/workflows/release.yml`；[Architect](8053294a-5474-4c79-8170-0aa8f9ba80b3) [Planner](88260ac1-f324-45c4-995c-a41602c2e159) [Loop](1d26c427-cfde-4652-b383-0d29a52d93f7)
 
 ---

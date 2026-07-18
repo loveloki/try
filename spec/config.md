@@ -58,8 +58,10 @@ ship 目标目录列表（`ships`）解析优先级：
 ```
 1. TRY_LOCALE 环境变量
 2. ~/.config/try/config.json 中的 locale
-3. auto（通过 LC_ALL/LC_MESSAGES/LANG 推断，默认 en）
+3. auto：LC_ALL > LC_MESSAGES > LANG；均空时回退操作系统语言（默认 en）
 ```
+
+TUI 与 GUI 读取同一 `config.json` 与同一套 `ResolveLocale`。`locale: "auto"` 时，从终端启动通常有 `LANG`；从 Dock / `.app` / 开始菜单启动时常无 locale 环境变量，此时回退 OS 语言，使两端在显式未配置时尽量一致。需要强制一致时可设 `"locale": "zh"` 或 `"en"`。
 
 所有路径最终展开为绝对路径（`~` → home 目录）。
 
@@ -92,7 +94,7 @@ func ExpandPath(s string) string
 - `InitConfigFile`：在 `~/.config/try/config.json` 创建默认配置文件（如果不存在）。文件已存在时返回 `(false, nil)`，新创建时返回 `(true, nil)`。在 `try install` 命令中自动调用。
 - `ResolvePaths`：按优先级链合并 tries 和 ships 路径，最终展开为绝对路径。启动时自动创建所有 ship 目录。
 - `DetectTheme`：通过 `COLORFGBG` 环境变量推断终端亮暗（背景色 `7`/`15` 判定为 light），无法推断时默认 dark。
-- `ResolveLocale`：auto 模式通过 `LC_ALL` > `LC_MESSAGES` > `LANG` 推断语言（以 `zh` 开头时为中文），默认 en。
+- `ResolveLocale`：auto 模式通过 `LC_ALL` > `LC_MESSAGES` > `LANG` 推断语言（以 `zh` 开头时为中文）；环境变量均空时回退操作系统语言，默认 en。
 - `ExpandPath`：展开 `~` 为用户 home 目录。
 
 ## 配置文件初始化

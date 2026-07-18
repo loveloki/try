@@ -107,7 +107,7 @@ func DetectTheme() string {
 	return "dark"
 }
 
-// ResolveLocale 按优先级解析语言：--locale > TRY_LOCALE > config > auto
+// ResolveLocale 按优先级解析语言：cliLocale > TRY_LOCALE > config > auto
 func ResolveLocale(cliLocale string, cfg Config) string {
 	locale := cfg.Locale
 	if env := os.Getenv("TRY_LOCALE"); env != "" {
@@ -124,17 +124,17 @@ func ResolveLocale(cliLocale string, cfg Config) string {
 	}
 }
 
-// DetectLocale 通过 LC_ALL > LC_MESSAGES > LANG 推断语言
+// osLocaleFn 可在测试中替换；生产默认检测操作系统语言。
+var osLocaleFn = detectOSLocale
+
+// DetectLocale 通过 LC_ALL > LC_MESSAGES > LANG 推断语言；均空时回退 OS locale。
 func DetectLocale() string {
 	for _, key := range []string{"LC_ALL", "LC_MESSAGES", "LANG"} {
 		if val := os.Getenv(key); val != "" {
-			if strings.HasPrefix(val, "zh") {
-				return "zh"
-			}
-			return "en"
+			return localeFromTag(val)
 		}
 	}
-	return "en"
+	return osLocaleFn()
 }
 
 // InitConfigFile 在 ~/.config/try/config.json 创建默认配置文件（如果不存在）。

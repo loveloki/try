@@ -161,12 +161,14 @@ func (g *desktopGUI) promptCreate() {
 }
 
 func (g *desktopGUI) createFromName(name string) {
-	if _, err := g.service.createEntry(name); err != nil {
+	path, err := g.service.createEntry(name)
+	if err != nil {
 		g.showError(err)
 		return
 	}
 	g.query = ""
-	g.refreshSelectorUI()
+	// 对齐 TUI execMkdir→execCd：创建成功后进入项目文件视图
+	g.enterFiles(path, path)
 	g.setToast(g.msgs.GUIToastCreated)
 }
 

@@ -95,12 +95,13 @@ CLI：下载 `try_linux_<arch>.tar.gz`，将 `try` 放入 PATH，运行 `try ins
 
 1. `release.yml` 分平台 `go build`：`try`（`CGO_ENABLED=0`）、`try-gui`（`CGO_ENABLED=1`）
 2. `gui: true` 的矩阵行安装 `fyne` CLI，运行 `scripts/package-gui.sh`
-3. 上传 CLI 归档与 GUI 官方包，汇总 checksums 后发布
+3. 上传 CLI 归档与 GUI 官方包，汇总 checksums
+4. `scripts/changelog.sh` 生成 Release body（自 HEAD 最近祖先 tag 起的 commit 列表，排除 `docs:` / `test:` / `chore:` 前缀），再发布
 
 本地复现 GUI 官方包：
 
 ```bash
 CGO_ENABLED=1 go build -o dist/try-gui ./cmd/try-gui
 go install fyne.io/tools/cmd/fyne@latest
-./scripts/package-gui.sh darwin arm64 3.2.0
+./scripts/package-gui.sh darwin arm64 0.4.0
 ```

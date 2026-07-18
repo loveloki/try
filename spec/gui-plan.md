@@ -32,7 +32,7 @@
 | TUI 功能 | GUI 处理方式 | 说明 |
 |---|---|---|
 | 目录选择器 + 模糊搜索 | 复用 | 评分与排序由 `internal/fuzzy` 提供 |
-| 创建新目录 (Ctrl-T) | 复用 | 选择器底部行内输入 |
+| 创建新目录 (Ctrl-T) | 复用 | 创建成功后进入文件视图（对齐 TUI `execMkdir`→`execCd`） |
 | 删除目录 (Ctrl-D / Space) | 复用 | 选择器 DeleteMode；文件视图另有删除文件 |
 | 重命名目录 (Ctrl-R) | 复用 | 快捷键触发行内输入 |
 | Ship 目录 (Ctrl-G) | 复用 | 复用 ship 副作用；ships 目录作来源过滤项 |

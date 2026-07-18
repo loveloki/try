@@ -30,24 +30,30 @@ fi
 
 current=$(svu current)
 next=$(svu next)
+explicit=false
 
-# 支持手动指定版本类型
+# 支持手动指定版本类型，或显式 tag（如 v0.4.0）
 case "${1:-}" in
     patch) next=$(svu patch) ;;
     minor) next=$(svu minor) ;;
     major) next=$(svu major) ;;
     "")    ;;  # 默认自动推断
+    v[0-9]*.[0-9]*.[0-9]*)
+        next="$1"
+        explicit=true
+        ;;
     *)
-        echo "用法: $0 [patch|minor|major]"
+        echo "用法: $0 [patch|minor|major|vX.Y.Z]"
         echo "  不带参数：根据 commit 历史自动推断版本"
         echo "  patch：补丁版本升级 (x.y.Z)"
         echo "  minor：次版本升级 (x.Y.0)"
         echo "  major：主版本升级 (X.0.0)"
+        echo "  vX.Y.Z：显式指定版本号（跳过 svu）"
         exit 1
         ;;
 esac
 
-if [ "$current" = "$next" ]; then
+if [ "$explicit" = false ] && [ "$current" = "$next" ]; then
     echo "当前版本 $current 已是最新，没有需要发布的变更"
     exit 0
 fi

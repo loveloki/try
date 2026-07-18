@@ -10,6 +10,7 @@
 | `fyne.io/fyne/v2` | v2.8.0 | GUI 桌面框架。用于 `try-gui` 原生窗口、系统托盘、窗口内容绘制、键鼠输入、对话框与主题。 |
 | `github.com/charmbracelet/x/ansi` | v0.11.7 | ANSI 文本处理。由 selector 渲染测试直接使用，并由 Charm 套件复用。 |
 | `github.com/sahilm/fuzzy` | v0.1.2 | 子序列匹配库。仅使用匹配位置与基础结果，自定义时间权重、日期后缀加成和排序。 |
+| `github.com/jeandeaual/go-locale` | v0.0.0-20250612000132-0ef82f21eade | OS 语言检测。`locale: auto` 且无 `LANG`/`LC_*` 时（GUI 从 Dock/开始菜单启动）回退系统语言。 |
 
 ## 使用的 Bubbles 子包
 

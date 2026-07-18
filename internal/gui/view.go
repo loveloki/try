@@ -130,7 +130,13 @@ func (g *desktopGUI) refreshFiles() {
 }
 
 func (g *desktopGUI) enterFiles(root, path string) {
-	if path == root && root != "" {
+	g.applyFilesNav(root, path)
+	g.switchToFiles()
+}
+
+// applyFilesNav 设置文件视图导航状态（不含 UI 切换，便于单测）。
+func (g *desktopGUI) applyFilesNav(root, path string) {
+	if path == root && root != "" && g.service != nil {
 		g.service.touchDir(root)
 		g.selectedPath = root
 	}
@@ -138,7 +144,7 @@ func (g *desktopGUI) enterFiles(root, path string) {
 	g.filesPath = path
 	g.fileSelected = 0
 	g.fileMarked = map[string]bool{}
-	g.switchToFiles()
+	g.view = "files"
 }
 
 func max(a, b int) int {

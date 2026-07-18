@@ -1,5 +1,17 @@
 ---
 
+## [2026-07-18] GUI 进目录 / changelog / locale / 版本回退 0.4.0
+
+- **本会话**：`/architect` `/planner` `/loop-operator` `/multi-agent-breakthrough` 修四问题；对抗审查否决裸 `git describe HEAD^` 与「AppleLanguages 优先于 LANG」。
+- **结论 / 决定**：
+  - GUI 创建后 `createFromName` → `enterFiles`（对齐 TUI mkdir→cd）。
+  - Release body 用 `scripts/changelog.sh`（祖先 tag + 排除 docs/test/chore），去掉 `generate_release_notes`。
+  - TUI/GUI 共用 config；`locale: auto` 时 env 优先，均空回退 OS（`go-locale`）。
+  - 删远端 v3.1.0–v3.2.2 tag/Release，在含上述修复的 main 上发 **v0.4.0**；保留侧枝 `v0.3.0`。
+- **相关**：`internal/gui/actions.go`、`internal/config/locale_os.go`、`scripts/changelog.sh`、`.github/workflows/release.yml`；[Architect](8053294a-5474-4c79-8170-0aa8f9ba80b3) [Planner](88260ac1-f324-45c4-995c-a41602c2e159) [Loop](1d26c427-cfde-4652-b383-0d29a52d93f7)
+
+---
+
 ## [2026-07-18] 三平台打成系统应用（调研定案）
 
 - **本会话**：`/planner` `/loop-operator` `/architect` `/multi-agent-breakthrough` 调研 macOS/Windows/Linux 如何把 try-gui 打进应用列表；对抗审查否决「opt-in + 双轨裸二进制」的松散验收。后续澄清：官方打包是否仅 macOS；「基于官方打包再安装」；用户要求 **Release 必须保留官方打包产物供手动安装**，并据此重做计划。

@@ -255,6 +255,10 @@ func TestResolveLocale(t *testing.T) {
 
 	for _, tt := range tests {
 		t.Run(tt.name, func(t *testing.T) {
+			orig := osLocaleFn
+			osLocaleFn = func() string { return "en" }
+			t.Cleanup(func() { osLocaleFn = orig })
+
 			for _, k := range localeEnvKeys {
 				t.Setenv(k, "")
 			}
@@ -264,6 +268,39 @@ func TestResolveLocale(t *testing.T) {
 			got := ResolveLocale(tt.cliLocale, tt.cfg)
 			if got != tt.want {
 				t.Errorf("ResolveLocale(%q, %+v) = %q, want %q", tt.cliLocale, tt.cfg, got, tt.want)
+			}
+		})
+	}
+}
+
+func TestDetectLocaleFallsBackToOS(t *testing.T) {
+	for _, k := range []string{"TRY_LOCALE", "LC_ALL", "LC_MESSAGES", "LANG"} {
+		t.Setenv(k, "")
+	}
+	orig := osLocaleFn
+	osLocaleFn = func() string { return "zh" }
+	t.Cleanup(func() { osLocaleFn = orig })
+
+	if got := DetectLocale(); got != "zh" {
+		t.Fatalf("DetectLocale() = %q, want zh from OS fallback", got)
+	}
+}
+
+func TestLocaleFromTag(t *testing.T) {
+	tests := []struct {
+		tag  string
+		want string
+	}{
+		{"zh_CN", "zh"},
+		{"zh-Hans", "zh"},
+		{"en_US", "en"},
+		{"  ZH_TW  ", "zh"},
+		{"", "en"},
+	}
+	for _, tt := range tests {
+		t.Run(tt.tag, func(t *testing.T) {
+			if got := localeFromTag(tt.tag); got != tt.want {
+				t.Fatalf("localeFromTag(%q) = %q, want %q", tt.tag, got, tt.want)
 			}
 		})
 	}

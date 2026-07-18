@@ -158,10 +158,17 @@ jobs:
           ls -la
           cat checksums.txt
 
+      - name: Generate changelog
+        run: |
+          set -euo pipefail
+          chmod +x scripts/changelog.sh
+          ./scripts/changelog.sh "${GITHUB_REF_NAME}" > RELEASE_BODY.md
+          cat RELEASE_BODY.md
+
       - name: Publish GitHub Release
         uses: softprops/action-gh-release@v3
         with:
           files: dist/*
-          generate_release_notes: true
+          body_path: RELEASE_BODY.md
         env:
           GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}

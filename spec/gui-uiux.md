@@ -152,7 +152,7 @@ type AppState struct {
 |---|---|---|---|
 | 启动 | 配置、目录列表加载完成 | selector | 读取配置与目录列表 |
 | selector | 输入搜索 | selector | 实时过滤，无 debounce |
-| selector | Ctrl-T | 行内输入 | 新建目录 |
+| selector | Ctrl-T | files | 新建目录并进入文件视图 |
 | selector | Ctrl-D / Space | selector | 标记 / 取消标记当前项 |
 | selector | 有标记时 Enter / Delete | 对话框 | 删除确认 |
 | selector | Enter（无标记） | files | 进入选中目录；并对该 try 根目录 `Chtimes`（对齐 TUI 访问排序），返回选择器后按 path 重定位光标 |
@@ -180,7 +180,7 @@ type AppState struct {
 - 占位符从 `i18n.Messages` 获取。
 - 输入即时过滤，无 debounce。
 - `/` 或 Ctrl+F 聚焦搜索框。
-- Enter：列表非空则进入选中项；列表为空且查询非空则进入新建流程。
+- Enter：列表非空则进入选中项；列表为空且查询非空则创建目录并进入文件视图。
 
 ### 4.3 目录列表
 

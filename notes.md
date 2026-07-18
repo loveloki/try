@@ -15,6 +15,7 @@
   - **已实现并发版**：`FyneApp.toml` + `Icon.png`、`AppID=com.loveloki.try.gui`、`scripts/package-gui.sh`、`release.yml` 双轨、`install.sh`/`install.ps1`、`spec/distribution.md`；本地 macOS `fyne package` 验证通过（Bundle ID 正确）。
   - **v3.2.0 问题**：Release `fyne package` 失败（workflow 误设空 `PATH`）；CI Windows 测试失败（只设 `HOME` 而 `UserHomeDir` 读 `USERPROFILE`；删除确认硬编码 `/`）。
   - **修复**：测试同步设 `USERPROFILE`；路径期望用 `filepath.Join`；`isPathUnder` 用 `filepath.Rel`；去掉 release.yml 错误 PATH；发 **v3.2.1**。
+  - **v3.2.1 仍未上架**：Windows `fyne package` 失败 → Release job 失败 → latest 仍为 v3.1.2；用户 `install.sh` 装到 3.1.2 后 GUI 包 404。改 Windows 打包（源码打包 + 预构建回退），发 **v3.2.2**；`install.sh` 支持 `TRY_VERSION`。
 - **相关**：`install.sh`、`install.ps1`、`scripts/package-gui.sh`、`.github/workflows/release.yml`、`cmd/try-gui/`、`spec/distribution.md`；计划修订 [Planner](22e84142-94f0-4107-be1a-ccf4788d98e2)
 
 ---

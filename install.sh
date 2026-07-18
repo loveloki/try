@@ -31,6 +31,13 @@ detect_platform() {
 }
 
 get_latest_version() {
+    # TRY_VERSION 可强制指定（不含 v 前缀），便于在 latest 尚未含 GUI 包时安装预发版
+    if [ -n "${TRY_VERSION:-}" ]; then
+        VERSION="${TRY_VERSION#v}"
+        echo "使用指定版本 v${VERSION}"
+        return 0
+    fi
+
     if command -v curl >/dev/null 2>&1; then
         VERSION=$(curl -fsSL "https://api.github.com/repos/${REPO}/releases/latest" \
             | grep '"tag_name"' | sed -E 's/.*"v?([^"]+)".*/\1/')

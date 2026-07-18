@@ -29,6 +29,7 @@ curl -fsSL https://raw.githubusercontent.com/loveloki/try/main/install.sh | sh
 ```bash
 TRY_INSTALL_DIR=~/.local/bin curl -fsSL https://raw.githubusercontent.com/loveloki/try/main/install.sh | sh
 TRY_INSTALL_GUI=0 curl -fsSL https://raw.githubusercontent.com/loveloki/try/main/install.sh | sh   # 仅 TUI
+TRY_VERSION=3.2.2 curl -fsSL https://raw.githubusercontent.com/loveloki/try/main/install.sh | sh   # 指定版本
 ```
 
 **Windows**（PowerShell）：

@@ -16,7 +16,8 @@
 - **本会话续**：用户要求清理无用 Node、修版本警告、提交并发版。
   - **【事实】** 产品/CI 不依赖 Node；警告来自 Actions 的 `upload-artifact@v4` 等仍声明 Node 20。`scripts/tui_test_common.sh` 仅用 `node -e` 作可选 JSON 解析（agent-tty 测试），非构建依赖。Next.js `try-gui/` 已在此前 commit 移除，文档残留已清。
   - 已升：`upload-artifact@v7`、`download-artifact@v8`、`softprops/action-gh-release@v3`。
-- **相关**：`.github/workflows/ci.yml`、`release.yml`、`spec/dependencies.md`、`README.md`、`spec/gui-*.md`
+  - 已提交 `df86cc4` 并推送；发布 **v3.1.1**（`scripts/release.sh` 管道确认在 `set -u` 下失败，改为手动 `git tag` + push）。
+- **相关**：`.github/workflows/ci.yml`、`release.yml`、`spec/dependencies.md`、`README.md`、`spec/gui-*.md`；https://github.com/loveloki/try/releases/tag/v3.1.1
 
 ---
 

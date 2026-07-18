@@ -1,6 +1,6 @@
 # try GUI UI/UX 规范
 
-本文件描述 `try-gui` 原生桌面窗口的布局、配色、快捷键与状态机。仓库 `try-gui/` 中的设计稿用于对齐视觉与交互，不绑定具体实现框架。
+本文件描述 `try-gui` 原生桌面窗口的布局、配色、快捷键与状态机。
 
 ## 1. 设计目标与原则
 
@@ -72,7 +72,7 @@
 - **手动覆盖**：窗口内容区标题栏右侧主题按钮在 Dark / Light 间切换（Selector 与 Files 均提供；macOS 系统标题栏不放置主题控件）。
 - **覆盖范围**：Selector、Files、标题栏、对话框、Toast、托盘菜单文案全部同步。
 
-配色 token 与 `internal/selector/styles.go` 及设计稿一致。
+配色 token 与 `internal/selector/styles.go` 及 GUI 主题一致。
 
 ### 2.4 色彩规范
 

@@ -20,7 +20,7 @@ charm.land/lipgloss/v2     # 样式
 
 ### 主题系统
 
-支持 `dark` 和 `light` 两套配色，色值与 Next.js GUI 设计系统保持一致。
+支持 `dark` 和 `light` 两套配色，色值与 `internal/selector/styles.go` 及 GUI 主题 token 保持一致。
 
 ```go
 type colorToken struct {

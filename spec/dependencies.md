@@ -83,7 +83,7 @@ CI（`.github/workflows/ci.yml`）在 ubuntu / macos / windows 三平台 runner 
 
 | 平台 | CGO | 额外依赖 |
 |------|-----|----------|
-| Linux | `CGO_ENABLED=1` | `gcc`、`libgl1-mesa-dev`、`xorg-dev`、`libxcursor-dev`、`libxrandr-dev`、`libxinerama-dev`、`libxi-dev`、`libxxf86vm-dev`（含 X11，供自绘标题栏拖拽/最大化） |
+| Linux | `CGO_ENABLED=1` | `gcc`、`libgl1-mesa-dev`、`xorg-dev`、`libxcursor-dev`、`libxrandr-dev`、`libxinerama-dev`、`libxi-dev`、`libxxf86vm-dev`、`libwayland-dev`、`libxkbcommon-dev`。go-gl/glfw v3.4 默认同时编译 X11 与 Wayland 后端；X11 头文件亦供 `native_linux.go` 自绘标题栏拖拽/最大化 |
 | macOS | `CGO_ENABLED=1` | Xcode Command Line Tools（GitHub `macos-latest` 已具备） |
 | Windows | `CGO_ENABLED=1` | MinGW（CI 用 `choco install mingw`） |
 

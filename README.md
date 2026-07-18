@@ -114,7 +114,7 @@ try-gui -path ~/src/tries  # 临时覆盖 tries 根目录
 
 GUI 与 TUI 的差异：GUI 用「进入文件视图」替代 TUI 的 `cd` 脚本输出，不提供 clone / worktree / install 与 Shell 集成。所有文件操作限制在配置解析出的 tries 与 ship 目录子树内，且不允许删除或重命名根目录本身。
 
-`try-gui` 使用 Fyne 构建原生桌面窗口。构建 GUI 产物需要 CGO 和目标平台图形依赖；CI 在 macOS、Windows、Linux runner 上分别原生编译（见 `.github/workflows/ci.yml`）。`try-gui/` 目录中的 Next.js 工程仅作为 UI/UX 设计参考，不参与构建与分发。
+`try-gui` 使用 Fyne 构建原生桌面窗口。构建 GUI 产物需要 CGO 和目标平台图形依赖；CI 在 macOS、Windows、Linux runner 上分别原生编译（见 `.github/workflows/ci.yml`）。
 
 ```bash
 # macOS / Linux（需本机图形开发头文件，Linux 见 spec/dependencies.md）
@@ -190,7 +190,6 @@ internal/
     chrome_*.go                # 平台标题栏策略
     view_*.go                  # Selector / Files / Dialog / Toast
     theme.go                   # GUI 主题 token 映射
-try-gui/                     # UI/UX 设计参考（Next.js，不参与构建分发）
 ```
 
 ## 技术栈

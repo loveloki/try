@@ -1,5 +1,45 @@
 ---
 
+## [2026-07-18] GitHub CI Release 缺 Wayland 头文件
+
+- **本会话**：用户 `/architect` `/planner` `/multi-agent-breakthrough` 解决 GitHub CI 错误；截图为 release `build (ubuntu-latest, linux, amd64, true)` 编 glfw 时 `wayland-client-core.h: No such file or directory`，另有 `upload-artifact@v4` Node 20 deprecation 警告。
+- **并行**：
+  - [Architect](b1e5598b-0a79-4d1d-8ea9-c1a9c2934810)：Fyne→GLFW hybrid 依赖面；最小集 +`libwayland-dev` +`libxkbcommon-dev`。
+  - [Planner](1c3d299d-d26d-421f-ba04-c107219596a1)：三处 workflow + `spec/dependencies.md`；artifact 升级单独 PR。
+  - explore：`-tags x11` 可官方跳过 Wayland 编译（备选）；包映射确认；artifact 应升 v7/v8 而非 v5。
+  - 对抗：装包方案通过；「一定编过」需 CI 绿构建闭环确认。
+- **结论 / 决定**：
+  - **主路径**：CI/Release Linux apt 追加 `libwayland-dev libxkbcommon-dev`，保持默认 X11+Wayland hybrid；不采用 `-tags x11` 作为发布默认。
+  - Node/`upload-artifact` 警告**不阻塞**；另开变更升级，不与本修复混 commit。
+- **澄清（用户追问）**：
+  - **没有**关掉 Wayland：主路径是装包启用 hybrid；`-tags x11` 只是未采用的备选。新版 KDE（默认 Wayland）可用 GLFW Wayland 后端跑 try-gui；自绘标题栏拖拽/最小化/最大化在 Wayland 下仍为空操作（既有限制）。
+- **本会话续**：用户要求清理无用 Node、修版本警告、提交并发版。
+  - **【事实】** 产品/CI 不依赖 Node；警告来自 Actions 的 `upload-artifact@v4` 等仍声明 Node 20。`scripts/tui_test_common.sh` 仅用 `node -e` 作可选 JSON 解析（agent-tty 测试），非构建依赖。Next.js `try-gui/` 已在此前 commit 移除，文档残留已清。
+  - 已升：`upload-artifact@v7`、`download-artifact@v8`、`softprops/action-gh-release@v3`。
+- **相关**：`.github/workflows/ci.yml`、`release.yml`、`spec/dependencies.md`、`README.md`、`spec/gui-*.md`
+
+---
+
+## [2026-07-18] GUI 改 Rust vs 拖拽响应（多 agent 攻坚）
+
+- **本会话**：用户 `/architect` `/planner` `/multi-agent-breakthrough` 问：GUI 如何改用 Rust；拖拽响应类问题能否因此解决。后续追问：Zed GPUI 能否「完美」实现。
+- **并行**：
+  - [Architect](9ea9b503-7b9e-4516-b550-be58b7ca68a5)：四架构（全量 Rust / Rust+Go IPC / FFI / Go 换框架）+ DnD 根因归类。
+  - [Planner](f35d9846-5dd3-490d-a25a-d639c9079f8b)：决策树、验收条目、人周、充分/必要条件。
+  - explore×4：egui/iced/slint DnD、Tauri/WebView、混合 IPC、留 Go 原生 hook。
+  - 对抗：戳穿「0.5–1.5 人周 CGO」「语言级非充分/非必要」「gotk4 默认优先」等跳跃。
+  - GPUI 专项：对照 `FileDropEvent` / 托盘 / 第三方成熟度（docs.rs + Zed discussions）。
+- **结论 / 决定**（架构定案，未改代码）：
+  - **【事实】** drag-enter overlay 缺口在 Fyne→GLFW 只暴露 drop，不在 Go 语言；松手后反馈已实现（§5.6）。
+  - **【事实】** 换 Rust **不必然**解决：egui/iced API 有 hover，但 Wayland/winit 仍常缺；Tauri 技术上能做 enter 但与「无 WebView 主界面」硬冲突。
+  - **【共识】** 仅为 drag-enter 全量迁 Rust / 同进程 Go FFI：**否决**。Rust UI+Go IPC 仅当「壳层战略迁 Rust」时合理。
+  - **GPUI**：**不能称「完美」**。DnD 模型（`FileDropEvent::{Entered,Pending,Submit,Exited}` + `ExternalPaths`）在 API 面上优于 Fyne，是强候选；但上游托盘/关窗后台仍弱、为 Zed 优先演进、业务仍需 Go IPC、组件与发布链成本高。不因 DnD 单独选 GPUI。
+  - **决策单位**是 toolkit+窗口后端，不是语言；「Rust 非必要」随 spike 结果可变为必要。
+  - **下一步（需产品确认）**：D-10（悬停 overlay）是否 P0、Wayland 是否必测 → 再开单平台原生 DnD spike 或换栈评估；不在未确认前启动 Rust/GPUI 重写。
+- **相关**：`spec/gui-uiux.md` §5.6、`internal/gui/drop.go`、`spec/gui-plan.md` §2.2；[gpui FileDropEvent](https://docs.rs/gpui/latest/gpui/enum.FileDropEvent.html)
+
+---
+
 ## [2026-07-18] 一键安装支持 TUI + GUI
 
 - **本会话**：用户要求 `install.sh` 同时安装 TUI 与 GUI。

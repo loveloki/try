@@ -14,7 +14,7 @@ type colorToken struct {
 	light string
 }
 
-// themeTokens 与 Next.js GUI 设计系统对齐的完整调色板。
+// themeTokens 与 GUI / TUI 共用的完整调色板。
 var themeTokens = struct {
 	background      colorToken
 	foreground      colorToken

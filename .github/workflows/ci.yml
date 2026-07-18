@@ -33,13 +33,14 @@ jobs:
         with:
           go-version-file: go.mod
 
-      - name: Install Linux Fyne / X11 build deps
+      - name: Install Linux Fyne / GLFW build deps
         if: runner.os == 'Linux'
         run: |
           sudo apt-get update
           sudo apt-get install -y \
             gcc libgl1-mesa-dev xorg-dev \
-            libxcursor-dev libxrandr-dev libxinerama-dev libxi-dev libxxf86vm-dev
+            libxcursor-dev libxrandr-dev libxinerama-dev libxi-dev libxxf86vm-dev \
+            libwayland-dev libxkbcommon-dev
 
       - name: Install Windows MinGW (CGO)
         if: runner.os == 'Windows'
@@ -74,13 +75,14 @@ jobs:
         with:
           go-version-file: go.mod
 
-      - name: Install Linux Fyne / X11 build deps
+      - name: Install Linux Fyne / GLFW build deps
         if: runner.os == 'Linux'
         run: |
           sudo apt-get update
           sudo apt-get install -y \
             gcc libgl1-mesa-dev xorg-dev \
-            libxcursor-dev libxrandr-dev libxinerama-dev libxi-dev libxxf86vm-dev
+            libxcursor-dev libxrandr-dev libxinerama-dev libxi-dev libxxf86vm-dev \
+            libwayland-dev libxkbcommon-dev
 
       - name: Install Windows MinGW (CGO)
         if: runner.os == 'Windows'
@@ -97,7 +99,7 @@ jobs:
         run: go build -o ${{ matrix.gui_bin }} ./cmd/try-gui
 
       - name: Upload try-gui artifact
-        uses: actions/upload-artifact@v4
+        uses: actions/upload-artifact@v7
         with:
           name: try-gui-${{ matrix.goos }}
           path: ${{ matrix.gui_bin }}

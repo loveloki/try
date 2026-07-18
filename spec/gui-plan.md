@@ -18,7 +18,7 @@
 - 标题栏与窗口装饰之外，布局、配色、组件、快捷键、对话框、Toast 与文件视图行为跨平台一致。
 - 系统托盘提供显示窗口和退出应用的入口；关闭窗口默认隐藏到托盘，托盘 Quit 退出进程。
 
-仓库根目录下的 `try-gui/` 是 UI/UX 设计参考区域，仅用于对齐布局、配色与交互原型。实现以本规格、`spec/gui-uiux.md` 和 TUI 设计 token 为准。
+实现以本规格、`spec/gui-uiux.md` 和 TUI 设计 token 为准。
 
 ### 1.3 范围外内容
 
@@ -51,7 +51,6 @@
 | 系统托盘 | Fyne desktop API | 设置托盘图标与 Show / Quit 菜单 |
 | 平台标题栏 | Fyne 窗口能力 + build tags | macOS 系统装饰；Windows/Linux 应用内 WinUI3 风格标题栏 |
 | 业务逻辑 | 现有 `internal/` 包 | 配置、扫描、模糊、脚本副作用、路径沙箱、i18n |
-| 设计参考 | `try-gui/` | 不参与构建、测试或发布 |
 
 ### 2.2 候选方案结论
 
@@ -112,7 +111,6 @@ internal/
     actions_helpers.go      # 动作辅助函数
     browser.go              # 打开文件 / 揭示目录
     theme.go                # GUI palette，与 TUI token 对齐
-try-gui/                     # UI/UX 设计参考
 ```
 
 ### 核心模块职责

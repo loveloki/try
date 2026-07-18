@@ -47,13 +47,14 @@ jobs:
         with:
           go-version-file: go.mod
 
-      - name: Install Linux Fyne / X11 build deps
+      - name: Install Linux Fyne / GLFW build deps
         if: runner.os == 'Linux' && matrix.gui
         run: |
           sudo apt-get update
           sudo apt-get install -y \
             gcc libgl1-mesa-dev xorg-dev \
-            libxcursor-dev libxrandr-dev libxinerama-dev libxi-dev libxxf86vm-dev
+            libxcursor-dev libxrandr-dev libxinerama-dev libxi-dev libxxf86vm-dev \
+            libwayland-dev libxkbcommon-dev
 
       - name: Install Windows MinGW (CGO)
         if: runner.os == 'Windows' && matrix.gui
@@ -98,7 +99,7 @@ jobs:
           ls -la
 
       - name: Upload archive
-        uses: actions/upload-artifact@v4
+        uses: actions/upload-artifact@v7
         with:
           name: release-${{ matrix.goos }}-${{ matrix.goarch }}
           path: dist/try_${{ matrix.goos }}_${{ matrix.goarch }}.*
@@ -113,7 +114,7 @@ jobs:
           fetch-depth: 0
 
       - name: Download archives
-        uses: actions/download-artifact@v4
+        uses: actions/download-artifact@v8
         with:
           pattern: release-*
           path: dist
@@ -128,7 +129,7 @@ jobs:
           cat checksums.txt
 
       - name: Publish GitHub Release
-        uses: softprops/action-gh-release@v2
+        uses: softprops/action-gh-release@v3
         with:
           files: dist/*
           generate_release_notes: true

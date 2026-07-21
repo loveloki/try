@@ -229,24 +229,24 @@ func TestFilterAppsByConfigWildcard(t *testing.T) {
 		name string
 		ext  string
 		cfg  map[string]string
-		want string // 期望唯一的应用名；空串表示返回全部内置
+		want []string // 期望的有序应用名列表
 	}{
-		{"wildcard applies to any ext", ".go", map[string]string{"*": "code"}, "VS Code"},
-		{"wildcard applies to empty ext", "", map[string]string{"*": "code"}, "VS Code"},
-		{"exact match wins over wildcard", ".go", map[string]string{".go": "vim", "*": "code"}, "Vim"},
-		{"no match falls back to all", ".md", map[string]string{".go": "vim"}, ""},
+		{"wildcard coexists with builtin", ".go", map[string]string{"*": "code"}, []string{"VS Code", "Vim"}},
+		{"wildcard applies to empty ext", "", map[string]string{"*": "code"}, []string{"VS Code", "Vim"}},
+		{"exact match wins over wildcard", ".go", map[string]string{".go": "vim", "*": "code"}, []string{"Vim"}},
+		{"no match falls back to all", ".md", map[string]string{".go": "vim"}, []string{"VS Code", "Vim"}},
+		{"unresolvable wildcard falls back", ".go", map[string]string{"*": "/nonexistent_app_xyz"}, []string{"VS Code", "Vim"}},
 	}
 	for _, tt := range tests {
 		t.Run(tt.name, func(t *testing.T) {
 			result := filterAppsByConfig(apps, tt.ext, tt.cfg)
-			if tt.want == "" {
-				if len(result) != len(apps) {
-					t.Fatalf("expected all apps, got %v", result)
-				}
-				return
+			if len(result) != len(tt.want) {
+				t.Fatalf("expected %v, got %v", tt.want, result)
 			}
-			if len(result) != 1 || result[0].Name != tt.want {
-				t.Fatalf("expected only %q, got %v", tt.want, result)
+			for i, name := range tt.want {
+				if result[i].Name != name {
+					t.Fatalf("result[%d] = %q, want %q", i, result[i].Name, name)
+				}
 			}
 		})
 	}
@@ -262,8 +262,8 @@ func TestFilterAppsByConfigWildcardCustom(t *testing.T) {
 	apps := []availableApp{{Name: "VS Code", Path: "code", Available: true}}
 	cfg := map[string]string{"*": appPath}
 	result := filterAppsByConfig(apps, ".md", cfg)
-	if len(result) != 1 || result[0].Path != appPath {
-		t.Fatalf("expected wildcard custom app, got %v", result)
+	if len(result) != 2 || result[0].Path != appPath || result[1].Name != "VS Code" {
+		t.Fatalf("expected wildcard custom app on top with builtin kept, got %v", result)
 	}
 }
 

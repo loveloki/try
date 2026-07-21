@@ -68,8 +68,8 @@ func buildAvailableApps(ext string, openWithConfig map[string]string) []availabl
 	return filterAppsByConfig(apps, ext, openWithConfig)
 }
 
-// filterAppsByConfig 应用打开方式映射，优先级：精确扩展名 > 通配 `*` > 内置列表。
-// 通配 `*` 为通用映射，在无精确命中时生效（含无扩展名文件与目录）。
+// filterAppsByConfig 应用打开方式映射：精确扩展名命中时只显示映射应用；
+// 无精确命中而存在通配 `*` 时，通配应用置顶并与内置列表并存（含无扩展名文件与目录）。
 func filterAppsByConfig(apps []availableApp, ext string, cfg map[string]string) []availableApp {
 	if cfg == nil {
 		return apps
@@ -80,9 +80,27 @@ func filterAppsByConfig(apps []availableApp, ext string, cfg map[string]string) 
 		}
 	}
 	if wildcard, ok := cfg["*"]; ok {
-		return resolveConfiguredApp(apps, wildcard)
+		return prependWildcardApp(apps, wildcard)
 	}
 	return apps
+}
+
+// prependWildcardApp 通用映射与内置列表并存：通配应用置顶，内置应用保持可用；
+// 通配应用解析失败或命中内置应用（不重复列出）时返回内置列表。
+func prependWildcardApp(apps []availableApp, name string) []availableApp {
+	resolved := resolveConfiguredApp(apps, name)
+	if len(resolved) == 0 {
+		return apps
+	}
+	result := make([]availableApp, 0, len(apps)+1)
+	result = append(result, resolved...)
+	for _, a := range apps {
+		if a.Name == resolved[0].Name {
+			continue
+		}
+		result = append(result, a)
+	}
+	return result
 }
 
 // resolveConfiguredApp 将映射的应用名解析为可用应用：内置列表命中时只保留该项；

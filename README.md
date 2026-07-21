@@ -163,7 +163,7 @@ go install fyne.io/tools/cmd/fyne@latest
 | `ships` | `TRY_PROJECTS` | `["~/src/ship", "~/src/bug"]` | ship 目标目录列表 |
 | `locale` | `TRY_LOCALE` | `auto` | 界面语言（`en` / `zh` / `auto`） |
 | `theme` | — | `auto` | GUI 主题（`dark` / `light` / `auto`） |
-| `openWith` | — | `{}` | 扩展名→应用名映射，如 `{".go": "Zed"}`；键 `*` 为通用映射（所有文件，精确扩展名优先）。GUI 打开方式；应用名支持内置应用、macOS 应用名、PATH 可执行名或绝对路径 |
+| `openWith` | — | `{}` | 扩展名→应用名映射，如 `{".go": "Zed"}`；键 `*` 为通用映射（所有文件，与内置列表并存显示，精确扩展名优先）。GUI 打开方式；应用名支持内置应用、macOS 应用名、PATH 可执行名或绝对路径 |
 
 ## 项目结构
 

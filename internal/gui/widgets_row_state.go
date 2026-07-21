@@ -40,6 +40,6 @@ func (r *tapRow) applyBackground() {
 	case rowVisualHover:
 		r.setRowBackground(theme.ColorNameHover, true)
 	default:
-		r.setRowBackground(theme.ColorNameBackground, false)
+		r.setRowBackground(theme.ColorNameBackground, true)
 	}
 }

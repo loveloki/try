@@ -3,6 +3,7 @@ package gui
 import (
 	"fmt"
 	"os"
+	"runtime"
 
 	"fyne.io/fyne/v2"
 	"fyne.io/fyne/v2/app"
@@ -144,6 +145,11 @@ func (g *desktopGUI) setWindowContent(body fyne.CanvasObject) {
 }
 
 func (g *desktopGUI) setupTray() {
+	if runtime.GOOS == "darwin" {
+		// macOS：关闭窗口即退出应用，dock 图标随进程终止消失
+		g.window.SetCloseIntercept(func() { g.app.Quit() })
+		return
+	}
 	desk, ok := g.app.(desktop.App)
 	if !ok {
 		g.window.SetCloseIntercept(g.hideToTray)

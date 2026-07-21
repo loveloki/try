@@ -41,6 +41,7 @@ internal/
   gui/                 # 跨平台原生 GUI（Fyne）
     app.go             # Run：加载配置、创建窗口、托盘、生命周期
     actions.go         # 键鼠动作与对话框流程
+    actions_clone.go   # 克隆对话框与异步执行
     actions_docx.go    # 工具栏打包/解压 .docx
     actions_mouse.go   # 单击选中、双击按行索引打开、文件管理器揭示
     view.go            # Selector / Files 视图切换与刷新

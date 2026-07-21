@@ -116,10 +116,10 @@ try-gui -path ~/src/tries  # 临时覆盖 tries 根目录
 
 两大视图：
 
-- **选择器**：搜索、来源过滤（all / tries / ship / bug）、循环导航、创建（Ctrl-T）、删除（Ctrl-D）、重命名（Ctrl-R）、Ship（Ctrl-G）。
+- **选择器**：搜索、来源过滤（all / tries / ship / bug）、循环导航、创建（Ctrl-T）、删除（Ctrl-D）、重命名（Ctrl-R）、Ship（Ctrl-G）、克隆（Ctrl-K）。
 - **文件视图**：进入目录后浏览文件、删除、调用系统默认程序打开文件；支持从 Finder/资源管理器拖入文件或文件夹复制到当前目录；Esc 返回选择器。
 
-GUI 与 TUI 的差异：GUI 用「进入文件视图」替代 TUI 的 `cd` 脚本输出，不提供 clone / worktree / install 与 Shell 集成。所有文件操作限制在配置解析出的 tries 与 ship 目录子树内，且不允许删除或重命名根目录本身。
+GUI 与 TUI 的差异：GUI 用「进入文件视图」替代 TUI 的 `cd` 脚本输出，不提供 worktree / install 与 Shell 集成。所有文件操作限制在配置解析出的 tries 与 ship 目录子树内，且不允许删除或重命名根目录本身。
 
 **设置对话框**：通过选择器与文件视图头部的齿轮按钮，或快捷键 `Cmd+,`（macOS）/ `Ctrl+,`（Windows/Linux）打开。可配置主题（Dark / Light / Auto）、语言（English / 中文 / Auto）与打开方式映射（扩展名→应用名，可添加 / 删除）。所有修改即时生效并写回配置文件，无需保存。
 

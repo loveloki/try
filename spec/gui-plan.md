@@ -23,7 +23,7 @@
 ### 1.3 范围外内容
 
 - **Shell 集成与 `cd` 语义**：GUI 是独立进程，副作用通过 `internal/script` 直接执行，不调用 `EmitCd`，也不向父 Shell 输出可 eval 的脚本。
-- **clone / worktree / install**：这些操作由 TUI / CLI 承担。
+- **worktree / install**：这些操作由 TUI / CLI 承担。
 - **多窗口**：同一会话内一个选择器与一个文件视图，切换项目时返回选择器。
 - **富文本 docx 编辑**：GUI 仅提供 ZIP 语义的打包/解压；不提供 Word 级编辑或 OOXML 校验。
 
@@ -38,7 +38,8 @@
 | Ship 目录 (Ctrl-G) | 复用 | 复用 ship 副作用；ships 目录作来源过滤项 |
 | 来源过滤 (Tab) | 复用 | all / tries / 各 ship 目录 basename |
 | 进入文件视图 (Enter) | GUI 专属 | 文件视图替代 Shell `cd` |
-| clone / worktree / install | 范围外 | 继续由 TUI / CLI 提供 |
+| 克隆仓库 (Ctrl-K) | 复用 | 克隆对话框触发 `script.ExecClone`，成功后进入文件视图 |
+| worktree / install | 范围外 | 继续由 TUI / CLI 提供 |
 
 ## 2. 技术选型
 
@@ -156,6 +157,7 @@ Selector 视图
   ├── 搜索：LoadAllEntries → MatchEntries
   ├── 来源 Tab：SourceOptions → SourceCounts
   ├── Ctrl-T / Ctrl-R / Ctrl-G / Ctrl-D：service → ExecuteSideEffect
+  ├── Ctrl-K：service → script.ExecClone（后台 goroutine，成功进 Files 视图）
   └── Enter：切换到 Files 视图
   │
   ▼
@@ -215,7 +217,7 @@ GUI 使用与 `internal/selector/styles.go` 一致的 dark/light hex token。默
 
 ### 7.3 Selector
 
-Selector 支持实时搜索、来源 Tab、循环导航、Ctrl-T 新建、Ctrl-D/Space 删除标记、Ctrl-R 重命名、Ctrl-G Ship、Enter 进入 Files。匹配高亮使用 `selector.MatchEntries` 返回的位置。
+Selector 支持实时搜索、来源 Tab、循环导航、Ctrl-T 新建、Ctrl-D/Space 删除标记、Ctrl-R 重命名、Ctrl-G Ship、Ctrl-K 克隆、Enter 进入 Files。匹配高亮使用 `selector.MatchEntries` 返回的位置。
 
 ### 7.4 Files
 

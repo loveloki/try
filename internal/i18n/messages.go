@@ -129,6 +129,12 @@ type Messages struct {
 	GUIErrOpen             string
 	GUIErrOpenFolder       string
 	GUIErrNoSelection      string
+	GUITitleClone          string // 克隆对话框标题
+	GUICloneURL            string // URL 输入框标签
+	GUICloneName           string // 名称输入框标签（可选）
+	GUICloneURLPlace       string // URL 输入框占位符
+	GUICloning             string // 克隆进行中状态栏文案
+	GUIToastCloned         string // 克隆完成提示
 
 	// 设置对话框
 	GUISettingsTitle          string

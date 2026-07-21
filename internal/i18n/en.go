@@ -155,6 +155,12 @@ Shortcuts:
 	GUIErrOpen:             "open failed",
 	GUIErrOpenFolder:       "open folder failed",
 	GUIErrNoSelection:      "no selection",
+	GUITitleClone:          "Clone Repository",
+	GUICloneURL:            "URL",
+	GUICloneName:           "Name (optional)",
+	GUICloneURLPlace:       "https://github.com/user/repo",
+	GUICloning:             "Cloning…",
+	GUIToastCloned:         "Cloned successfully",
 
 	// 设置对话框
 	GUISettingsTitle:          "Settings",

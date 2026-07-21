@@ -155,6 +155,12 @@ var ZH = Messages{
 	GUIErrOpen:             "打开失败",
 	GUIErrOpenFolder:       "打开文件夹失败",
 	GUIErrNoSelection:      "未选择项目",
+	GUITitleClone:          "克隆仓库",
+	GUICloneURL:            "URL",
+	GUICloneName:           "名称（可选）",
+	GUICloneURLPlace:       "https://github.com/user/repo",
+	GUICloning:             "正在克隆…",
+	GUIToastCloned:         "克隆完成",
 
 	// 设置对话框
 	GUISettingsTitle:          "设置",

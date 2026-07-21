@@ -56,6 +56,7 @@ type desktopGUI struct {
 	dropOverlayLabel    *canvas.Text
 	dropOverlayProgress *widget.ProgressBar
 	dropBusy            bool
+	cloning             bool
 	toastGen            uint64
 
 	search         *searchEntry
@@ -207,6 +208,7 @@ func (g *desktopGUI) bindKeys() {
 		{controlShortcut(fyne.KeyD), g.toggleMark},
 		{controlShortcut(fyne.KeyR), g.promptRename},
 		{controlShortcut(fyne.KeyG), g.promptShip},
+		{controlShortcut(fyne.KeyK), g.promptClone},
 		{controlShortcut(fyne.KeyP), func() { g.moveSelection(-1) }},
 		{controlShortcut(fyne.KeyN), func() { g.moveSelection(1) }},
 		{controlShortcut(fyne.KeyF), g.focusSearch},

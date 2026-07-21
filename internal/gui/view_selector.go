@@ -110,6 +110,9 @@ func (g *desktopGUI) updateSelectorStatus() {
 }
 
 func (g *desktopGUI) selectorStatusContent() (string, []shortcutHint) {
+	if g.cloning {
+		return g.msgs.GUICloning, nil
+	}
 	if len(g.marked) > 0 {
 		left := fmt.Sprintf(g.msgs.DeleteMode, len(g.marked))
 		return left, []shortcutHint{

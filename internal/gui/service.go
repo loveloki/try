@@ -4,6 +4,7 @@ import (
 	"context"
 	"errors"
 	"fmt"
+	"io"
 	"os"
 	"path/filepath"
 	"sort"
@@ -126,6 +127,19 @@ func (s *service) shipEntry(path string, destIndex int) (string, error) {
 		BasePath: s.triesPath,
 	})
 	return dest, err
+}
+
+// cloneEntry 克隆 Git 仓库到 tries 目录，返回目标路径。
+func (s *service) cloneEntry(uri, customName string) (string, error) {
+	dirName := git.GenerateCloneDirName(uri, customName)
+	if dirName == "" {
+		return "", fmt.Errorf("%s%s", i18n.Get().ErrParseGitURI, uri)
+	}
+	targetPath := filepath.Join(s.triesPath, dirName)
+	if err := script.ExecClone(io.Discard, io.Discard, targetPath, uri); err != nil {
+		return "", err
+	}
+	return targetPath, nil
 }
 
 func (s *service) listFiles(path string) ([]FileEntry, error) {

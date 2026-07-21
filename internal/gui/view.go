@@ -162,7 +162,7 @@ func (g *desktopGUI) applyFilesNav(root, path string) {
 	}
 	g.filesRoot = root
 	g.filesPath = path
-	g.fileSelected = -1
+	g.fileSelected = 0
 	g.fileMarked = map[string]bool{}
 	g.view = "files"
 }

@@ -59,8 +59,8 @@ func TestApplyFilesNavClearsSelection(t *testing.T) {
 		fileMarked:   map[string]bool{"x": true},
 	}
 	g.applyFilesNav("/tmp/root", "/tmp/root")
-	if g.fileSelected != -1 {
-		t.Fatalf("fileSelected=%d, want -1", g.fileSelected)
+	if g.fileSelected != 0 {
+		t.Fatalf("fileSelected=%d, want 0", g.fileSelected)
 	}
 	if len(g.fileMarked) != 0 {
 		t.Fatalf("fileMarked not cleared: %#v", g.fileMarked)

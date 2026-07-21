@@ -47,8 +47,8 @@ func TestCreateEntryThenApplyFilesNav(t *testing.T) {
 	if g.query != "" {
 		t.Fatalf("query = %q, want empty", g.query)
 	}
-	if g.fileSelected != -1 {
-		t.Fatalf("fileSelected = %d, want -1", g.fileSelected)
+	if g.fileSelected != 0 {
+		t.Fatalf("fileSelected = %d, want 0", g.fileSelected)
 	}
 
 	info, err := os.Stat(path)

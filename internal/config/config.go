@@ -13,6 +13,7 @@ type Config struct {
 	Path   string   `json:"path"`   // tries 根目录
 	Ships  []string `json:"ships"`  // ship 目标目录列表
 	Locale string   `json:"locale"` // 语言：en / zh / auto
+	Theme  string   `json:"theme"`  // GUI 主题：dark / light / auto
 }
 
 var defaultShips = []string{"~/src/ship", "~/src/bug"}
@@ -21,6 +22,7 @@ var defaultConfig = Config{
 	Path:   "~/src/tries",
 	Ships:  defaultShips,
 	Locale: "auto",
+	Theme:  "auto",
 }
 
 // LoadConfig 从 ~/.config/try/config.json 读取配置。
@@ -49,6 +51,7 @@ func parseConfigData(data []byte) (Config, error) {
 		Path   string   `json:"path"`
 		Ships  []string `json:"ships"`
 		Locale string   `json:"locale"`
+		Theme  string   `json:"theme"`
 	}
 	if err := json.Unmarshal(data, &raw); err != nil {
 		return Config{}, fmt.Errorf("failed to parse config: %w", err)
@@ -63,6 +66,9 @@ func parseConfigData(data []byte) (Config, error) {
 	}
 	if len(raw.Ships) > 0 {
 		cfg.Ships = raw.Ships
+	}
+	if raw.Theme != "" {
+		cfg.Theme = raw.Theme
 	}
 
 	return cfg, nil
@@ -176,4 +182,28 @@ func ExpandPath(s string) string {
 		return filepath.Join(home, s[2:])
 	}
 	return s
+}
+
+// SaveTheme 将主题设置写入配置文件。保留其他字段不变。
+func SaveTheme(themeName string) error {
+	cfg, err := LoadConfig()
+	if err != nil {
+		return fmt.Errorf("load config for theme save: %w", err)
+	}
+	cfg.Theme = themeName
+	return writeConfig(cfg)
+}
+
+func writeConfig(cfg Config) error {
+	home, err := os.UserHomeDir()
+	if err != nil {
+		return fmt.Errorf("failed to get home directory: %w", err)
+	}
+	path := filepath.Join(home, ".config", "try", "config.json")
+	data, err := json.MarshalIndent(cfg, "", "  ")
+	if err != nil {
+		return fmt.Errorf("failed to marshal config: %w", err)
+	}
+	data = append(data, '\n')
+	return os.WriteFile(path, data, 0o644)
 }

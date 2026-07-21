@@ -78,7 +78,7 @@ func Run(opts Options) error {
 
 	ensureGUIDirs(triesPath, shipPaths)
 
-	gui := newDesktopGUI(triesPath, shipPaths, config.DetectTheme())
+	gui := newDesktopGUI(triesPath, shipPaths, resolveTheme(cfg))
 	gui.run()
 	return nil
 }
@@ -247,4 +247,12 @@ func ensureGUIDirs(triesPath string, shipPaths []string) {
 	for _, sp := range shipPaths {
 		_ = os.MkdirAll(sp, 0o755)
 	}
+}
+
+// resolveTheme 从配置读取 GUI 主题；auto 或空时回退到终端检测。
+func resolveTheme(cfg config.Config) string {
+	if cfg.Theme == "light" || cfg.Theme == "dark" {
+		return cfg.Theme
+	}
+	return config.DetectTheme()
 }

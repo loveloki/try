@@ -1,5 +1,7 @@
 package gui
 
+import "github.com/loveloki/try/internal/config"
+
 func (g *desktopGUI) setupWindow() {
 	g.selectorBody = g.buildSelectorBody()
 	g.filesBody = g.buildFilesBody()
@@ -74,6 +76,7 @@ func (g *desktopGUI) toggleTheme() {
 	} else {
 		g.themeName = "light"
 	}
+	_ = config.SaveTheme(g.themeName)
 	g.applyThemeAndRedraw()
 }
 

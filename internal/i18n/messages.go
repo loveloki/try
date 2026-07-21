@@ -118,7 +118,14 @@ type Messages struct {
 	GUIShortcutDelete    string
 	GUIShortcutEscBack   string
 	GUIShortcutDrop      string
-	GUIErrCopy           string
+	GUIContextMenuOpen      string
+	GUIContextMenuOpenWith  string
+	GUIContextMenuReveal    string
+	GUIContextMenuRename    string
+	GUIContextMenuDelete    string
+	GUIContextMenuNoApps    string
+	GUIRenameFileTitle      string
+	GUIErrCopy              string
 	GUIErrOpen           string
 	GUIErrOpenFolder     string
 	GUIErrNoSelection    string
@@ -289,6 +296,13 @@ Shortcuts:
 	GUIShortcutDelete:    "Delete",
 	GUIShortcutEscBack:   "Back",
 	GUIShortcutDrop:      "Drop to upload",
+	GUIContextMenuOpen:      "Open",
+	GUIContextMenuOpenWith:  "Open With...",
+	GUIContextMenuReveal:    "Show in Folder",
+	GUIContextMenuRename:    "Rename",
+	GUIContextMenuDelete:    "Delete",
+	GUIContextMenuNoApps:    "No applications found",
+	GUIRenameFileTitle:      "Rename file",
 	GUIErrCopy:           "copy failed",
 	GUIErrOpen:           "open failed",
 	GUIErrOpenFolder:     "open folder failed",
@@ -450,6 +464,13 @@ var ZH = Messages{
 	GUIShortcutDelete:    "删除",
 	GUIShortcutEscBack:   "返回",
 	GUIShortcutDrop:      "拖拽上传",
+	GUIContextMenuOpen:      "打开",
+	GUIContextMenuOpenWith:  "用...打开",
+	GUIContextMenuReveal:    "在文件夹中显示",
+	GUIContextMenuRename:    "重命名",
+	GUIContextMenuDelete:    "删除",
+	GUIContextMenuNoApps:    "未找到可用应用",
+	GUIRenameFileTitle:      "重命名文件",
 	GUIErrCopy:           "复制失败",
 	GUIErrOpen:           "打开失败",
 	GUIErrOpenFolder:     "打开文件夹失败",

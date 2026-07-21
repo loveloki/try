@@ -178,6 +178,7 @@ func (g *desktopGUI) paintFileRow(id widget.ListItemID, row *fileRowWidget) {
 	row.onSelect = func() { g.setFileSelected(idx) }
 	row.onCtrlSelect = func() { g.toggleFileMarkAt(idx) }
 	row.onOpen = func() { g.openFileAt(idx) }
+	row.onSecondaryTap = func(e *fyne.PointEvent) { g.showFileContextMenu(e, idx) }
 	row.setVisualState(marked, selected)
 
 	row.check.OnChanged = nil

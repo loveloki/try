@@ -21,6 +21,7 @@ type Options struct {
 }
 
 type desktopGUI struct {
+	cfg       config.Config
 	app     fyne.App
 	window  fyne.Window
 	chrome  *WindowChrome
@@ -79,7 +80,7 @@ func Run(opts Options) error {
 
 	ensureGUIDirs(triesPath, shipPaths)
 
-	gui := newDesktopGUI(triesPath, shipPaths, resolveTheme(cfg))
+	gui := newDesktopGUI(triesPath, shipPaths, resolveTheme(cfg), cfg)
 	gui.run()
 	return nil
 }
@@ -87,7 +88,7 @@ func Run(opts Options) error {
 // AppID 为 Fyne / 平台应用标识，须与 cmd/try-gui/FyneApp.toml 的 ID 一致。
 const AppID = "com.loveloki.try.gui"
 
-func newDesktopGUI(triesPath string, shipPaths []string, themeName string) *desktopGUI {
+func newDesktopGUI(triesPath string, shipPaths []string, themeName string, cfg config.Config) *desktopGUI {
 	a := app.NewWithID(AppID)
 	msgs := i18n.Get()
 	chrome := NewWindowChrome(a, msgs.GUITitle)
@@ -98,6 +99,7 @@ func newDesktopGUI(triesPath string, shipPaths []string, themeName string) *desk
 		chrome:     chrome,
 		service:    newService(triesPath, shipPaths),
 		msgs:       msgs,
+		cfg:        cfg,
 		themeName:  normalizeTheme(themeName),
 		view:       "selector",
 		marked:     map[string]bool{},

@@ -5,6 +5,7 @@ import (
 	"path/filepath"
 	"strings"
 
+	"fyne.io/fyne/v2"
 	"fyne.io/fyne/v2/container"
 	"fyne.io/fyne/v2/dialog"
 	"fyne.io/fyne/v2/widget"
@@ -234,6 +235,9 @@ func (g *desktopGUI) showInputDialog(title string, entry *widget.Entry, apply fu
 			apply(entry.Text)
 		}
 	}, g.window)
+	canvasSize := g.window.Canvas().Size()
+	dialogSize := fyne.NewSize(canvasSize.Width*0.5, canvasSize.Height*0.5)
+	d.Resize(dialogSize)
 	d.Show()
 	g.window.Canvas().Focus(entry)
 }

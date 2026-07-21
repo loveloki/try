@@ -53,6 +53,8 @@ internal/
     inset.go           # 内容区 16px 水平内边距
     format.go          # 相对时间与文件大小格式化
     browser.go         # 系统默认打开文件 / 文件管理器揭示目录
+    context_menu.go   # 文件右键菜单构建与操作分发
+    app_discovery.go  # 可用应用发现与内置应用列表
     dto.go             # GUI 视图模型
     paths.go           # 路径沙箱（tries/ships 子树）
     chrome.go          # 窗口 chrome 接口与尺寸常量

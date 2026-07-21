@@ -11,16 +11,17 @@ import (
 
 type tapRow struct {
 	widget.BaseWidget
-	inner        fyne.CanvasObject
-	bg           *canvas.Rectangle
-	onSelect     func()
-	onCtrlSelect func()
-	onOpen       func()
-	minHeight    float32
-	marked       bool
-	selected     bool
-	hovered      bool
-	fromMouse    bool
+	inner          fyne.CanvasObject
+	bg             *canvas.Rectangle
+	onSelect       func()
+	onCtrlSelect   func()
+	onOpen         func()
+	onSecondaryTap func(*fyne.PointEvent)
+	minHeight      float32
+	marked         bool
+	selected       bool
+	hovered        bool
+	fromMouse      bool
 }
 
 func newTapRow(inner fyne.CanvasObject, minHeight float32) *tapRow {
@@ -91,6 +92,12 @@ func isMultiSelectModifier(m fyne.KeyModifier) bool {
 }
 
 func (r *tapRow) MouseUp(_ *desktop.MouseEvent) {}
+
+func (r *tapRow) TappedSecondary(e *fyne.PointEvent) {
+	if r.onSecondaryTap != nil {
+		r.onSecondaryTap(e)
+	}
+}
 
 func (r *tapRow) MouseIn(_ *desktop.MouseEvent) {
 	r.hovered = true

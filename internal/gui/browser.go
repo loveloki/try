@@ -55,6 +55,28 @@ func revealCommand(goos, dir string) (name string, args []string) {
 	}
 }
 
+// openWithApp 用指定应用打开文件。
+func openWithApp(ctx context.Context, app, path string) error {
+	name, args := openWithCommand(runtime.GOOS, app, path)
+	cmd := exec.CommandContext(ctx, name, args...)
+	if err := cmd.Start(); err != nil {
+		return fmt.Errorf("open with %q: %w", app, err)
+	}
+	_ = cmd.Process.Release()
+	return nil
+}
+
+func openWithCommand(goos, app, path string) (name string, args []string) {
+	switch goos {
+	case "darwin":
+		return "open", []string{"-a", app, path}
+	case "windows":
+		return "cmd", []string{"/c", "start", "", app, path}
+	default:
+		return app, []string{path}
+	}
+}
+
 func (s *service) revealInFileManager(path string) error {
 	if err := s.requireAllowed(path); err != nil {
 		return err

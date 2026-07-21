@@ -13,7 +13,8 @@ type Config struct {
 	Path   string   `json:"path"`   // tries 根目录
 	Ships  []string `json:"ships"`  // ship 目标目录列表
 	Locale string   `json:"locale"` // 语言：en / zh / auto
-	Theme  string   `json:"theme"`  // GUI 主题：dark / light / auto
+	Theme   string            `json:"theme"`   // GUI 主题：dark / light / auto
+	OpenWith map[string]string `json:"openWith"` // 文件扩展名 → 应用名映射
 }
 
 var defaultShips = []string{"~/src/ship", "~/src/bug"}
@@ -48,10 +49,11 @@ func parseConfigData(data []byte) (Config, error) {
 
 	// 先解析到一个 Ships 为 nil 的结构，以区分"未设置"和"设置为空"
 	var raw struct {
-		Path   string   `json:"path"`
-		Ships  []string `json:"ships"`
-		Locale string   `json:"locale"`
-		Theme  string   `json:"theme"`
+		Path    string            `json:"path"`
+		Ships   []string          `json:"ships"`
+		Locale  string            `json:"locale"`
+		Theme   string            `json:"theme"`
+		OpenWith map[string]string `json:"openWith"`
 	}
 	if err := json.Unmarshal(data, &raw); err != nil {
 		return Config{}, fmt.Errorf("failed to parse config: %w", err)
@@ -69,6 +71,9 @@ func parseConfigData(data []byte) (Config, error) {
 	}
 	if raw.Theme != "" {
 		cfg.Theme = raw.Theme
+	}
+	if len(raw.OpenWith) > 0 {
+		cfg.OpenWith = raw.OpenWith
 	}
 
 	return cfg, nil

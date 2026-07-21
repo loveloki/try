@@ -8,6 +8,7 @@
 | `charm.land/bubbles/v2` | v2.1.0 | TUI 组件库。使用的子包：`list`（列表管理：光标追踪、滚动、分页、ItemDelegate）、`textinput`（搜索输入框和对话框输入：光标位置、Emacs 快捷键、Placeholder）、`key`（按键绑定定义与匹配）。 |
 | `charm.land/lipgloss/v2` | v2.0.2 | 声明式终端样式。用于所有 TUI 渲染：文字颜色/背景色/粗体、ANSI-aware 宽度计算（`Width()`）、文本截断（`Truncate()`/`TruncateLeft()`）、水平对齐（`PlaceHorizontal()`）。NO_COLOR 支持通过 color profile 实现。 |
 | `fyne.io/fyne/v2` | v2.8.0 | GUI 桌面框架。用于 `try-gui` 原生窗口、系统托盘、窗口内容绘制、键鼠输入、对话框与主题。 |
+| `fyne.io/x/fyne` | v0.0.0-20260712112324-6989f2f174fb | Fyne 社区扩展组件库。仅使用 `widget` 子包的 `CompletionEntry`（设置页打开方式的可搜索应用选择器：输入即过滤、弹层可滚动、键盘导航）。fyne-x 未打语义化 tag，锁定 pseudo-version。 |
 | `github.com/charmbracelet/x/ansi` | v0.11.7 | ANSI 文本处理。由 selector 渲染测试直接使用，并由 Charm 套件复用。 |
 | `github.com/sahilm/fuzzy` | v0.1.2 | 子序列匹配库。仅使用匹配位置与基础结果，自定义时间权重、日期后缀加成和排序。 |
 | `github.com/jeandeaual/go-locale` | v0.0.0-20250612000132-0ef82f21eade | OS 语言检测。`locale: auto` 且无 `LANG`/`LC_*` 时（GUI 从 Dock/开始菜单启动）回退系统语言。 |
@@ -72,6 +73,7 @@ require (
     charm.land/bubbletea/v2 v2.0.6
     charm.land/lipgloss/v2  v2.0.2
     fyne.io/fyne/v2           v2.8.0
+    fyne.io/x/fyne            v0.0.0-20260712112324-6989f2f174fb
     github.com/charmbracelet/x/ansi v0.11.7
     github.com/sahilm/fuzzy   v0.1.2
 )

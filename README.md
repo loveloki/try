@@ -121,7 +121,7 @@ try-gui -path ~/src/tries  # 临时覆盖 tries 根目录
 
 GUI 与 TUI 的差异：GUI 用「进入文件视图」替代 TUI 的 `cd` 脚本输出，不提供 worktree / install 与 Shell 集成。所有文件操作限制在配置解析出的 tries 与 ship 目录子树内，且不允许删除或重命名根目录本身。
 
-**设置对话框**：通过选择器与文件视图头部的齿轮按钮，或快捷键 `Cmd+,`（macOS）/ `Ctrl+,`（Windows/Linux）打开。可配置主题（Dark / Light / Auto）、语言（English / 中文 / Auto）与打开方式映射（扩展名→应用名，可添加 / 删除）。所有修改即时生效并写回配置文件，无需保存。
+**设置页**：通过选择器与文件视图头部的齿轮按钮，或快捷键 `Cmd+,`（macOS）/ `Ctrl+,`（Windows/Linux）打开的全屏页面；Esc 或再次按下快捷键返回。可配置主题（Dark / Light / Auto）、语言（English / 中文 / Auto）与打开方式映射（扩展名→应用名，应用选择器支持搜索过滤已安装应用——macOS 为 /Applications 等目录的 .app，其他平台为 PATH 可执行程序，也可手动输入任意应用名，可添加 / 删除）。所有修改即时生效并写回配置文件，无需保存。
 
 `try-gui` 使用 Fyne 构建原生桌面窗口。构建 GUI 产物需要 CGO 和目标平台图形依赖；CI 在 macOS、Windows、Linux runner 上分别原生编译（见 `.github/workflows/ci.yml`）。
 
@@ -163,7 +163,7 @@ go install fyne.io/tools/cmd/fyne@latest
 | `ships` | `TRY_PROJECTS` | `["~/src/ship", "~/src/bug"]` | ship 目标目录列表 |
 | `locale` | `TRY_LOCALE` | `auto` | 界面语言（`en` / `zh` / `auto`） |
 | `theme` | — | `auto` | GUI 主题（`dark` / `light` / `auto`） |
-| `openWith` | — | `{}` | 扩展名→应用名映射，如 `{".go": "Visual Studio Code"}`（GUI 打开方式） |
+| `openWith` | — | `{}` | 扩展名→应用名映射，如 `{".go": "Zed"}`；键 `*` 为通用映射（所有文件，精确扩展名优先）。GUI 打开方式；应用名支持内置应用、macOS 应用名、PATH 可执行名或绝对路径 |
 
 ## 项目结构
 
@@ -209,7 +209,7 @@ internal/
     chrome_*.go                # 平台标题栏策略
     view_*.go                  # Selector / Files / Dialog / Toast
     theme.go                   # GUI 主题 token 映射
-    settings*.go               # 设置对话框（主题 / 语言 / Open With）
+    settings*.go               # 设置页（主题 / 语言 / Open With）
 ```
 
 ## 技术栈

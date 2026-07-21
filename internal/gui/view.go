@@ -5,6 +5,7 @@ import "github.com/loveloki/try/internal/config"
 func (g *desktopGUI) setupWindow() {
 	g.selectorBody = g.buildSelectorBody()
 	g.filesBody = g.buildFilesBody()
+	g.settingsBody = g.buildSettingsBody()
 	g.switchToSelector(true)
 	g.bindKeys()
 	g.bindDrop()
@@ -21,6 +22,45 @@ func (g *desktopGUI) switchToSelector(focusSearch bool) {
 	} else if g.list != nil {
 		g.window.Canvas().Focus(g.list)
 	}
+}
+
+// switchToSettings 进入全屏设置页，记住返回视图。
+func (g *desktopGUI) switchToSettings() {
+	g.applyOpenSettings()
+	g.list = nil
+	g.setWindowContent(g.settingsBody)
+	g.syncFilesWatch()
+}
+
+// closeSettings 关闭设置页，返回进入前的视图。
+func (g *desktopGUI) closeSettings() {
+	if g.view != "settings" {
+		return
+	}
+	back := g.applyCloseSettings()
+	if back == "files" {
+		g.switchToFiles()
+		return
+	}
+	g.switchToSelector(false)
+}
+
+// applyOpenSettings 设置设置页视图状态（不含 UI 切换，便于单测）。
+func (g *desktopGUI) applyOpenSettings() {
+	if g.view != "settings" {
+		g.settingsReturn = g.view
+	}
+	g.view = "settings"
+}
+
+// applyCloseSettings 恢复进入设置页前的视图并返回其名称。
+func (g *desktopGUI) applyCloseSettings() string {
+	back := g.settingsReturn
+	if back == "" {
+		back = "selector"
+	}
+	g.view = back
+	return back
 }
 
 func (g *desktopGUI) switchToFiles() {
@@ -85,11 +125,17 @@ func (g *desktopGUI) applyThemeAndRedraw() {
 	// 主题切换后重建 body，使 header/status 绑定新 token。
 	g.selectorBody = g.buildSelectorBody()
 	g.filesBody = g.buildFilesBody()
-	if g.view == "files" {
+	g.settingsBody = g.buildSettingsBody()
+	switch g.view {
+	case "files":
 		g.switchToFiles()
-		return
+	case "settings":
+		// 停留在设置页，文案与主题以新值重建。
+		g.view = g.settingsReturn
+		g.switchToSettings()
+	default:
+		g.switchToSelector(false)
 	}
-	g.switchToSelector(false)
 }
 
 func (g *desktopGUI) cycleSource(delta int) {

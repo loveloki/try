@@ -152,8 +152,11 @@ type Messages struct {
 	GUISettingsDelete         string
 	GUISettingsExtPlaceholder string
 	GUISettingsInvalidExt     string
+	GUISettingsInvalidApp     string
 	GUISettingsNoMappings     string
 	GUISettingsClose          string
+	GUISettingsBack           string
+	GUISettingsMappingAdded   string // 含 %s："%s → %s 已添加" 反馈
 	GUISettingsErrSave        string
 
 	// === 时间格式化 ===

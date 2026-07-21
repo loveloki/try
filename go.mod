@@ -7,6 +7,7 @@ require (
 	charm.land/bubbletea/v2 v2.0.6
 	charm.land/lipgloss/v2 v2.0.2
 	fyne.io/fyne/v2 v2.8.0
+	fyne.io/x/fyne v0.0.0-20260712112324-6989f2f174fb
 	github.com/charmbracelet/x/ansi v0.11.7
 	github.com/fsnotify/fsnotify v1.9.0
 	github.com/jeandeaual/go-locale v0.0.0-20250612000132-0ef82f21eade

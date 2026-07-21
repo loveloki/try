@@ -5,6 +5,7 @@ import (
 	"os/exec"
 	"path/filepath"
 	"runtime"
+	"sort"
 	"strings"
 )
 
@@ -67,23 +68,156 @@ func buildAvailableApps(ext string, openWithConfig map[string]string) []availabl
 	return filterAppsByConfig(apps, ext, openWithConfig)
 }
 
+// filterAppsByConfig 应用打开方式映射，优先级：精确扩展名 > 通配 `*` > 内置列表。
+// 通配 `*` 为通用映射，在无精确命中时生效（含无扩展名文件与目录）。
 func filterAppsByConfig(apps []availableApp, ext string, cfg map[string]string) []availableApp {
-	if cfg == nil || ext == "" {
+	if cfg == nil {
 		return apps
 	}
-	configured, ok := cfg[ext]
-	if !ok {
-		return apps
+	if ext != "" {
+		if configured, ok := cfg[ext]; ok {
+			return resolveConfiguredApp(apps, configured)
+		}
 	}
-	configured = strings.ToLower(configured)
-	result := make([]availableApp, 0, len(apps))
+	if wildcard, ok := cfg["*"]; ok {
+		return resolveConfiguredApp(apps, wildcard)
+	}
+	return apps
+}
+
+// resolveConfiguredApp 将映射的应用名解析为可用应用：内置列表命中时只保留该项；
+// 未命中时按自定义应用解析（macOS 应用名 / PATH 可执行名 / 绝对路径）。
+func resolveConfiguredApp(apps []availableApp, name string) []availableApp {
+	configured := strings.ToLower(strings.TrimSpace(name))
 	for _, a := range apps {
 		if strings.ToLower(a.Name) == configured || strings.Contains(strings.ToLower(a.Path), configured) {
 			a.Available = true
-			result = append(result, a)
+			return []availableApp{a}
 		}
 	}
-	return result
+	return findCustomApp(name)
+}
+
+// findCustomApp 将用户配置的应用名解析为可用应用，解析失败返回空列表。
+func findCustomApp(name string) []availableApp {
+	name = strings.TrimSpace(name)
+	if name == "" {
+		return nil
+	}
+	for _, p := range customAppPaths(name) {
+		if isAppAvailable(p) {
+			return []availableApp{{Name: name, Path: p, Available: true}}
+		}
+	}
+	return nil
+}
+
+func customAppPaths(name string) []string {
+	if filepath.IsAbs(name) {
+		return []string{name}
+	}
+	if runtime.GOOS == "darwin" {
+		return bundleCandidates(name)
+	}
+	return execCandidates(name)
+}
+
+// bundleCandidates macOS 下依次尝试原名、.app 后缀与小写形式。
+func bundleCandidates(name string) []string {
+	if strings.HasSuffix(name, ".app") {
+		return []string{name}
+	}
+	return []string{name, name + ".app", strings.ToLower(name)}
+}
+
+// execCandidates Linux/Windows 下依次尝试原名与小写形式。
+func execCandidates(name string) []string {
+	if lower := strings.ToLower(name); lower != name {
+		return []string{name, lower}
+	}
+	return []string{name}
+}
+
+// installedAppNames 返回已安装应用候选：macOS 为 .app 应用名（可用 open -a 打开），
+// 其他平台为 PATH 中的可执行名。
+func installedAppNames() []string {
+	if runtime.GOOS == "darwin" {
+		return applicationNames()
+	}
+	return pathExecutables(0)
+}
+
+// applicationNames 扫描 macOS 应用目录，按字典序返回去掉 .app 后缀的应用名。
+func applicationNames() []string {
+	dirs := []string{
+		"/Applications",
+		"/Applications/Utilities",
+		"/System/Applications",
+		"/System/Applications/Utilities",
+	}
+	if home, err := os.UserHomeDir(); err == nil {
+		dirs = append(dirs, filepath.Join(home, "Applications"))
+	}
+	seen := make(map[string]bool)
+	names := make([]string, 0, 64)
+	for _, dir := range dirs {
+		entries, err := os.ReadDir(dir)
+		if err != nil {
+			continue
+		}
+		for _, e := range entries {
+			name := e.Name()
+			if !strings.HasSuffix(name, ".app") || seen[name] {
+				continue
+			}
+			seen[name] = true
+			names = append(names, strings.TrimSuffix(name, ".app"))
+		}
+	}
+	sort.Strings(names)
+	return names
+}
+
+// pathExecutables 扫描 PATH 目录，按字典序返回去重后的可执行文件名；limit > 0 时最多 limit 个。
+func pathExecutables(limit int) []string {
+	seen := make(map[string]bool)
+	names := make([]string, 0, limit)
+	for _, dir := range filepath.SplitList(os.Getenv("PATH")) {
+		if dir == "" {
+			continue
+		}
+		entries, err := os.ReadDir(dir)
+		if err != nil {
+			continue
+		}
+		for _, e := range entries {
+			if seen[e.Name()] || !isExecutableEntry(e) {
+				continue
+			}
+			seen[e.Name()] = true
+			names = append(names, e.Name())
+		}
+	}
+	sort.Strings(names)
+	if limit > 0 && len(names) > limit {
+		names = names[:limit]
+	}
+	return names
+}
+
+func isExecutableEntry(e os.DirEntry) bool {
+	if e.IsDir() {
+		return false
+	}
+	if runtime.GOOS == "windows" {
+		ext := strings.ToLower(filepath.Ext(e.Name()))
+		return ext == ".exe" || ext == ".bat" || ext == ".cmd"
+	}
+	info, err := e.Info()
+	if err != nil {
+		return false
+	}
+	return info.Mode().IsRegular() && info.Mode()&0o111 != 0
 }
 
 // isAppAvailable 检测应用在当前系统上是否可用。

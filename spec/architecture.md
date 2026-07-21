@@ -55,7 +55,7 @@ internal/
     format.go          # 相对时间与文件大小格式化
     browser.go         # 系统默认打开文件 / 文件管理器揭示目录
     context_menu.go   # 文件右键菜单构建与操作分发
-    app_discovery.go  # 可用应用发现与内置应用列表
+    app_discovery.go  # 可用应用发现：内置列表 + 自定义应用解析 + PATH 可执行名扫描
     dto.go             # GUI 视图模型
     paths.go           # 路径沙箱（tries/ships 子树）
     chrome.go          # 窗口 chrome 接口与尺寸常量
@@ -73,8 +73,8 @@ internal/
     nav_list.go        # 列表键盘导航
     search_entry.go    # 搜索框 Tab 拦截
     status_bar.go      # 底栏：左计数 / 右键帽快捷键
-    settings.go        # 设置对话框（主题/语言/Open With）
-    settings_openwith.go # 设置对话框 Open With 映射编辑
+    settings.go        # 设置页（全屏视图：主题/语言/布局骨架）
+    settings_openwith.go # 设置页 Open With 映射编辑
     widgets.go         # 行组件（Hoverable / Mouseable）
     widgets_source_tab.go # 来源 Tab hover 对比度
     widgets_row_state.go # 行背景优先级：marked > selected > hover

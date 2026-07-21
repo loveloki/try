@@ -16,13 +16,18 @@ func TestNormalizeExtension(t *testing.T) {
 		ok   bool
 	}{
 		{"uppercase", ".GO", ".go", true},
-		{"missing dot", "go", "", false},
+		{"missing dot auto-filled", "go", ".go", true},
+		{"missing dot uppercase", "GO", ".go", true},
+		{"missing dot digits", "7z", ".7z", true},
 		{"only dot", ".", "", false},
 		{"double dot", "..", "", false},
 		{"dot dot suffix", "..x", "", false},
 		{"with space", ".a b", "", false},
 		{"with slash", ".a/b", "", false},
 		{"digits", ".7z", ".7z", true},
+		{"wildcard", "*", "*", true},
+		{"wildcard with spaces", " * ", "*", true},
+		{"wildcard prefix", "*go", "", false},
 		{"trim spaces", " .Md ", ".md", true},
 		{"empty", "", "", false},
 		{"spaces only", "   ", "", false},
@@ -98,6 +103,45 @@ func TestSettingsSelectLabels(t *testing.T) {
 	localeWant := []string{"English", "中文", msgs.GUISettingsLangAuto}
 	if got := localeLabels(g.msgs); !slices.Equal(got, localeWant) {
 		t.Errorf("localeLabels = %v, want %v", got, localeWant)
+	}
+}
+
+func TestSettingsViewRoundTrip(t *testing.T) {
+	t.Parallel()
+	tests := []struct {
+		name string
+		from string
+		want string
+	}{
+		{"from selector", "selector", "selector"},
+		{"from files", "files", "files"},
+	}
+	for _, tt := range tests {
+		t.Run(tt.name, func(t *testing.T) {
+			g := &desktopGUI{view: tt.from}
+			g.applyOpenSettings()
+			if g.view != "settings" {
+				t.Fatalf("after open: view = %q, want settings", g.view)
+			}
+			if g.settingsReturn != tt.from {
+				t.Fatalf("settingsReturn = %q, want %q", g.settingsReturn, tt.from)
+			}
+			if back := g.applyCloseSettings(); back != tt.want {
+				t.Fatalf("close returned %q, want %q", back, tt.want)
+			}
+			if g.view != tt.want {
+				t.Fatalf("after close: view = %q, want %q", g.view, tt.want)
+			}
+		})
+	}
+}
+
+func TestSettingsViewRoundTripDefault(t *testing.T) {
+	t.Parallel()
+	// 未记录返回视图时回退到 selector
+	g := &desktopGUI{view: "settings"}
+	if back := g.applyCloseSettings(); back != "selector" {
+		t.Fatalf("close returned %q, want selector", back)
 	}
 }
 

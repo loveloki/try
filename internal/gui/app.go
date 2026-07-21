@@ -8,7 +8,6 @@ import (
 	"fyne.io/fyne/v2"
 	"fyne.io/fyne/v2/app"
 	"fyne.io/fyne/v2/canvas"
-	"fyne.io/fyne/v2/dialog"
 	"fyne.io/fyne/v2/driver/desktop"
 	"fyne.io/fyne/v2/theme"
 	"fyne.io/fyne/v2/widget"
@@ -49,6 +48,8 @@ type desktopGUI struct {
 
 	selectorBody        fyne.CanvasObject
 	filesBody           fyne.CanvasObject
+	settingsBody        fyne.CanvasObject
+	settingsReturn      string // 进入设置页前的视图（selector / files）
 	sourceTabsBox       *fyne.Container
 	filesTitle          *widget.Label
 	breadcrumbBox       *fyne.Container
@@ -72,9 +73,6 @@ type desktopGUI struct {
 	// appShortcuts 按名称索引应用级快捷键处理器：搜索框聚焦时驱动会把快捷键
 	// 派发给搜索框而非 canvas，搜索框经 onShortcut 回调转交到这里统一处理。
 	appShortcuts map[string]func(fyne.Shortcut)
-
-	// settingsDlg 非空表示设置对话框已打开，防止重复弹出。
-	settingsDlg dialog.Dialog
 }
 
 // Run 加载配置、创建原生桌面窗口，并阻塞至应用退出。
@@ -237,6 +235,13 @@ func (g *desktopGUI) dispatchAppShortcut(s fyne.Shortcut) bool {
 }
 
 func (g *desktopGUI) handleNavKey(e *fyne.KeyEvent) {
+	// 设置页不响应导航键，仅 Esc 返回上一视图；控件按键由各自组件处理。
+	if g.view == "settings" {
+		if e.Name == fyne.KeyEscape {
+			g.closeSettings()
+		}
+		return
+	}
 	switch e.Name {
 	case fyne.KeyUp:
 		g.moveSelection(-1)

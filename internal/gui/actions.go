@@ -12,6 +12,9 @@ import (
 )
 
 func (g *desktopGUI) moveSelection(delta int) {
+	if g.view == "settings" {
+		return
+	}
 	if g.view == "files" {
 		g.fileSelected = stepFileSelected(g.fileSelected, delta, len(g.files))
 		if g.list != nil && len(g.files) > 0 && g.fileSelected >= 0 {
@@ -74,6 +77,9 @@ func (g *desktopGUI) openSelectedFile() {
 }
 
 func (g *desktopGUI) toggleMark() {
+	if g.view == "settings" {
+		return
+	}
 	if g.view == "files" {
 		g.toggleFileMark()
 		return
@@ -243,6 +249,10 @@ func (g *desktopGUI) showInputDialog(title string, entry *widget.Entry, apply fu
 }
 
 func (g *desktopGUI) handleEsc() {
+	if g.view == "settings" {
+		g.closeSettings()
+		return
+	}
 	if g.view == "files" {
 		if len(g.fileMarked) > 0 {
 			g.fileMarked = map[string]bool{}
@@ -275,4 +285,3 @@ func (g *desktopGUI) handleFilesBack() {
 	}
 	g.enterFiles(g.filesRoot, filepath.Dir(g.filesPath))
 }
-

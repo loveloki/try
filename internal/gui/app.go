@@ -8,6 +8,7 @@ import (
 	"fyne.io/fyne/v2"
 	"fyne.io/fyne/v2/app"
 	"fyne.io/fyne/v2/canvas"
+	"fyne.io/fyne/v2/dialog"
 	"fyne.io/fyne/v2/driver/desktop"
 	"fyne.io/fyne/v2/theme"
 	"fyne.io/fyne/v2/widget"
@@ -21,7 +22,7 @@ type Options struct {
 }
 
 type desktopGUI struct {
-	cfg       config.Config
+	cfg     config.Config
 	app     fyne.App
 	window  fyne.Window
 	chrome  *WindowChrome
@@ -46,12 +47,12 @@ type desktopGUI struct {
 	fileSelected int
 	fileMarked   map[string]bool
 
-	selectorBody  fyne.CanvasObject
-	filesBody     fyne.CanvasObject
-	sourceTabsBox *fyne.Container
-	filesTitle    *widget.Label
-	breadcrumbBox *fyne.Container
-	dropOverlay   fyne.CanvasObject
+	selectorBody        fyne.CanvasObject
+	filesBody           fyne.CanvasObject
+	sourceTabsBox       *fyne.Container
+	filesTitle          *widget.Label
+	breadcrumbBox       *fyne.Container
+	dropOverlay         fyne.CanvasObject
 	dropOverlayLabel    *canvas.Text
 	dropOverlayProgress *widget.ProgressBar
 	dropBusy            bool
@@ -66,6 +67,13 @@ type desktopGUI struct {
 	fileList  *navList
 
 	watcher *dirWatcher
+
+	// appShortcuts 按名称索引应用级快捷键处理器：搜索框聚焦时驱动会把快捷键
+	// 派发给搜索框而非 canvas，搜索框经 onShortcut 回调转交到这里统一处理。
+	appShortcuts map[string]func(fyne.Shortcut)
+
+	// settingsDlg 非空表示设置对话框已打开，防止重复弹出。
+	settingsDlg dialog.Dialog
 }
 
 // Run 加载配置、创建原生桌面窗口，并阻塞至应用退出。
@@ -191,22 +199,39 @@ func (g *desktopGUI) bindKeys() {
 			g.focusSearch()
 		}
 	})
-	for _, sc := range []struct {
-		key fyne.KeyName
-		fn  func()
+	shortcuts := []struct {
+		shortcut fyne.Shortcut
+		fn       func()
 	}{
-		{fyne.KeyT, g.promptCreate},
-		{fyne.KeyD, g.toggleMark},
-		{fyne.KeyR, g.promptRename},
-		{fyne.KeyG, g.promptShip},
-		{fyne.KeyP, func() { g.moveSelection(-1) }},
-		{fyne.KeyN, func() { g.moveSelection(1) }},
-		{fyne.KeyF, g.focusSearch},
-	} {
-		c.AddShortcut(ctrlShortcut{key: sc.key}, func(f func()) func(fyne.Shortcut) {
-			return func(fyne.Shortcut) { f() }
-		}(sc.fn))
+		{controlShortcut(fyne.KeyT), g.promptCreate},
+		{controlShortcut(fyne.KeyD), g.toggleMark},
+		{controlShortcut(fyne.KeyR), g.promptRename},
+		{controlShortcut(fyne.KeyG), g.promptShip},
+		{controlShortcut(fyne.KeyP), func() { g.moveSelection(-1) }},
+		{controlShortcut(fyne.KeyN), func() { g.moveSelection(1) }},
+		{controlShortcut(fyne.KeyF), g.focusSearch},
+		// 设置：macOS Cmd+, / 其他平台 Ctrl+,，与上面 Ctrl 系列修饰键不同，可共存。
+		{settingsShortcut(), g.promptSettings},
 	}
+	g.appShortcuts = make(map[string]func(fyne.Shortcut), len(shortcuts))
+	for _, sc := range shortcuts {
+		handler := func(f func()) func(fyne.Shortcut) {
+			return func(fyne.Shortcut) { f() }
+		}(sc.fn)
+		// canvas 处理焦点不在搜索框的情况；appShortcuts 处理搜索框聚焦时的转发。
+		c.AddShortcut(sc.shortcut, handler)
+		g.appShortcuts[sc.shortcut.ShortcutName()] = handler
+	}
+}
+
+// dispatchAppShortcut 按名称分发应用级快捷键，未注册时返回 false 由调用方回落处理。
+func (g *desktopGUI) dispatchAppShortcut(s fyne.Shortcut) bool {
+	handler, ok := g.appShortcuts[s.ShortcutName()]
+	if !ok {
+		return false
+	}
+	handler(s)
+	return true
 }
 
 func (g *desktopGUI) handleNavKey(e *fyne.KeyEvent) {

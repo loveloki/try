@@ -74,7 +74,7 @@ func TestFilesStatusContent(t *testing.T) {
 		files: make([]FileEntry, 2),
 	}
 	left, hints := g.filesStatusContent()
-	if left == "" || len(hints) != 3 {
+	if left == "" || len(hints) != 4 {
 		t.Fatalf("left=%q hints=%d", left, len(hints))
 	}
 	if !hints[2].Accent {

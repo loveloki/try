@@ -10,10 +10,10 @@ import (
 
 // Config 配置结构体，JSON 字段名为小写
 type Config struct {
-	Path   string   `json:"path"`   // tries 根目录
-	Ships  []string `json:"ships"`  // ship 目标目录列表
-	Locale string   `json:"locale"` // 语言：en / zh / auto
-	Theme   string            `json:"theme"`   // GUI 主题：dark / light / auto
+	Path     string            `json:"path"`     // tries 根目录
+	Ships    []string          `json:"ships"`    // ship 目标目录列表
+	Locale   string            `json:"locale"`   // 语言：en / zh / auto
+	Theme    string            `json:"theme"`    // GUI 主题：dark / light / auto
 	OpenWith map[string]string `json:"openWith"` // 文件扩展名 → 应用名映射
 }
 
@@ -49,10 +49,10 @@ func parseConfigData(data []byte) (Config, error) {
 
 	// 先解析到一个 Ships 为 nil 的结构，以区分"未设置"和"设置为空"
 	var raw struct {
-		Path    string            `json:"path"`
-		Ships   []string          `json:"ships"`
-		Locale  string            `json:"locale"`
-		Theme   string            `json:"theme"`
+		Path     string            `json:"path"`
+		Ships    []string          `json:"ships"`
+		Locale   string            `json:"locale"`
+		Theme    string            `json:"theme"`
 		OpenWith map[string]string `json:"openWith"`
 	}
 	if err := json.Unmarshal(data, &raw); err != nil {
@@ -191,12 +191,30 @@ func ExpandPath(s string) string {
 
 // SaveTheme 将主题设置写入配置文件。保留其他字段不变。
 func SaveTheme(themeName string) error {
+	return updateConfig(func(cfg *Config) { cfg.Theme = themeName })
+}
+
+// SaveLocale 持久化界面语言设置（en / zh / auto）
+func SaveLocale(locale string) error {
+	return updateConfig(func(cfg *Config) { cfg.Locale = locale })
+}
+
+// SaveOpenWith 持久化文件扩展名到应用的打开方式映射
+func SaveOpenWith(openWith map[string]string) error {
+	return updateConfig(func(cfg *Config) { cfg.OpenWith = openWith })
+}
+
+// updateConfig 加载现有配置，应用 mutate 后写回，保留其他字段
+func updateConfig(mutate func(*Config)) error {
 	cfg, err := LoadConfig()
 	if err != nil {
-		return fmt.Errorf("load config for theme save: %w", err)
+		return fmt.Errorf("load config for update: %w", err)
 	}
-	cfg.Theme = themeName
-	return writeConfig(cfg)
+	mutate(&cfg)
+	if err := writeConfig(cfg); err != nil {
+		return fmt.Errorf("write config for update: %w", err)
+	}
+	return nil
 }
 
 func writeConfig(cfg Config) error {

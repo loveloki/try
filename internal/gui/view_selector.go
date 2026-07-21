@@ -11,7 +11,7 @@ import (
 )
 
 func (g *desktopGUI) buildSelectorBody() fyne.CanvasObject {
-	g.search = newSearchEntry(g.cycleSource, g.moveSelection, g.submitSearch)
+	g.search = newSearchEntry(g.cycleSource, g.moveSelection, g.submitSearch, g.dispatchAppShortcut)
 	g.search.SetPlaceHolder(g.msgs.GUISearchPlace)
 	g.search.SetText(g.query)
 	g.search.OnChanged = func(q string) {
@@ -23,7 +23,7 @@ func (g *desktopGUI) buildSelectorBody() fyne.CanvasObject {
 	g.sourceTabsBox = container.NewHBox()
 	g.rebuildSourceTabs()
 
-	header := buildHeader(g.msgs.Title, g.themeButton())
+	header := buildHeader(g.msgs.Title, g.headerButtons())
 	top := container.NewVBox(withHInset(header), withHInset(g.search), withHInset(g.sourceTabsBox))
 	g.entryList = g.buildEntryList()
 	g.list = g.entryList
@@ -123,6 +123,7 @@ func (g *desktopGUI) selectorStatusContent() (string, []shortcutHint) {
 		{Key: "Enter", Label: g.msgs.GUIShortcutOpen},
 		{Key: "⌃T", Label: g.msgs.GUIShortcutNew},
 		{Key: "⌃D", Label: g.msgs.GUIShortcutDelete},
+		{Key: ",", Label: g.msgs.GUISettingsTitle},
 	}
 }
 
@@ -130,4 +131,15 @@ func (g *desktopGUI) themeButton() fyne.CanvasObject {
 	btn := widget.NewButtonWithIcon("", theme.ColorPaletteIcon(), g.toggleTheme)
 	btn.Importance = widget.LowImportance
 	return btn
+}
+
+func (g *desktopGUI) settingsButton() fyne.CanvasObject {
+	btn := widget.NewButtonWithIcon("", theme.SettingsIcon(), g.promptSettings)
+	btn.Importance = widget.LowImportance
+	return btn
+}
+
+// headerButtons 标题行右侧按钮组：主题切换 + 设置。
+func (g *desktopGUI) headerButtons() fyne.CanvasObject {
+	return container.NewHBox(g.themeButton(), g.settingsButton())
 }

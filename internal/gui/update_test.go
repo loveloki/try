@@ -97,7 +97,7 @@ func TestDecideSelectorOpen(t *testing.T) {
 
 func TestSearchEntryAcceptsTab(t *testing.T) {
 	t.Parallel()
-	e := newSearchEntry(nil, nil, nil)
+	e := newSearchEntry(nil, nil, nil, nil)
 	if !e.AcceptsTab() {
 		t.Fatal("searchEntry must AcceptsTab so Tab reaches TypedKey")
 	}

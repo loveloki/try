@@ -18,7 +18,7 @@ func (g *desktopGUI) buildFilesBody() fyne.CanvasObject {
 	g.breadcrumbBox = container.NewHBox()
 	g.rebuildBreadcrumbs()
 
-	header := buildHeader(g.filesPathLabel(), g.themeButton())
+	header := buildHeader(g.filesPathLabel(), g.headerButtons())
 	toolbar := g.buildFilesToolbar()
 	colHeader := g.buildFilesColumnHeader()
 	g.fileList = g.buildFileList()
@@ -146,6 +146,7 @@ func (g *desktopGUI) filesStatusContent() (string, []shortcutHint) {
 		{Key: "↑↓", Label: g.msgs.GUIShortcutNav},
 		{Key: "Esc", Label: g.msgs.GUIShortcutEscBack},
 		{Key: "", Label: g.msgs.GUIShortcutDrop, Accent: true},
+		{Key: ",", Label: g.msgs.GUISettingsTitle},
 	}
 }
 

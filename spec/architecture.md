@@ -72,6 +72,8 @@ internal/
     nav_list.go        # 列表键盘导航
     search_entry.go    # 搜索框 Tab 拦截
     status_bar.go      # 底栏：左计数 / 右键帽快捷键
+    settings.go        # 设置对话框（主题/语言/Open With）
+    settings_openwith.go # 设置对话框 Open With 映射编辑
     widgets.go         # 行组件（Hoverable / Mouseable）
     widgets_source_tab.go # 来源 Tab hover 对比度
     widgets_row_state.go # 行背景优先级：marked > selected > hover

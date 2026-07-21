@@ -2,6 +2,7 @@ package fuzzy
 
 import (
 	"testing"
+	"unicode/utf8"
 )
 
 // checkMatch 验证匹配结果的名称和顺序（测试功能而非内部评分）
@@ -158,5 +159,54 @@ func TestDensityFavorsCompactMatches(t *testing.T) {
 	}
 	if results[0].Entry.Text != "ab-xyz" {
 		t.Errorf("compact match should rank higher, got %q first", results[0].Entry.Text)
+	}
+}
+
+func TestChinesePositions(t *testing.T) {
+	// 中文字符匹配：验证 byte-level 位置正确
+	entries := []Entry{
+		{Text: "测试项目", BaseScore: 1.0},
+	}
+	results := Match(entries, "测", 0)
+	if len(results) != 1 {
+		t.Fatalf("expected 1 match, got %d", len(results))
+	}
+	pos := results[0].Positions
+	// sahilm/fuzzy 返回每个匹配 rune 的起始 byte 偏移："测" 在 byte 0
+	if len(pos) != 1 || pos[0] != 0 {
+		t.Errorf("positions = %v, want [0]", pos)
+	}
+	// 验证从该位置能还原完整字符
+	text := results[0].Entry.Text
+	r, sz := utf8.DecodeRuneInString(text[pos[0]:])
+	if r != '测' {
+		t.Errorf("rune at position = %c, want 测", r)
+	}
+	_ = sz
+}
+
+func TestChineseMultiCharPositions(t *testing.T) {
+	// 多个中文字符匹配
+	entries := []Entry{
+		{Text: "测试项目-2025", BaseScore: 1.0},
+	}
+	results := Match(entries, "测试", 0)
+	if len(results) != 1 {
+		t.Fatalf("expected 1 match, got %d", len(results))
+	}
+	pos := results[0].Positions
+	// "测" at byte 0; "试" at byte 3
+	if len(pos) != 2 {
+		t.Fatalf("expected 2 positions for 2 CJK chars, got %d: %v", len(pos), pos)
+	}
+	if pos[0] != 0 || pos[1] != 3 {
+		t.Errorf("positions = %v, want [0, 3]", pos)
+	}
+	// 验证两个位置各指向一个完整字符
+	text := results[0].Entry.Text
+	r1, _ := utf8.DecodeRuneInString(text[pos[0]:])
+	r2, _ := utf8.DecodeRuneInString(text[pos[1]:])
+	if r1 != '测' || r2 != '试' {
+		t.Errorf("runes at positions = %c%c, want 测试", r1, r2)
 	}
 }

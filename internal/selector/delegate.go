@@ -5,6 +5,7 @@ import (
 	"io"
 	"strings"
 	"time"
+	"unicode/utf8"
 
 	"charm.land/bubbles/v2/list"
 	tea "charm.land/bubbletea/v2"
@@ -167,7 +168,8 @@ func (d *EntryDelegate) writeHighlighted(b *strings.Builder, text string, posSet
 		if posSet[offset+i] {
 			j := i
 			for j < len(text) && posSet[offset+j] {
-				j++
+				_, sz := utf8.DecodeRuneInString(text[j:])
+				j += sz
 			}
 			matchStyle := d.styles.Match.Inherit(baseStyle)
 			if isMarked {
@@ -178,7 +180,8 @@ func (d *EntryDelegate) writeHighlighted(b *strings.Builder, text string, posSet
 		} else {
 			j := i
 			for j < len(text) && !posSet[offset+j] {
-				j++
+				_, sz := utf8.DecodeRuneInString(text[j:])
+				j += sz
 			}
 			if baseStyle.GetForeground() != nil || baseStyle.GetBackground() != nil || baseStyle.GetBold() || baseStyle.GetStrikethrough() {
 				b.WriteString(d.styles.Render(baseStyle, text[i:j]))

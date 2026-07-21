@@ -2,6 +2,7 @@ package gui
 
 import (
 	"fmt"
+	"unicode/utf8"
 
 	"fyne.io/fyne/v2"
 	"fyne.io/fyne/v2/theme"
@@ -23,13 +24,14 @@ func highlightSegments(text string, positions []int, marked, selected bool) []wi
 	for _, p := range positions {
 		posSet[p] = true
 	}
-	segs := make([]widget.RichTextSegment, 0, len(text))
+	segs := make([]widget.RichTextSegment, 0, len(positions)+1)
 	i := 0
 	for i < len(text) {
 		if posSet[i] {
 			j := i
 			for j < len(text) && posSet[j] {
-				j++
+				_, sz := utf8.DecodeRuneInString(text[j:])
+				j += sz
 			}
 			style := widget.RichTextStyle{
 				Inline:    true,
@@ -45,7 +47,8 @@ func highlightSegments(text string, positions []int, marked, selected bool) []wi
 		}
 		j := i
 		for j < len(text) && !posSet[j] {
-			j++
+			_, sz := utf8.DecodeRuneInString(text[j:])
+			j += sz
 		}
 		style := widget.RichTextStyle{
 			Inline:    true,
